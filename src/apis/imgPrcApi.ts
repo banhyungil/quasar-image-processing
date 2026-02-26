@@ -71,7 +71,7 @@ export async function imageProcessing(options: ImgPrcOptions) {
   const form = new FormData();
   form.append('file', options.file);
   form.append('prcType', options.prcType);
-  form.append('kenelSize', options.kernelSize.toString());
+  form.append('kernelSize', options.kernelSize.toString());
 
   const res = await api.post<Blob>('/image-processing', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
