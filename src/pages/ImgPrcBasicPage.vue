@@ -1,25 +1,160 @@
+<script setup lang="ts">
+import * as imgPrcApi from 'src/apis/imgPrcApi';
+import type { FileSaveResponse, PrcType } from 'src/apis/imgPrcApi';
+import { ZoomImg } from 'vue3-zoomer';
+import { DEFAULT_KERNEL_SIZES, FN_LIST, FN_OPTIONS_MAP } from 'src/constants/imgPrc';
+import type { FunctionKey } from 'src/constants/imgPrc';
+
+const selectedFunction = ref<FunctionKey>('filtering');
+const selectedOption = ref<PrcType>(FN_OPTIONS_MAP.filtering[0]!.value);
+/** 처리된 옵션 */
+const prcOption = ref<PrcType | null>(null);
+const originalFile = ref<File | null>(null);
+const originalPreviewUrl = ref<string | null>(null);
+const originalInputRef = ref<HTMLInputElement | null>(null);
+const resultBlob = ref<Blob | null>(null);
+const resultPreviewUrl = ref<string | null>(null);
+const isDragOver = ref(false);
+const savedImages = ref<FileSaveResponse[]>([]);
+const nextCursorUploadedAt = ref<string | null>(null);
+const nextCursorId = ref<string | null>(null);
+const hasNextPage = ref(true);
+const isFetchingSavedImages = ref(false);
+
+const kernelSize = ref(DEFAULT_KERNEL_SIZES[selectedOption.value] ?? 3);
+
+const cOptionList = computed(() => FN_OPTIONS_MAP[selectedFunction.value]);
+const cDisableKernelSize = computed(() => !(selectedOption.value in DEFAULT_KERNEL_SIZES));
+
+watch(selectedFunction, (newFunction) => {
+  selectedOption.value = FN_OPTIONS_MAP[newFunction][0]!.value;
+});
+
+watch(selectedOption, (newOption) => {
+  const defaultSize = DEFAULT_KERNEL_SIZES[newOption];
+  if (defaultSize !== undefined) {
+    kernelSize.value = defaultSize;
+  }
+});
+
+async function onProcessImage() {
+  if (!originalFile.value) {
+    return;
+  }
+
+  resultBlob.value = await imgPrcApi.imageProcessing({
+    file: originalFile.value,
+    prcType: selectedOption.value,
+    kernelSize: kernelSize.value,
+  });
+
+  if (!(resultBlob.value instanceof Blob)) {
+    return;
+  }
+
+  if (resultPreviewUrl.value) {
+    URL.revokeObjectURL(resultPreviewUrl.value);
+  }
+  resultPreviewUrl.value = URL.createObjectURL(resultBlob.value);
+
+  prcOption.value = selectedOption.value;
+}
+
+async function onSavePrcImage() {
+  if (!resultBlob.value || !originalFile.value) {
+    return;
+  }
+
+  const saved = await imgPrcApi.saveProcessingImage({
+    blob: resultBlob.value,
+    originFileNm: originalFile.value.name,
+    prcType: selectedOption.value,
+  });
+
+  savedImages.value = [saved, ...savedImages.value];
+}
+
+async function fetchSavedImages() {
+  if (isFetchingSavedImages.value || !hasNextPage.value) {
+    return { hasMore: false };
+  }
+
+  isFetchingSavedImages.value = true;
+  try {
+    const res = await imgPrcApi.getProcessingImage({
+      limit: 20,
+      cursorUploadedAt: nextCursorUploadedAt.value,
+      cursorId: nextCursorId.value,
+    });
+
+    savedImages.value.push(...res.items);
+    nextCursorUploadedAt.value = res.nextCursorUploadedAt;
+    nextCursorId.value = res.nextCursorId;
+    hasNextPage.value = !!(res.nextCursorUploadedAt && res.nextCursorId);
+
+    return { hasMore: hasNextPage.value };
+  } finally {
+    isFetchingSavedImages.value = false;
+  }
+}
+
+async function onSavedImageInfiniteLoad(_index: number, done: (stop?: boolean) => void) {
+  const { hasMore } = await fetchSavedImages();
+  done(!hasMore);
+}
+
+function setOriginalFile(file: File | null) {
+  // 초기화
+  if (file == null) {
+    originalFile.value = null;
+    if (originalPreviewUrl.value) {
+      URL.revokeObjectURL(originalPreviewUrl.value);
+      originalPreviewUrl.value = null;
+    }
+    prcOption.value = null;
+
+    return;
+  }
+
+  if (!file.type.startsWith('image/')) {
+    return;
+  }
+
+  originalFile.value = file;
+
+  if (originalPreviewUrl.value) {
+    // 임시 URL 해제(메모리 해제)
+    URL.revokeObjectURL(originalPreviewUrl.value);
+  }
+
+  // 임시 URL 생성 (Blob URL)
+  originalPreviewUrl.value = URL.createObjectURL(file);
+}
+
+function openOriginalPicker() {
+  originalInputRef.value?.click();
+}
+
+function onOriginalInputChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0] ?? null;
+  setOriginalFile(file);
+}
+
+function onOriginalDrop(event: DragEvent) {
+  isDragOver.value = false;
+  const file = event.dataTransfer?.files?.[0] ?? null;
+  setOriginalFile(file);
+}
+
+onMounted(async () => {
+  await fetchSavedImages();
+});
+</script>
+
 <template>
   <q-page class="q-pa-md column fit q-gutter-md min-h-0 overflow-hidden">
-    <div class="row q-gutter-x-md justify-between h-16 mx-0">
-      <div class="row items-center col-12 col-md-8 left mx-0">
-        <q-select
-          v-model="selectedFunction"
-          :options="FN_LIST"
-          label="함수 목록"
-          outlined
-          emit-value
-          map-options
-          class="w-32"
-        />
-        <q-option-group
-          v-model="selectedOption"
-          :options="optionList"
-          type="radio"
-          color="primary"
-          size="xs"
-          inline
-        />
-      </div>
+    <div class="row justify-end">
       <div class="row items-center q-gutter-x-xs">
         <q-btn
           @click="onProcessImage"
@@ -31,12 +166,47 @@
           unelevated
         />
         <q-btn
+          @click="onSavePrcImage"
           class="h-fit text-sm"
           icon="save"
           label="저장"
           color="secondary"
           unelevated
-          :disabled="originalFile == null"
+          :disabled="resultBlob == null"
+        />
+      </div>
+    </div>
+    <div class="row q-gutter-x-md justify-between h-16 mx-0">
+      <div class="row items-center q-gutter-md left mx-0 w-full">
+        <q-input
+          v-model.number="kernelSize"
+          type="number"
+          label="커널 사이즈"
+          :disable="cDisableKernelSize"
+          outlined
+          dense
+          :min="3"
+          :step="2"
+          :rules="[(val: number) => val % 2 !== 0 || '홀수만 입력 가능합니다']"
+          lazy-rules
+          style="width: 140px"
+        />
+        <q-select
+          v-model="selectedFunction"
+          :options="FN_LIST"
+          label="함수 목록"
+          outlined
+          emit-value
+          map-options
+          class="w-32"
+        />
+        <q-option-group
+          v-model="selectedOption"
+          :options="cOptionList"
+          type="radio"
+          color="primary"
+          size="xs"
+          inline
         />
       </div>
     </div>
@@ -94,136 +264,48 @@
 
         <div class="col-12 col-md-6">
           <q-card flat bordered class="q-pa-md full-height">
-            <div class="text-subtitle1 text-weight-medium q-mb-sm">처리 이미지</div>
+            <div class="text-subtitle1 text-weight-medium q-mb-sm">처리 이미지 {{ prcOption }}</div>
+            <ZoomImg :src="resultPreviewUrl" class="fit" :zoom-scale="3" :step="1" />
           </q-card>
         </div>
       </div>
       <div class="col-3 min-h-0">
-        <q-scroll-area class="fit">
-          <q-list class="column q-gutter-y-sm">
-            <q-card v-for="i in 5" :key="i" flat bordered class="q-pa-md">
-              <div class="text-subtitle1 text-weight-medium q-mb-sm">Result {{ i }}</div>
-              <div>result</div>
+        <q-scroll-area class="fit saved-image-scroll">
+          <q-list class="column q-gutter-y-sm q-pa-xs">
+            <q-card
+              v-for="item in savedImages"
+              :key="item.id"
+              flat
+              bordered
+              class="q-pa-sm column items-stretch"
+            >
+              <img
+                :src="item.path"
+                class="rounded-borders"
+                style="width: 100%; aspect-ratio: 1; object-fit: cover; flex-shrink: 0"
+              />
+              <div class="q-mt-xs q-mb-none" style="min-height: 32px">
+                <div class="text-caption ellipsis">{{ item.originNm }}</div>
+                <div class="text-caption text-grey-7">{{ item.options.prcType }}</div>
+              </div>
             </q-card>
+            <q-infinite-scroll
+              :offset="120"
+              scroll-target=".saved-image-scroll .q-scrollarea__container"
+              @load="onSavedImageInfiniteLoad"
+            >
+              <template #loading>
+                <div class="row justify-center q-my-md">
+                  <q-spinner-dots color="primary" size="28px" />
+                </div>
+              </template>
+            </q-infinite-scroll>
           </q-list>
         </q-scroll-area>
       </div>
     </div>
   </q-page>
 </template>
-
-<script setup lang="ts">
-import * as imgPrcApi from 'src/apis/imgPrcApi';
-import type { PrcType } from 'src/apis/imgPrcApi';
-import { ZoomImg } from 'vue3-zoomer';
-type FunctionKey = 'filtering' | 'blurring' | 'findContour' | 'brightness' | 'threshold';
-
-const FN_LIST = [
-  { label: '필터링', value: 'filtering' },
-  { label: '블러링', value: 'blurring' },
-  { label: 'Find Contour', value: 'findContour' },
-  { label: '밝기 변환', value: 'brightness' },
-  { label: '이진화', value: 'threshold' },
-] as const;
-
-const FN_OPTIONS_MAP: Record<FunctionKey, Array<{ label: string; value: PrcType }>> = {
-  filtering: [
-    { label: '소벨 (Sobel)', value: 'sobel' },
-    { label: '프르윗 (Prewitt)', value: 'prewitt' },
-    { label: '라플라시안 (Laplacian)', value: 'laplacian' },
-    { label: '가우시안 (Gaussian)', value: 'gaussian' },
-  ],
-  blurring: [
-    { label: '블러 (Blur)', value: 'blur' },
-    { label: '가우시안 블러 (Gaussian Blur)', value: 'gaussianBlur' },
-    { label: '중앙값 블러 (Median Blur)', value: 'medianBlur' },
-    { label: '양방향 필터 (BilateralFilter)', value: 'bilateralFilter' },
-  ],
-  findContour: [{ label: 'Find Contour', value: 'findContour' }],
-  brightness: [
-    { label: '밝기 증가 (+)', value: 'plus' },
-    { label: '밝기 감소 (-)', value: 'minus' },
-  ],
-  threshold: [
-    { label: '일반 (Binary)', value: 'binary' },
-    { label: 'Inverse', value: 'inverse' },
-    { label: 'Tozero', value: 'tozero' },
-    { label: 'TozeroInverse', value: 'tozeroInverse' },
-  ],
-};
-
-const selectedFunction = ref<FunctionKey>('filtering');
-const selectedOption = ref<PrcType>(FN_OPTIONS_MAP.filtering[0]!.value);
-const originalFile = ref<File | null>(null);
-const originalPreviewUrl = ref<string | null>(null);
-const originalInputRef = ref<HTMLInputElement | null>(null);
-const isDragOver = ref(false);
-
-const optionList = computed(() => FN_OPTIONS_MAP[selectedFunction.value]);
-
-watch(selectedFunction, (newFunction) => {
-  selectedOption.value = FN_OPTIONS_MAP[newFunction][0]!.value;
-});
-
-async function onProcessImage() {
-  const form = new FormData();
-  form.append('file', originalFile.value!);
-  form.append('function', selectedFunction.value);
-  form.append('option', selectedOption.value);
-
-  const res = await imgPrcApi.imageProcessing({
-    file: originalFile.value!,
-    prcType: selectedOption.value,
-  });
-}
-
-function setOriginalFile(file: File | null) {
-  if (file == null) {
-    originalFile.value = null;
-    if (originalPreviewUrl.value) {
-      URL.revokeObjectURL(originalPreviewUrl.value);
-      originalPreviewUrl.value = null;
-    }
-    return;
-  }
-
-  if (!file.type.startsWith('image/')) {
-    return;
-  }
-
-  originalFile.value = file;
-
-  if (originalPreviewUrl.value) {
-    // 임시 URL 해제(메모리 해제)
-    URL.revokeObjectURL(originalPreviewUrl.value);
-  }
-
-  // 임시 URL 생성 (Blob URL)
-  originalPreviewUrl.value = URL.createObjectURL(file);
-}
-
-function openOriginalPicker() {
-  originalInputRef.value?.click();
-}
-
-function onOriginalInputChange(event: Event) {
-  const input = event.target as HTMLInputElement;
-  const file = input.files?.[0] ?? null;
-  setOriginalFile(file);
-}
-
-function onOriginalDrop(event: DragEvent) {
-  isDragOver.value = false;
-  const file = event.dataTransfer?.files?.[0] ?? null;
-  setOriginalFile(file);
-}
-
-onBeforeUnmount(() => {
-  if (originalPreviewUrl.value) {
-    URL.revokeObjectURL(originalPreviewUrl.value);
-  }
-});
-</script>
 
 <style scoped>
 .min-h-0 {

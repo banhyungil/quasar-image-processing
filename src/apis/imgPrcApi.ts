@@ -17,6 +17,19 @@ export type PrcType =
   | 'tozero'
   | 'tozeroInverse';
 
+export interface FileSaveResponse {
+  id: string;
+  originNm: string;
+  nm: string;
+  path: string;
+  mimeType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+  options: {
+    prcType: string;
+  };
+}
+
 /**
  * form vs 객체 전송 차이
  * 1. 객체(JSON) 전송
@@ -33,18 +46,68 @@ export type PrcType =
 interface ImgPrcOptions {
   file: File;
   prcType: PrcType;
+  kernelSize: number;
+}
+
+interface SavePrcImageOptions {
+  blob: Blob;
+  originFileNm: string;
+  prcType: PrcType;
+}
+
+export interface GetProcessingImageOptions {
+  limit?: number;
+  cursorUploadedAt?: string | Date | null;
+  cursorId?: string | null;
+}
+
+export interface FileListResponse {
+  items: FileSaveResponse[];
+  nextCursorUploadedAt: string | null;
+  nextCursorId: string | null;
 }
 
 export async function imageProcessing(options: ImgPrcOptions) {
   const form = new FormData();
   form.append('file', options.file);
   form.append('prcType', options.prcType);
+  form.append('kenelSize', options.kernelSize.toString());
 
-  const res = await api.post('/image-processing', form, {
+  const res = await api.post<Blob>('/image-processing', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    responseType: 'blob',
+  });
+
+  return res.data;
+}
+
+export async function saveProcessingImage(options: SavePrcImageOptions) {
+  const form = new FormData();
+  const fileName = `${options.originFileNm}_${options.prcType}.png`;
+
+  form.append('blob', options.blob, fileName);
+  form.append('prcType', options.prcType);
+
+  const res = await api.post<FileSaveResponse>('/image-processing/save', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
-  debugger;
 
-  const data = res.data;
-  return data;
+  return res.data;
+}
+
+export async function getProcessingImage(options: GetProcessingImageOptions = {}) {
+  const params = {
+    limit: options.limit ?? 20,
+    cursorUploadedAt:
+      options.cursorUploadedAt instanceof Date
+        ? options.cursorUploadedAt.toISOString()
+        : (options.cursorUploadedAt ?? undefined),
+    cursorId: options.cursorId ?? undefined,
+  };
+
+  const res = await api.get<FileListResponse>('/image-processing', {
+    params,
+  });
+
+  return res.data;
 }

@@ -105,6 +105,12 @@ export default defineConfig((/* ctx */) => {
     devServer: {
       // https: true,
       open: false, // opens browser window automatically
+      proxy: {
+        '/uploads': {
+          target: 'http://127.0.0.1:8000',
+          changeOrigin: true,
+        },
+      },
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework
