@@ -112,6 +112,9 @@ function setOriginalFile(file: File | null) {
       originalPreviewUrl.value = null;
     }
     prcOption.value = null;
+    if (originalInputRef.value) {
+      originalInputRef.value.value = '';
+    }
 
     return;
   }
@@ -131,6 +134,8 @@ function setOriginalFile(file: File | null) {
   originalPreviewUrl.value = URL.createObjectURL(file);
 }
 
+// input[type="file"]는 스타일링이 어려우므로
+// 커스텀 버튼과 드롭 영역을 만들어서 파일 선택을 유도
 function openOriginalPicker() {
   originalInputRef.value?.click();
 }
