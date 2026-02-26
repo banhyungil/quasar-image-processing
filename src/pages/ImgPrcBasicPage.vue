@@ -71,7 +71,7 @@ async function onSavePrcImage() {
     prcType: selectedOption.value,
   });
 
-  savedImages.value = [saved, ...savedImages.value];
+  savedImages.value.unshift(saved);
 }
 
 async function fetchSavedImages() {
@@ -284,11 +284,9 @@ onMounted(async () => {
               bordered
               class="q-pa-sm column items-stretch"
             >
-              <img
-                :src="item.path"
-                class="rounded-borders"
-                style="width: 100%; aspect-ratio: 1; object-fit: cover; flex-shrink: 0"
-              />
+              <div class="rounded-borders" style="aspect-ratio: 1">
+                <img :src="item.path" style="width: 100%; height: 100%; object-fit: contain" />
+              </div>
               <div class="q-mt-xs q-mb-none" style="min-height: 32px">
                 <div class="text-caption ellipsis">{{ item.originNm }}</div>
                 <div class="text-caption text-grey-7">{{ item.options.prcType }}</div>
