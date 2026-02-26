@@ -14,7 +14,15 @@
   <q-layout view="hHh Lpr fFf">
     <q-header elevated>
       <q-toolbar>
-        <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
+        <q-btn
+          flat
+          dense
+          round
+          icon="menu"
+          aria-label="Menu"
+          :color="isLeftDrawerMini ? 'secondary' : undefined"
+          @click="toggleLeftDrawer"
+        />
 
         <q-toolbar-title> Image Processing App </q-toolbar-title>
 
@@ -30,6 +38,7 @@
       :mini="isLeftDrawerMini"
       :width="240"
       :mini-width="72"
+      :classs="{ bg }"
     >
       <q-list>
         <EssentialLink
@@ -56,9 +65,9 @@ const $q = useQuasar();
 
 const linksList: EssentialLinkProps[] = [
   {
-    title: 'Docs',
-    caption: 'quasar.dev',
-    icon: 'code',
+    title: '영상처리',
+    caption: '영상처리 연습',
+    icon: 'photo_filter',
     to: { name: 'img-prc-basic' },
   },
   // {

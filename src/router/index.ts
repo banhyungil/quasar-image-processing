@@ -1,8 +1,8 @@
 import { defineRouter } from '#q-app/wrappers';
 import {
-  createMemoryHistory,
+  // createMemoryHistory,   // SSR, 테스트, Electron
+  // createWebHashHistory,  // 정적 호스팅, 구형 서버
   createRouter,
-  createWebHashHistory,
   createWebHistory,
 } from 'vue-router';
 import routes from './routes';
@@ -16,12 +16,12 @@ import routes from './routes';
  * with the Router instance.
  */
 
+/**
+ *
+ */
+
 export default defineRouter(function (/* { store, ssrContext } */) {
-  const createHistory = process.env.SERVER
-    ? createMemoryHistory
-    : process.env.VUE_ROUTER_MODE === 'history'
-      ? createWebHistory
-      : createWebHashHistory;
+  const createHistory = createWebHistory;
 
   const Router = createRouter({
     scrollBehavior: () => ({ left: 0, top: 0 }),

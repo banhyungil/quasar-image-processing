@@ -5,6 +5,12 @@ import { ZoomImg } from 'vue3-zoomer';
 import { DEFAULT_KERNEL_SIZES, FN_LIST, FN_OPTIONS_MAP } from 'src/constants/imgPrc';
 import type { FunctionKey } from 'src/constants/imgPrc';
 
+//ANCHOR - Hooks
+onMounted(async () => {
+  await fetchSavedImages();
+});
+
+//ANCHOR - Start
 const selectedFunction = ref<FunctionKey>('filtering');
 const selectedOption = ref<PrcType>(FN_OPTIONS_MAP.filtering[0]!.value);
 /** 처리된 옵션 */
@@ -151,10 +157,6 @@ function onOriginalDrop(event: DragEvent) {
   const file = event.dataTransfer?.files?.[0] ?? null;
   setOriginalFile(file);
 }
-
-onMounted(async () => {
-  await fetchSavedImages();
-});
 </script>
 
 <template>
