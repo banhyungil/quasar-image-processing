@@ -38,7 +38,6 @@
       :mini="isLeftDrawerMini"
       :width="240"
       :mini-width="72"
-      :classs="{ bg }"
     >
       <q-list>
         <EssentialLink

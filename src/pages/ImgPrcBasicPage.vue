@@ -220,10 +220,15 @@ function onOriginalDrop(event: DragEvent) {
 
     <!-- col 적용시 flex: 1 1 0% 효과 -->
     <div class="row col min-h-0 overflow-hidden">
-      <div class="row col-9 q-col-gutter-x-md min-h-0">
+      <!--
+      gutter 적용시 자식 요소에 padding 더하는 방식
+      자식 요소가 border 처리 된 경우 간격이 문제가 생기므로
+      border 요소는 래핑 처리 필요
+      -->
+      <div class="row col-9 q-col-gutter-x-sm min-h-0">
         <!-- 기본에서 12칸 전부 사용, col-md-6으로 나누어 6칸씩 사용, md면 태블릿,모바일 환경 사이즈 -->
-        <div class="col-12 col-md-6">
-          <q-card flat bordered class="q-pa-md full-height min-h-0 column q-gutter-md">
+        <div class="col-12 col-md-6 min-h-0 column">
+          <q-card flat bordered class="q-pa-md col column">
             <div class="row justify-between">
               <div class="text-subtitle1 text-weight-medium q-mb-md">원본 이미지</div>
               <q-btn
@@ -269,8 +274,8 @@ function onOriginalDrop(event: DragEvent) {
           </q-card>
         </div>
 
-        <div class="col-12 col-md-6">
-          <q-card flat bordered class="q-pa-md full-height">
+        <div class="col-12 col-md-6 min-h-0 column">
+          <q-card flat bordered class="q-pa-md col">
             <div class="text-subtitle1 text-weight-medium q-mb-sm">처리 이미지 {{ prcOption }}</div>
             <ZoomImg :src="resultPreviewUrl" class="fit" :zoom-scale="3" :step="1" />
           </q-card>
