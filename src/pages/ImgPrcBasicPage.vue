@@ -20,8 +20,11 @@ const originalPreviewUrl = ref<string | null>(null);
 const originalInputRef = ref<HTMLInputElement | null>(null);
 const resultBlob = ref<Blob | null>(null);
 const resultPreviewUrl = ref<string | null>(null);
+// 처리시간 (MS)
+const prcMs = ref<number>(0);
 const isDragOver = ref(false);
 const savedImages = ref<FileSaveResponse[]>([]);
+const selectedSavedImageId = ref<string | null>(null);
 const nextCursorUploadedAt = ref<string | null>(null);
 const nextCursorId = ref<string | null>(null);
 const hasNextPage = ref(true);
@@ -48,11 +51,13 @@ async function onProcessImage() {
     return;
   }
 
-  resultBlob.value = await imgPrcApi.imageProcessing({
+  const res = await imgPrcApi.imageProcessing({
     file: originalFile.value,
     prcType: selectedOption.value,
     kernelSize: kernelSize.value,
   });
+  resultBlob.value = res.blob;
+  prcMs.value = res.elapsedMs;
 
   if (!(resultBlob.value instanceof Blob)) {
     return;
@@ -75,6 +80,7 @@ async function onSavePrcImage() {
     blob: resultBlob.value,
     originFileNm: originalFile.value.name,
     prcType: selectedOption.value,
+    prcMs: prcMs.value,
   });
 
   savedImages.value.unshift(saved);
@@ -94,8 +100,8 @@ async function fetchSavedImages() {
     });
 
     savedImages.value.push(...res.items);
-    nextCursorUploadedAt.value = res.nextCursorUploadedAt;
-    nextCursorId.value = res.nextCursorId;
+    nextCursorUploadedAt.value = res.nextCursorUploadedAt!;
+    nextCursorId.value = res.nextCursorId!;
     hasNextPage.value = !!(res.nextCursorUploadedAt && res.nextCursorId);
 
     return { hasMore: hasNextPage.value };
@@ -156,6 +162,16 @@ function onOriginalDrop(event: DragEvent) {
   isDragOver.value = false;
   const file = event.dataTransfer?.files?.[0] ?? null;
   setOriginalFile(file);
+}
+
+function selectSavedImage(item: FileSaveResponse) {
+  if (resultPreviewUrl.value?.startsWith('blob:')) {
+    URL.revokeObjectURL(resultPreviewUrl.value);
+  }
+  resultPreviewUrl.value = item.path;
+  prcOption.value = item.options.prcType as PrcType;
+  prcMs.value = Number(item.options.prcMs ?? 0);
+  selectedSavedImageId.value = item.id;
 }
 </script>
 
@@ -276,7 +292,9 @@ function onOriginalDrop(event: DragEvent) {
 
         <div class="col-12 col-md-6 min-h-0 column">
           <q-card flat bordered class="q-pa-md col">
-            <div class="text-subtitle1 text-weight-medium q-mb-sm">처리 이미지 {{ prcOption }}</div>
+            <div class="text-subtitle1 text-weight-medium q-mb-sm">
+              처리 이미지 {{ `${prcOption ?? ''} (${prcMs}ms)` }}
+            </div>
             <ZoomImg :src="resultPreviewUrl" class="fit" :zoom-scale="3" :step="1" />
           </q-card>
         </div>
@@ -289,14 +307,18 @@ function onOriginalDrop(event: DragEvent) {
               :key="item.id"
               flat
               bordered
-              class="q-pa-sm column items-stretch"
+              class="q-pa-sm column items-stretch cursor-pointer"
+              :class="{ 'bg-blue-1': selectedSavedImageId === item.id }"
+              @click="selectSavedImage(item)"
             >
               <div class="rounded-borders" style="aspect-ratio: 1">
                 <img :src="item.path" style="width: 100%; height: 100%; object-fit: contain" />
               </div>
               <div class="q-mt-xs q-mb-none" style="min-height: 32px">
                 <div class="text-caption ellipsis">{{ item.originNm }}</div>
-                <div class="text-caption text-grey-7">{{ item.options.prcType }}</div>
+                <div class="text-caption text-grey-7">
+                  {{ `${item.options.prcType} (${item.options.prcMs ?? 0}ms)` }}
+                </div>
               </div>
             </q-card>
             <q-infinite-scroll
