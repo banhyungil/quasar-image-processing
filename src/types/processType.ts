@@ -37,6 +37,7 @@ export interface ProcessResponse {
   id: string;
   nm: string;
   fileId: string;
+  filePath: string | null;
   finalFileId: string | null;
   isLatest: boolean;
   totalExecutionMs: number | null;

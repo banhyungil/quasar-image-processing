@@ -14,6 +14,7 @@ import * as processApi from 'src/apis/processApi';
 import type { ProcessResponse } from 'src/apis/processApi';
 import * as imgPrcApi from 'src/apis/imgPrcApi';
 import type { TreeBatchStep } from 'src/types/imgPrcType';
+import { API_HOST } from 'src/boot/axios';
 
 import FilterNode from 'src/components/flow/FilterNode.vue';
 import SourceNode from 'src/components/flow/SourceNode.vue';
@@ -72,6 +73,7 @@ const presetDescription = ref('');
 
 // ── 처리목록 ───────────────────────────────────────────────────────────────
 const processList = ref<ProcessResponse[]>([]);
+const activeProcessId = ref<string | null>(null);
 
 // ── 원본 이미지 ────────────────────────────────────────────────────────────
 const originalFile = ref<File | null>(null);
@@ -415,6 +417,7 @@ function resetCanvas() {
   showOptionPanel.value = false;
   optionPanelTarget.value = null;
   activePresetId.value = null;
+  activeProcessId.value = null;
 }
 
 // ── Preset CRUD ────────────────────────────────────────────────────────────
@@ -497,7 +500,18 @@ async function removePreset(presetId: string) {
 
 // ── 처리목록 → 캔버스 로드 ────────────────────────────────────────────────
 async function onProcessDblClick(process: ProcessResponse) {
+  activeProcessId.value = process.id;
   const detail = await processApi.getProcess(process.id);
+
+  // 원본 이미지를 서버에서 fetch → File 객체로 변환
+  if (detail.filePath) {
+    const res = await fetch(`${API_HOST}/${detail.filePath}`);
+    const blob = await res.blob();
+    const fileName = detail.filePath.split('/').pop() ?? 'image.png';
+    const file = new File([blob], fileName, { type: blob.type });
+    setOriginalFile(file);
+  }
+
   const flatSteps: FlatStep[] = detail.steps.map((s) => ({
     id: s.id ?? crypto.randomUUID(),
     parentId: s.parentId ?? null,
@@ -507,6 +521,7 @@ async function onProcessDblClick(process: ProcessResponse) {
     isEnabled: s.isEnabled,
     executionMs: s.executionMs ?? null,
   }));
+
   const flow = stepsToFlow(flatSteps, originalPreviewUrl.value);
   nodes.value = flow.nodes;
   edges.value = flow.edges;
@@ -525,31 +540,64 @@ function processAllLeaves() {
   }
 }
 
-// ── 처리 데이터 저장 ────────────────────────────────────────────────────────
+// ── 처리 데이터 저장/수정/삭제 ────────────────────────────────────────────
 const showSaveProcessDialog = ref(false);
 const processName = ref('');
+const isEditingProcess = ref(false);
 
-async function saveProcess() {
+function openSaveProcessDialog() {
+  isEditingProcess.value = false;
+  const active = processList.value.find((p) => p.id === activeProcessId.value);
+  processName.value = active ? `${active.nm} copy` : '';
+  showSaveProcessDialog.value = true;
+}
+
+function openUpdateProcessDialog() {
+  if (!activeProcessId.value) return;
+  isEditingProcess.value = true;
+  const active = processList.value.find((p) => p.id === activeProcessId.value);
+  processName.value = active?.nm ?? '';
+  showSaveProcessDialog.value = true;
+}
+
+async function saveProcessDialog() {
   if (!processName.value.trim() || !originalFile.value) return;
 
-  // 원본 이미지 업로드 → fileId 획득
-  const uploaded = await imgPrcApi.uploadFile(originalFile.value);
-
   const steps = flowToSteps(getNodes.value, getEdges.value);
-  await processApi.createProcess({
-    nm: processName.value.trim(),
-    fileId: uploaded.id,
-    steps: steps.map((s, i) => ({
-      algorithmNm: s.algorithmNm,
-      stepOrder: i,
-      parameters: s.parameters,
-      isEnabled: s.isEnabled ?? true,
-      clientId: s.id,
-      parentClientId: s.parentId,
-    })),
-  });
+  const stepPayload = steps.map((s, i) => ({
+    algorithmNm: s.algorithmNm,
+    stepOrder: i,
+    parameters: s.parameters,
+    isEnabled: s.isEnabled ?? true,
+    clientId: s.id,
+    parentClientId: s.parentId,
+  }));
+
+  if (isEditingProcess.value && activeProcessId.value) {
+    await processApi.updateProcess(activeProcessId.value, {
+      nm: processName.value.trim(),
+      steps: stepPayload,
+    });
+  } else {
+    // 원본 이미지 업로드 → fileId 획득
+    const uploaded = await imgPrcApi.uploadFile(originalFile.value);
+    const created = await processApi.createProcess({
+      nm: processName.value.trim(),
+      fileId: uploaded.id,
+      steps: stepPayload,
+    });
+    activeProcessId.value = created.id;
+  }
   processName.value = '';
   showSaveProcessDialog.value = false;
+  await loadProcessList();
+}
+
+async function removeProcess(processId: string) {
+  await processApi.deleteProcess(processId);
+  if (activeProcessId.value === processId) {
+    activeProcessId.value = null;
+  }
   await loadProcessList();
 }
 </script>
@@ -669,33 +717,46 @@ async function saveProcess() {
               >
                 처리된 이미지가 없습니다
               </div>
-              <q-list separator>
-                <q-item
-                  v-for="proc in processList"
-                  :key="proc.id"
-                  clickable
-                  @dblclick="onProcessDblClick(proc)"
+              <div
+                v-for="proc in processList"
+                :key="proc.id"
+                class="row items-center no-wrap q-pa-xs q-mb-xs rounded-borders process-item"
+                :class="activeProcessId === proc.id ? 'bg-light-blue-1' : 'bg-grey-1'"
+              >
+                <q-avatar square size="40px" class="q-mr-xs" style="flex-shrink: 0">
+                  <img
+                    v-if="proc.filePath"
+                    :src="`${API_HOST}/${proc.filePath}`"
+                    style="object-fit: cover"
+                  />
+                  <q-icon v-else name="image" color="grey-5" />
+                </q-avatar>
+                <div class="col cursor-pointer" @dblclick="onProcessDblClick(proc)">
+                  <div class="text-body2 ellipsis">{{ proc.nm }}</div>
+                  <div class="text-caption text-grey-6">
+                    {{ proc.steps.length }}단계
+                    <template v-if="proc.totalExecutionMs != null">
+                      · {{ proc.totalExecutionMs }}ms
+                    </template>
+                  </div>
+                </div>
+                <q-badge
+                  :color="proc.isLatest ? 'positive' : 'grey-5'"
+                  :label="proc.isLatest ? '최신' : '이전'"
+                  class="q-mr-xs"
+                />
+                <q-btn
+                  flat
+                  round
+                  dense
+                  size="xs"
+                  icon="delete"
+                  color="negative"
+                  @click.stop="removeProcess(proc.id)"
                 >
-                  <q-item-section avatar>
-                    <q-icon name="image" color="primary" />
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label>{{ proc.nm }}</q-item-label>
-                    <q-item-label caption>
-                      {{ proc.steps.length }}단계
-                      <template v-if="proc.totalExecutionMs != null">
-                        · {{ proc.totalExecutionMs }}ms
-                      </template>
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <q-badge
-                      :color="proc.isLatest ? 'positive' : 'grey-5'"
-                      :label="proc.isLatest ? '최신' : '이전'"
-                    />
-                  </q-item-section>
-                </q-item>
-              </q-list>
+                  <q-tooltip>삭제</q-tooltip>
+                </q-btn>
+              </div>
             </div>
           </q-scroll-area>
         </q-tab-panel>
@@ -750,6 +811,19 @@ async function saveProcess() {
           <q-tooltip>자동 레이아웃</q-tooltip>
         </q-btn>
         <q-btn
+          v-if="activeProcessId"
+          flat
+          dense
+          size="sm"
+          icon="edit_note"
+          label="처리 수정"
+          color="primary"
+          :disabled="!hasFilterNodes || !originalFile"
+          @click="openUpdateProcessDialog"
+        >
+          <q-tooltip>처리 데이터 수정</q-tooltip>
+        </q-btn>
+        <q-btn
           flat
           dense
           size="sm"
@@ -757,7 +831,7 @@ async function saveProcess() {
           label="처리 저장"
           color="primary"
           :disabled="!hasFilterNodes || !originalFile"
-          @click="showSaveProcessDialog = true"
+          @click="openSaveProcessDialog"
         >
           <q-tooltip>처리 데이터 저장</q-tooltip>
         </q-btn>
@@ -875,11 +949,13 @@ async function saveProcess() {
       </q-card>
     </q-dialog>
 
-    <!-- 처리 저장 다이얼로그 -->
+    <!-- 처리 저장/수정 다이얼로그 -->
     <q-dialog v-model="showSaveProcessDialog">
       <q-card style="min-width: 300px">
         <q-card-section>
-          <div class="text-h6">처리 데이터 저장</div>
+          <div class="text-h6">
+            {{ isEditingProcess ? '처리 데이터 수정' : '처리 데이터 저장' }}
+          </div>
         </q-card-section>
         <q-card-section class="q-pt-none">
           <q-input
@@ -888,17 +964,17 @@ async function saveProcess() {
             outlined
             dense
             autofocus
-            @keyup.enter="saveProcess"
+            @keyup.enter="saveProcessDialog"
           />
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="취소" v-close-popup />
           <q-btn
             unelevated
-            label="저장"
+            :label="isEditingProcess ? '수정' : '저장'"
             color="primary"
             :disabled="!processName.trim()"
-            @click="saveProcess"
+            @click="saveProcessDialog"
           />
         </q-card-actions>
       </q-card>
@@ -924,7 +1000,8 @@ async function saveProcess() {
   cursor: grabbing;
 }
 
-.preset-item {
+.preset-item,
+.process-item {
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
