@@ -6,7 +6,7 @@ import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 
 import { FN_LIST, FN_OPTIONS_MAP, PARAM_FIELDS } from 'src/constants/imgPrc';
-import type { FunctionKey, ParamFieldDef } from 'src/constants/imgPrc';
+import type { FunctionKey } from 'src/constants/imgPrc';
 import type { PrcType } from 'src/types/imgPrcType';
 import {
   getPresets,
@@ -17,11 +17,12 @@ import {
 import type { PresetResponse } from 'src/apis/presetApi';
 import { getProcesses, getProcess } from 'src/apis/processApi';
 import type { ProcessResponse } from 'src/apis/processApi';
-import { batchTreeProcessing } from 'src/apis/imgPrcApi';
-import type { TreeBatchStep } from 'src/types/imgPrcType';
+import { batchTreeProcessing, batchProcessing } from 'src/apis/imgPrcApi';
+import type { TreeBatchStep, BatchStep } from 'src/types/imgPrcType';
 
 import FilterNode from 'src/components/flow/FilterNode.vue';
 import SourceNode from 'src/components/flow/SourceNode.vue';
+import ParamPanel from 'src/components/flow/ParamPanel.vue';
 import type { ProcessNodeData, SourceNodeData, FlatStep } from 'src/types/flowTypes';
 import { stepsToFlow, flowToSteps } from 'src/utils/flowConverter';
 import { applyDagreLayout } from 'src/utils/flowLayout';
@@ -48,6 +49,17 @@ const nodes = ref<Node[]>([
 const edges = ref<Edge[]>([]);
 
 const { addNodes, addEdges, removeNodes, getNodes, getEdges } = useVueFlow();
+
+// ── 노드 선택 ────────────────────────────────────────────────────────────
+const selectedNodeId = ref<string | null>(null);
+
+function onNodeClick({ node }: { node: Node }) {
+  selectedNodeId.value = selectedNodeId.value === node.id ? null : node.id;
+}
+
+function onPaneClick() {
+  selectedNodeId.value = null;
+}
 
 // ── 사이드바 탭 ────────────────────────────────────────────────────────────
 const sidebarTab = ref<'filters' | 'presets' | 'processes'>('filters');
@@ -140,31 +152,19 @@ function openParamPanel(nodeId: string) {
   }
 }
 
-const selectedNode = computed(() => {
+const selectedNodeData = computed<ProcessNodeData | null>(() => {
   if (!optionPanelTarget.value) return null;
   const n = nodes.value.find((n) => n.id === optionPanelTarget.value);
   if (!n || n.type !== 'filter') return null;
-  return n;
+  return n.data as ProcessNodeData;
 });
 
-const selectedNodeData = computed<ProcessNodeData | null>(() => {
-  return selectedNode.value ? (selectedNode.value.data as ProcessNodeData) : null;
-});
-
-const selectedNodeFields = computed<ParamFieldDef[]>(() => {
-  if (!selectedNodeData.value) return [];
-  return PARAM_FIELDS[selectedNodeData.value.algorithmNm] ?? [];
-});
-
-function updateParam(key: string, value: unknown) {
-  if (!selectedNodeData.value) return;
-  selectedNodeData.value.parameters[key] = value;
-}
-
-function resetParams() {
-  if (!selectedNodeData.value) return;
-  const defaults = getDefaultParams(selectedNodeData.value.algorithmNm);
-  Object.assign(selectedNodeData.value.parameters, defaults);
+function onParamApply() {
+  if (!originalFile.value || !optionPanelTarget.value) return;
+  const descendants = collectDescendantLeaves(optionPanelTarget.value);
+  for (const leafId of descendants) {
+    void processNodeThumbnail(leafId);
+  }
 }
 
 // ── 노드 추가 (사이드바 클릭) ──────────────────────────────────────────────
@@ -184,11 +184,11 @@ function addFilterNode(prcType: PrcType, label: string) {
     },
   };
 
-  // 마지막 리프 노드를 찾아 자동 연결
-  const leafId = findLastLeaf();
+  // 선택된 노드가 있으면 그 하위에, 없으면 마지막 리프에 연결
+  const parentId = selectedNodeId.value ?? findLastLeaf();
   const newEdge: Edge = {
-    id: `e-${leafId}-${id}`,
-    source: leafId,
+    id: `e-${parentId}-${id}`,
+    source: parentId,
     target: id,
     animated: true,
   };
@@ -224,12 +224,31 @@ async function processNodeThumbnail(targetNodeId: string) {
   // source → targetNodeId 경로에 있는 노드 수집
   const pathNodeIds = collectPathToNode(targetNodeId);
   const steps: TreeBatchStep[] = [];
+  const enabledIds = new Set<string>(); // 실제 연산에 포함된 노드 ID
+
   for (const nodeId of pathNodeIds) {
     const node = nodes.value.find((n) => n.id === nodeId);
     if (!node || node.type !== 'filter') continue;
     const data = node.data as ProcessNodeData;
+
+    if (!data.enabled) {
+      continue;
+    }
+
+    // parentId: 경로상 직전 enabled 노드, 없으면 null(= source)
+    let parentId: string | null = null;
     const parentEdge = edges.value.find((e) => e.target === nodeId);
-    const parentId = parentEdge?.source === SOURCE_NODE_ID ? null : (parentEdge?.source ?? null);
+    let cursor = parentEdge?.source ?? null;
+    while (cursor && cursor !== SOURCE_NODE_ID) {
+      if (enabledIds.has(cursor)) {
+        parentId = cursor;
+        break;
+      }
+      const pe = edges.value.find((e) => e.target === cursor);
+      cursor = pe?.source ?? null;
+    }
+
+    enabledIds.add(nodeId);
     steps.push({
       nodeId,
       prcType: data.algorithmNm,
@@ -299,7 +318,25 @@ function toggleEnabled(nodeId: string) {
   const node = nodes.value.find((n) => n.id === nodeId);
   if (node && node.type === 'filter') {
     (node.data as ProcessNodeData).enabled = !(node.data as ProcessNodeData).enabled;
+    if (originalFile.value) {
+      // 해당 노드 + 하위 모든 리프 노드 재연산
+      const descendants = collectDescendantLeaves(nodeId);
+      for (const leafId of descendants) {
+        void processNodeThumbnail(leafId);
+      }
+    }
   }
+}
+
+/** nodeId 자신 포함, 하위의 모든 리프 노드 ID를 반환 */
+function collectDescendantLeaves(nodeId: string): string[] {
+  const children = edges.value.filter((e) => e.source === nodeId).map((e) => e.target);
+  if (children.length === 0) return [nodeId];
+  const leaves: string[] = [];
+  for (const childId of children) {
+    leaves.push(...collectDescendantLeaves(childId));
+  }
+  return leaves;
 }
 
 // ── 엣지 연결 (드래그) ────────────────────────────────────────────────────
@@ -368,6 +405,22 @@ function onCanvasDrop(event: DragEvent) {
   addFilterNode(prcType, label);
 }
 
+// ── 전체 노드 초기화 ─────────────────────────────────────────────────────
+function resetCanvas() {
+  nodes.value = [
+    {
+      id: SOURCE_NODE_ID,
+      type: 'source',
+      position: { x: 0, y: 0 },
+      data: { previewUrl: originalPreviewUrl.value } as SourceNodeData,
+    },
+  ];
+  edges.value = [];
+  selectedNodeId.value = null;
+  showOptionPanel.value = false;
+  optionPanelTarget.value = null;
+}
+
 // ── Preset CRUD ────────────────────────────────────────────────────────────
 const hasFilterNodes = computed(() => nodes.value.some((n) => n.type === 'filter'));
 
@@ -381,7 +434,8 @@ async function savePreset() {
       algorithmNm: s.algorithmNm,
       stepOrder: i,
       parameters: s.parameters,
-      parentId: s.parentId,
+      clientId: s.id,
+      parentClientId: s.parentId,
     })),
   });
   presetName.value = '';
@@ -402,7 +456,10 @@ function loadPreset(preset: PresetResponse) {
   const flow = stepsToFlow(flatSteps, originalPreviewUrl.value);
   nodes.value = flow.nodes;
   edges.value = flow.edges;
-  void nextTick(() => relayout());
+  void nextTick(() => {
+    relayout();
+    processAllLeaves();
+  });
 }
 
 function openEditPreset(preset: PresetResponse) {
@@ -443,7 +500,67 @@ async function onProcessDblClick(process: ProcessResponse) {
   const flow = stepsToFlow(flatSteps, originalPreviewUrl.value);
   nodes.value = flow.nodes;
   edges.value = flow.edges;
-  void nextTick(() => relayout());
+  void nextTick(() => {
+    relayout();
+    processAllLeaves();
+  });
+}
+
+/** 모든 리프 노드에 대해 썸네일 연산 실행 */
+function processAllLeaves() {
+  if (!originalFile.value) return;
+  const leaves = collectDescendantLeaves(SOURCE_NODE_ID);
+  for (const leafId of leaves) {
+    void processNodeThumbnail(leafId);
+  }
+}
+
+// ── 처리된 이미지 저장 ──────────────────────────────────────────────────────
+const isSaving = ref(false);
+
+async function saveProcessedImage() {
+  if (!originalFile.value) return;
+
+  // 저장 대상: 선택된 노드 또는 마지막 리프
+  const targetId = selectedNodeId.value ?? findLastLeaf();
+  if (targetId === SOURCE_NODE_ID) return;
+
+  const targetNode = nodes.value.find((n) => n.id === targetId);
+  if (!targetNode || targetNode.type !== 'filter') return;
+
+  // source → target 경로에서 enabled 노드만 추출
+  const pathNodeIds = collectPathToNode(targetId);
+  const steps: BatchStep[] = [];
+  for (const nodeId of pathNodeIds) {
+    const node = nodes.value.find((n) => n.id === nodeId);
+    if (!node || node.type !== 'filter') continue;
+    const data = node.data as ProcessNodeData;
+    if (!data.enabled) continue;
+    steps.push({
+      prcType: data.algorithmNm,
+      parameters: { ...data.parameters },
+    });
+  }
+  if (steps.length === 0) return;
+
+  isSaving.value = true;
+  try {
+    const result = await batchProcessing(originalFile.value, steps);
+    // blob → 다운로드
+    const url = URL.createObjectURL(result.blob);
+    const a = document.createElement('a');
+    const originalName = originalFile.value.name.replace(/\.[^/.]+$/, '');
+    a.href = url;
+    a.download = `${originalName}_processed.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('이미지 저장 실패:', err);
+  } finally {
+    isSaving.value = false;
+  }
 }
 </script>
 
@@ -637,8 +754,33 @@ async function onProcessDblClick(process: ProcessResponse) {
 
         <q-space />
 
+        <q-btn
+          flat
+          dense
+          size="sm"
+          icon="delete_sweep"
+          label="초기화"
+          color="negative"
+          :disabled="!hasFilterNodes"
+          @click="resetCanvas"
+        >
+          <q-tooltip>전체 노드 초기화</q-tooltip>
+        </q-btn>
         <q-btn flat dense size="sm" icon="account_tree" label="정렬" @click="relayout()">
           <q-tooltip>자동 레이아웃</q-tooltip>
+        </q-btn>
+        <q-btn
+          flat
+          dense
+          size="sm"
+          icon="download"
+          label="이미지 저장"
+          color="primary"
+          :disabled="!hasFilterNodes || !originalFile"
+          :loading="isSaving"
+          @click="saveProcessedImage"
+        >
+          <q-tooltip>처리된 이미지 다운로드</q-tooltip>
         </q-btn>
         <q-btn
           flat
@@ -672,18 +814,21 @@ async function onProcessDblClick(process: ProcessResponse) {
             :max-zoom="3"
             class="flow-canvas"
             @connect="onConnect"
+            @node-click="onNodeClick"
+            @pane-click="onPaneClick"
           >
             <!-- 커스텀 노드 이벤트 핸들링 -->
             <template #node-filter="nodeProps">
               <FilterNode
                 v-bind="nodeProps"
+                :selected="selectedNodeId === nodeProps.id"
                 @open-params="openParamPanel"
                 @remove="removeFilterNode"
                 @toggle-enabled="toggleEnabled"
               />
             </template>
             <template #node-source="nodeProps">
-              <SourceNode v-bind="nodeProps" @pick-image="openOriginalPicker" />
+              <SourceNode v-bind="nodeProps" @pick-image="openOriginalPicker" @clear-image="setOriginalFile(null)" />
             </template>
 
             <Background />
@@ -692,65 +837,12 @@ async function onProcessDblClick(process: ProcessResponse) {
 
         <!-- 파라미터 패널 (우측 슬라이드) -->
         <transition name="slide-option">
-          <div
+          <ParamPanel
             v-if="showOptionPanel && selectedNodeData"
-            class="column option-panel"
-            style="width: 240px; min-width: 240px; border-left: 1px solid rgba(0, 0, 0, 0.12)"
-          >
-            <div
-              class="row items-center no-wrap q-px-sm q-py-xs"
-              style="border-bottom: 1px solid rgba(0, 0, 0, 0.12); flex-shrink: 0"
-            >
-              <div class="col text-body2 text-weight-medium q-ml-xs">파라미터</div>
-              <q-btn flat round dense size="xs" icon="close" @click="showOptionPanel = false" />
-            </div>
-            <q-scroll-area class="col">
-              <div class="q-pa-sm column q-gutter-sm">
-                <div class="text-caption text-grey-7 q-mb-xs">{{ selectedNodeData.label }}</div>
-
-                <template v-if="selectedNodeFields.length === 0">
-                  <div class="text-caption text-grey-5 text-center q-pt-md">파라미터 없음</div>
-                </template>
-
-                <template v-for="field in selectedNodeFields" :key="field.key">
-                  <q-input
-                    v-if="field.type === 'number'"
-                    :model-value="selectedNodeData.parameters[field.key] as number"
-                    @update:model-value="updateParam(field.key, Number($event))"
-                    :label="field.label"
-                    type="number"
-                    :min="field.min"
-                    :max="field.max"
-                    :step="field.step"
-                    outlined
-                    dense
-                  />
-                  <q-select
-                    v-else-if="field.type === 'select'"
-                    :model-value="selectedNodeData.parameters[field.key]"
-                    @update:model-value="updateParam(field.key, $event)"
-                    :label="field.label"
-                    :options="field.options"
-                    emit-value
-                    map-options
-                    outlined
-                    dense
-                  />
-                </template>
-
-                <q-btn
-                  flat
-                  dense
-                  size="sm"
-                  label="기본값 초기화"
-                  icon="restart_alt"
-                  color="grey-7"
-                  class="q-mt-sm"
-                  @click="resetParams"
-                />
-              </div>
-            </q-scroll-area>
-          </div>
+            :node-data="selectedNodeData"
+            @close="showOptionPanel = false"
+            @apply="onParamApply"
+          />
         </transition>
       </div>
     </div>

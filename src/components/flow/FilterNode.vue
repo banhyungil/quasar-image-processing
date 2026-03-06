@@ -1,22 +1,35 @@
 <script setup lang="ts">
 import { Handle, Position } from '@vue-flow/core';
+import { PARAM_FIELDS } from 'src/constants/imgPrc';
 import type { ProcessNodeData } from 'src/types/flowTypes';
 
 const props = defineProps<{
   id: string;
   data: ProcessNodeData;
+  selected?: boolean;
 }>();
+
+const paramSummary = computed(() => {
+  const fields = PARAM_FIELDS[props.data.algorithmNm];
+  if (!fields) return [];
+  return fields.map((f) => ({
+    label: f.label,
+    value: props.data.parameters[f.key] ?? f.default,
+  }));
+});
 
 const emit = defineEmits<{
   (e: 'open-params', nodeId: string): void;
   (e: 'remove', nodeId: string): void;
   (e: 'toggle-enabled', nodeId: string): void;
 }>();
-debugger;
 </script>
 
 <template>
-  <div class="filter-node" :class="{ 'filter-node--disabled': !data.enabled }">
+  <div
+    class="filter-node cursor-pointer"
+    :class="{ 'filter-node--disabled': !data.enabled, 'filter-node--selected': selected }"
+  >
     <!-- Input Handle -->
     <Handle type="target" :position="Position.Top" class="handle" />
 
@@ -67,12 +80,20 @@ debugger;
       />
     </div>
 
+    <!-- 파라미터 정보 -->
+    <div class="filter-node__params">
+      <div v-for="p in paramSummary" :key="p.label" class="filter-node__param">
+        <span class="filter-node__param-label">{{ p.label }}</span>
+        <span class="filter-node__param-value">{{ p.value }}</span>
+      </div>
+    </div>
+
     <!-- Output Handle -->
     <Handle type="source" :position="Position.Bottom" class="handle" />
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .filter-node {
   width: 200px;
   background: white;
@@ -80,60 +101,87 @@ debugger;
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
 
-.filter-node--disabled {
-  opacity: 0.45;
-}
+  &--selected {
+    border-color: #1976d2;
+    box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.3);
+  }
 
-.filter-node__header {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 6px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  background: #fafafa;
-}
+  &--disabled {
+    opacity: 0.45;
+  }
 
-.filter-node__label {
-  flex: 1;
-  font-size: 13px;
-  font-weight: 500;
-}
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 6px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    background: #fafafa;
+  }
 
-.filter-node__actions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
-}
+  &__label {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 500;
+  }
 
-.filter-node__body {
-  position: relative;
-  height: 130px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f5f5f5;
-}
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
 
-.filter-node__thumbnail {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
+  &__body {
+    position: relative;
+    height: 130px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f5f5f5;
+  }
 
-.filter-node__placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+  &__thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
 
-.filter-node__badge {
-  position: absolute;
-  bottom: 4px;
-  right: 4px;
-  font-size: 10px;
+  &__placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    font-size: 10px;
+  }
+
+  &__params {
+    padding: 4px 8px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    background: #fafafa;
+  }
+
+  &__param {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    line-height: 1.6;
+
+    &-label {
+      color: #666;
+    }
+
+    &-value {
+      font-weight: 500;
+      color: #333;
+    }
+  }
 }
 
 .handle {

@@ -5,7 +5,8 @@ export interface PresetStepBase {
 }
 
 export interface PresetStepCreate extends PresetStepBase {
-  parentId?: string | null;
+  clientId?: string | null;
+  parentClientId?: string | null;
 }
 
 export interface PresetStepResponse extends PresetStepBase {
