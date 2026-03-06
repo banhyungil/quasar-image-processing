@@ -4,343 +4,1670 @@
  */
 
 export interface paths {
-  '/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Root */
+        get: operations["read_root__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Read Root */
-    get: operations['read_root__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/health': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/image-processing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Saved Images
+         * @description 처리 이미지 조회
+         */
+        get: operations["get_saved_images_api_image_processing_get"];
+        put?: never;
+        /**
+         * Img Processing
+         * @description 이미지 처리
+         */
+        post: operations["img_processing_api_image_processing_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Health Check */
-    get: operations['health_check_api_health_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/image-processing': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/image-processing/params/{prc_type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Filter Params
+         * @description 필터별 파라미터 스키마 조회. parameters JSON 작성 시 참고.
+         */
+        get: operations["get_filter_params_api_image_processing_params__prc_type__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Get Saved Images */
-    get: operations['get_saved_images_api_image_processing_get'];
-    put?: never;
-    /** Img Processing */
-    post: operations['img_processing_api_image_processing_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/image-processing/save': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/image-processing/params": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get All Filter Params
+         * @description 전체 필터 파라미터 스키마 목록 조회.
+         */
+        get: operations["get_all_filter_params_api_image_processing_params_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Img Processing Save */
-    post: operations['img_processing_save_api_image_processing_save_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
+    "/api/image-processing/save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Img Processing Save
+         * @description 처리 이미지 저장
+         */
+        post: operations["img_processing_save_api_image_processing_save_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/image-processing/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Img Processing Batch
+         * @description 노드리스트 기반 배치 이미지 처리. steps 순서대로 연쇄 적용한다.
+         */
+        post: operations["img_processing_batch_api_image_processing_batch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/image-processing/batch-tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Img Processing Batch Tree
+         * @description 트리 구조 배치 이미지 처리.
+         *
+         *     parentId로 트리를 구성하며, 같은 parentId를 가진 노드들은 분기(비교) 처리된다.
+         *     전체 실행 시 원본 이미지를, 부분 재실행 시 부모 노드의 결과 이미지를 file로 전송한다.
+         */
+        post: operations["img_processing_batch_tree_api_image_processing_batch_tree_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Presets
+         * @description 프리셋 목록 조회
+         */
+        get: operations["get_presets_api_presets_get"];
+        put?: never;
+        /**
+         * Create Preset Endpoint
+         * @description 프리셋 생성
+         */
+        post: operations["create_preset_endpoint_api_presets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/presets/{preset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Preset Detail
+         * @description 프리셋 상세 조회
+         */
+        get: operations["get_preset_detail_api_presets__preset_id__get"];
+        /**
+         * Update Preset Endpoint
+         * @description 프리셋 수정
+         */
+        put: operations["update_preset_endpoint_api_presets__preset_id__put"];
+        post?: never;
+        /**
+         * Delete Preset Endpoint
+         * @description 프리셋 삭제
+         */
+        delete: operations["delete_preset_endpoint_api_presets__preset_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/processes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Processes
+         * @description 처리연산 목록 조회
+         */
+        get: operations["get_processes_api_processes_get"];
+        put?: never;
+        /**
+         * Create Process Endpoint
+         * @description 처리연산 생성
+         */
+        post: operations["create_process_endpoint_api_processes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/processes/{process_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Process Detail
+         * @description 처리연산 상세 조회
+         */
+        get: operations["get_process_detail_api_processes__process_id__get"];
+        /**
+         * Update Process Endpoint
+         * @description 처리연산 수정
+         */
+        put: operations["update_process_endpoint_api_processes__process_id__put"];
+        post?: never;
+        /**
+         * Delete Process Endpoint
+         * @description 처리연산 삭제
+         */
+        delete: operations["delete_process_endpoint_api_processes__process_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-  schemas: {
-    /** Body_img_processing_api_image_processing_post */
-    Body_img_processing_api_image_processing_post: {
-      /** File */
-      file: string;
-      /**
-       * Prctype
-       * @enum {string}
-       */
-      prcType:
-        | 'sobel'
-        | 'prewitt'
-        | 'laplacian'
-        | 'gaussian'
-        | 'blur'
-        | 'gaussianBlur'
-        | 'medianBlur'
-        | 'bilateralFilter'
-        | 'findContour'
-        | 'plus'
-        | 'minus'
-        | 'binary'
-        | 'inverse'
-        | 'tozero'
-        | 'tozeroInverse';
-      /** Kernelsize */
-      kernelSize?: number | null;
+    schemas: {
+        /** Body_img_processing_api_image_processing_post */
+        Body_img_processing_api_image_processing_post: {
+            /**
+             * File
+             * @description 처리할 원본 이미지 파일
+             */
+            file: string;
+            /**
+             * Prctype
+             * @description 적용할 이미지 처리 종류
+             * @enum {string}
+             */
+            prcType: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing";
+            /**
+             * Parameters
+             * @description 필터별 파라미터 JSON 문자열. GET /image-processing/params/{prcType}에서 스키마 확인 가능
+             */
+            parameters?: string | null;
+        };
+        /** Body_img_processing_batch_api_image_processing_batch_post */
+        Body_img_processing_batch_api_image_processing_batch_post: {
+            /**
+             * File
+             * @description 처리할 원본 이미지 파일
+             */
+            file: string;
+            /**
+             * Steps
+             * @description 처리 단계 JSON 배열. 예: [{"prcType":"gaussianBlur","parameters":{"kernelSize":5}},{"prcType":"canny"}]
+             */
+            steps: string;
+        };
+        /** Body_img_processing_batch_tree_api_image_processing_batch_tree_post */
+        Body_img_processing_batch_tree_api_image_processing_batch_tree_post: {
+            /**
+             * File
+             * @description 입력 이미지 (전체 실행=원본, 부분 실행=부모 노드 결과)
+             */
+            file: string;
+            /**
+             * Steps
+             * @description 트리 형태 처리 단계 JSON 배열. 예: [{"nodeId":"n1","prcType":"gaussianBlur","parameters":{},"parentId":null}]
+             */
+            steps: string;
+        };
+        /** Body_img_processing_save_api_image_processing_save_post */
+        Body_img_processing_save_api_image_processing_save_post: {
+            /**
+             * Blob
+             * @description 저장할 처리 완료 이미지 (image/png 또는 image/jpeg)
+             */
+            blob: string;
+            /**
+             * Prctype
+             * @description 이미지에 적용된 처리 종류
+             * @enum {string}
+             */
+            prcType: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing";
+            /**
+             * Prcms
+             * @description 처리시간
+             */
+            prcMs: number;
+        };
+        /** FileListResponse */
+        FileListResponse: {
+            /**
+             * Items
+             * @description 파일 목록
+             */
+            items: components["schemas"]["TFile"][];
+            /**
+             * Hasmore
+             * @description 다음 페이지 존재 여부
+             */
+            hasMore: boolean;
+            /**
+             * Nextcursoruploadedat
+             * @description 다음 커서 기준 업로드 시각
+             */
+            nextCursorUploadedAt?: string | null;
+            /**
+             * Nextcursorid
+             * @description 다음 커서 파일 ID
+             */
+            nextCursorId?: string | null;
+        };
+        /** FileSaveOptions */
+        FileSaveOptions: {
+            /**
+             * Prctype
+             * @description 저장 시 적용된 이미지 처리 종류
+             * @enum {string}
+             */
+            prcType: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing";
+        } & {
+            [key: string]: unknown;
+        };
+        /** FileSaveResponse */
+        FileSaveResponse: {
+            /**
+             * Id
+             * @description 파일 고유 식별자 (UUID)
+             */
+            id: string;
+            /**
+             * Originnm
+             * @description 업로드 원본 파일명
+             */
+            originNm: string;
+            /**
+             * Nm
+             * @description 서버 저장 파일명 (UUID 기반)
+             */
+            nm: string;
+            /**
+             * Path
+             * @description 서버 내 파일 경로 (uploads/ 기준)
+             */
+            path: string;
+            /**
+             * Mimetype
+             * @description 파일 MIME 타입 (image/png, image/jpeg)
+             */
+            mimeType: string;
+            /**
+             * Sizebytes
+             * @description 파일 크기 (bytes)
+             */
+            sizeBytes: number;
+            /**
+             * Uploadedat
+             * Format: date-time
+             * @description 업로드 완료 시각 (UTC)
+             */
+            uploadedAt: string;
+            /** @description 처리 시 적용된 옵션 */
+            options: components["schemas"]["FileSaveOptions"];
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
+        /** PresetCreate */
+        PresetCreate: {
+            /**
+             * Nm
+             * @description 프리셋 명칭
+             */
+            nm: string;
+            /**
+             * Description
+             * @description 프리셋 설명
+             */
+            description?: string | null;
+            /**
+             * Issystem
+             * @description 시스템 기본 제공 여부
+             * @default false
+             */
+            isSystem: boolean;
+            /**
+             * Steps
+             * @description 프리셋 단계 목록
+             */
+            steps?: components["schemas"]["PresetStepCreate"][];
+        };
+        /** PresetListResponse */
+        PresetListResponse: {
+            /**
+             * Items
+             * @description 프리셋 목록
+             */
+            items: components["schemas"]["PresetResponse"][];
+        };
+        /** PresetResponse */
+        PresetResponse: {
+            /**
+             * Id
+             * @description 프리셋 ID
+             */
+            id: string;
+            /**
+             * Nm
+             * @description 프리셋 명칭
+             */
+            nm: string;
+            /**
+             * Description
+             * @description 프리셋 설명
+             */
+            description?: string | null;
+            /**
+             * Issystem
+             * @description 시스템 기본 제공 여부
+             */
+            isSystem: boolean;
+            /**
+             * Createdat
+             * Format: date-time
+             * @description 생성 일시
+             */
+            createdAt: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             * @description 수정 일시
+             */
+            updatedAt: string;
+            /**
+             * Steps
+             * @description 프리셋 단계 목록
+             */
+            steps?: components["schemas"]["PresetStepResponse"][];
+        };
+        /** PresetStepCreate */
+        PresetStepCreate: {
+            /**
+             * Algorithmnm
+             * @description 알고리즘 식별 명칭
+             */
+            algorithmNm: string;
+            /**
+             * Steporder
+             * @description 동일 부모 내 정렬 순서 (0부터)
+             * @default 0
+             */
+            stepOrder: number;
+            /**
+             * Parameters
+             * @description 알고리즘 파라미터
+             */
+            parameters?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Parentid
+             * @description 부모 노드 ID (NULL이면 루트)
+             */
+            parentId?: string | null;
+        };
+        /** PresetStepResponse */
+        PresetStepResponse: {
+            /**
+             * Algorithmnm
+             * @description 알고리즘 식별 명칭
+             */
+            algorithmNm: string;
+            /**
+             * Steporder
+             * @description 동일 부모 내 정렬 순서 (0부터)
+             * @default 0
+             */
+            stepOrder: number;
+            /**
+             * Parameters
+             * @description 알고리즘 파라미터
+             */
+            parameters?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Id
+             * @description 프리셋 단계 ID
+             */
+            id: string;
+            /**
+             * Parentid
+             * @description 부모 노드 ID
+             */
+            parentId?: string | null;
+        };
+        /** PresetUpdate */
+        PresetUpdate: {
+            /**
+             * Nm
+             * @description 프리셋 명칭
+             */
+            nm?: string | null;
+            /**
+             * Description
+             * @description 프리셋 설명
+             */
+            description?: string | null;
+            /**
+             * Steps
+             * @description 프리셋 단계 목록 (전체 교체)
+             */
+            steps?: components["schemas"]["PresetStepCreate"][] | null;
+        };
+        /** ProcessCreate */
+        ProcessCreate: {
+            /**
+             * Nm
+             * @description 프로세스 명칭
+             */
+            nm: string;
+            /**
+             * Fileid
+             * @description 원본 파일 ID
+             */
+            fileId: string;
+            /**
+             * Steps
+             * @description 처리 단계 목록
+             */
+            steps?: components["schemas"]["ProcessStepCreate"][];
+        };
+        /** ProcessListResponse */
+        ProcessListResponse: {
+            /**
+             * Items
+             * @description 프로세스 목록
+             */
+            items: components["schemas"]["ProcessResponse"][];
+        };
+        /** ProcessResponse */
+        ProcessResponse: {
+            /**
+             * Id
+             * @description 프로세스 ID
+             */
+            id: string;
+            /**
+             * Nm
+             * @description 프로세스 명칭
+             */
+            nm: string;
+            /**
+             * Fileid
+             * @description 원본 파일 ID
+             */
+            fileId: string;
+            /**
+             * Finalfileid
+             * @description 최종 결과 파일 ID
+             */
+            finalFileId?: string | null;
+            /**
+             * Islatest
+             * @description 최신 편집본 여부
+             */
+            isLatest: boolean;
+            /**
+             * Totalexecutionms
+             * @description 전체 연산 소요 시간 (ms)
+             */
+            totalExecutionMs?: number | null;
+            /**
+             * Createdat
+             * Format: date-time
+             * @description 생성 일시
+             */
+            createdAt: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             * @description 수정 일시
+             */
+            updatedAt: string;
+            /**
+             * Steps
+             * @description 처리 단계 목록
+             */
+            steps?: components["schemas"]["ProcessStepResponse"][];
+        };
+        /** ProcessStepCreate */
+        ProcessStepCreate: {
+            /**
+             * Algorithmnm
+             * @description 알고리즘 식별 명칭
+             */
+            algorithmNm: string;
+            /**
+             * Steporder
+             * @description 적용 순서 (0부터)
+             */
+            stepOrder: number;
+            /**
+             * Parameters
+             * @description 알고리즘 파라미터
+             */
+            parameters?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Isenabled
+             * @description 활성화 여부
+             * @default true
+             */
+            isEnabled: boolean;
+            /**
+             * Presetid
+             * @description 참조 프리셋 ID
+             */
+            presetId?: string | null;
+            /**
+             * Parentid
+             * @description 부모 노드 ID (NULL이면 루트)
+             */
+            parentId?: string | null;
+        };
+        /** ProcessStepResponse */
+        ProcessStepResponse: {
+            /**
+             * Algorithmnm
+             * @description 알고리즘 식별 명칭
+             */
+            algorithmNm: string;
+            /**
+             * Steporder
+             * @description 적용 순서 (0부터)
+             */
+            stepOrder: number;
+            /**
+             * Parameters
+             * @description 알고리즘 파라미터
+             */
+            parameters?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Isenabled
+             * @description 활성화 여부
+             * @default true
+             */
+            isEnabled: boolean;
+            /**
+             * Presetid
+             * @description 참조 프리셋 ID
+             */
+            presetId?: string | null;
+            /**
+             * Parentid
+             * @description 부모 노드 ID (NULL이면 루트)
+             */
+            parentId?: string | null;
+            /**
+             * Id
+             * @description 단계 ID
+             */
+            id: string;
+            /**
+             * Processid
+             * @description 소속 프로세스 ID
+             */
+            processId: string;
+            /**
+             * Createdat
+             * Format: date-time
+             * @description 생성 일시
+             */
+            createdAt: string;
+            /**
+             * Executionms
+             * @description 연산 소요 시간 (ms)
+             */
+            executionMs?: number | null;
+        };
+        /** ProcessUpdate */
+        ProcessUpdate: {
+            /**
+             * Nm
+             * @description 프로세스 명칭
+             */
+            nm?: string | null;
+            /**
+             * Finalfileid
+             * @description 최종 결과 파일 ID
+             */
+            finalFileId?: string | null;
+            /**
+             * Islatest
+             * @description 최신 편집본 여부
+             */
+            isLatest?: boolean | null;
+            /**
+             * Totalexecutionms
+             * @description 전체 연산 소요 시간 (ms)
+             */
+            totalExecutionMs?: number | null;
+            /**
+             * Steps
+             * @description 처리 단계 목록 (전체 교체)
+             */
+            steps?: components["schemas"]["ProcessStepCreate"][] | null;
+        };
+        /** TFile */
+        TFile: {
+            /**
+             * Id
+             * @description 파일 고유 식별자 (UUID)
+             */
+            id: string;
+            /**
+             * Originnm
+             * @description 업로드 원본 파일명
+             */
+            originNm: string;
+            /**
+             * Nm
+             * @description 서버 저장 파일명 (UUID 기반)
+             */
+            nm: string;
+            /**
+             * Path
+             * @description 서버 내 파일 경로 (uploads/ 기준)
+             */
+            path: string;
+            /**
+             * Mimetype
+             * @description 파일 MIME 타입 (image/png, image/jpeg)
+             */
+            mimeType: string;
+            /**
+             * Sizebytes
+             * @description 파일 크기 (bytes)
+             */
+            sizeBytes: number;
+            /**
+             * Uploadedat
+             * Format: date-time
+             * @description 업로드 완료 시각 (UTC)
+             */
+            uploadedAt: string;
+            /** @description 처리 시 적용된 옵션 */
+            options: components["schemas"]["FileSaveOptions"];
+        };
+        /** TreeBatchResponse */
+        TreeBatchResponse: {
+            /**
+             * Totalexecutionms
+             * @description 전체 트리 처리 시간 (ms)
+             */
+            totalExecutionMs: number;
+            /**
+             * Results
+             * @description 노드별 처리 결과
+             */
+            results: components["schemas"]["TreeNodeResultResponse"][];
+        };
+        /** TreeNodeResultResponse */
+        TreeNodeResultResponse: {
+            /**
+             * Nodeid
+             * @description 노드 고유 식별자
+             */
+            nodeId: string;
+            /**
+             * Thumbnail
+             * @description 처리 결과 썸네일 (base64 PNG)
+             */
+            thumbnail: string;
+            /**
+             * Executionms
+             * @description 해당 노드 처리 시간 (ms)
+             */
+            executionMs: number;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
+        };
+        /**
+         * SobelParams
+         * @description Sobel 엣지 검출 파라미터.
+         */
+        SobelParams: {
+            /**
+             * Kernelsize
+             * @description 커널 크기 (1~7 홀수)
+             * @default 3
+             */
+            kernelSize: number;
+            /**
+             * Dx
+             * @description x방향 미분 차수 (0~2)
+             * @default 1
+             */
+            dx: number;
+            /**
+             * Dy
+             * @description y방향 미분 차수 (0~2)
+             * @default 1
+             */
+            dy: number;
+            /**
+             * Scale
+             * @description 미분 결과에 곱할 스케일 팩터
+             * @default 1
+             */
+            scale: number;
+        };
+        /**
+         * NoParams
+         * @description 파라미터 없는 필터용.
+         */
+        NoParams: Record<string, never>;
+        /**
+         * LaplacianParams
+         * @description Laplacian 엣지 검출 파라미터.
+         */
+        LaplacianParams: {
+            /**
+             * Kernelsize
+             * @description 커널 크기 (홀수)
+             * @default 3
+             */
+            kernelSize: number;
+            /**
+             * Scale
+             * @description 미분 결과에 곱할 스케일 팩터
+             * @default 1
+             */
+            scale: number;
+            /**
+             * Delta
+             * @description 결과에 더할 오프셋 값
+             * @default 0
+             */
+            delta: number;
+        };
+        /**
+         * CannyParams
+         * @description Canny 엣지 검출 파라미터.
+         */
+        CannyParams: {
+            /**
+             * Threshold1
+             * @description 하위 임계값 (히스테리시스)
+             * @default 100
+             */
+            threshold1: number;
+            /**
+             * Threshold2
+             * @description 상위 임계값 (히스테리시스)
+             * @default 200
+             */
+            threshold2: number;
+            /**
+             * Aperturesize
+             * @description Sobel 연산자 크기 (3~7 홀수)
+             * @default 3
+             */
+            apertureSize: number;
+        };
+        /**
+         * GaussianBlurParams
+         * @description 가우시안 블러 파라미터.
+         */
+        GaussianBlurParams: {
+            /**
+             * Kernelsize
+             * @description 커널 크기 (홀수)
+             * @default 5
+             */
+            kernelSize: number;
+            /**
+             * Sigmax
+             * @description X방향 표준편차 (0이면 커널 크기로 자동 계산)
+             * @default 0
+             */
+            sigmaX: number;
+        };
+        /**
+         * KernelParams
+         * @description 커널 크기만 사용하는 필터 (blur, medianBlur).
+         */
+        KernelParams: {
+            /**
+             * Kernelsize
+             * @description 커널 크기 (홀수 권장)
+             * @default 5
+             */
+            kernelSize: number;
+        };
+        /**
+         * BilateralFilterParams
+         * @description 양방향 필터 파라미터.
+         */
+        BilateralFilterParams: {
+            /**
+             * D
+             * @description 필터링 시 사용할 이웃 픽셀 직경
+             * @default 9
+             */
+            d: number;
+            /**
+             * Sigmacolor
+             * @description 색상 공간 시그마 (클수록 더 넓은 색상 혼합)
+             * @default 75
+             */
+            sigmaColor: number;
+            /**
+             * Sigmaspace
+             * @description 좌표 공간 시그마 (클수록 먼 픽셀도 영향)
+             * @default 75
+             */
+            sigmaSpace: number;
+        };
+        /**
+         * BoxFilterParams
+         * @description 박스 필터 파라미터.
+         */
+        BoxFilterParams: {
+            /**
+             * Kernelsize
+             * @description 커널 크기
+             * @default 5
+             */
+            kernelSize: number;
+        };
+        /**
+         * ContourParams
+         * @description 윤곽선 검출 파라미터 (findContour/convexHull/boundingBox).
+         */
+        ContourParams: {
+            /**
+             * Thresholdvalue
+             * @description 이진화 임계값 (0~255)
+             * @default 127
+             */
+            thresholdValue: number;
+            /**
+             * Color
+             * @description 윤곽선 색상 [B, G, R]
+             * @default [
+             *       0,
+             *       255,
+             *       0
+             *     ]
+             */
+            color: number[];
+            /**
+             * Thickness
+             * @description 윤곽선 두께 (px)
+             * @default 2
+             */
+            thickness: number;
+        };
+        /**
+         * BrightnessParams
+         * @description 밝기 조절 파라미터 (plus/minus).
+         */
+        BrightnessParams: {
+            /**
+             * Alpha
+             * @description 대비 계수 (1.0=원본, >1 대비 증가)
+             * @default 1
+             */
+            alpha: number;
+            /**
+             * Beta
+             * @description 밝기 오프셋 (plus: 양수 적용, minus: 음수 적용)
+             * @default 40
+             */
+            beta: number;
+        };
+        /**
+         * GammaParams
+         * @description 감마 보정 파라미터.
+         */
+        GammaParams: {
+            /**
+             * Gamma
+             * @description 감마 값 (<1 밝게, >1 어둡게)
+             * @default 1
+             */
+            gamma: number;
+        };
+        /**
+         * ThresholdParams
+         * @description 이진화 임계값 파라미터 (binary/inverse/tozero/truncate/otsu).
+         */
+        ThresholdParams: {
+            /**
+             * Thresholdvalue
+             * @description 임계값 (0~255)
+             * @default 127
+             */
+            thresholdValue: number;
+            /**
+             * Maxvalue
+             * @description 임계값 초과 시 적용할 최대값 (0~255)
+             * @default 255
+             */
+            maxValue: number;
+        };
+        /**
+         * AdaptiveThresholdParams
+         * @description 적응형 임계값 파라미터.
+         */
+        AdaptiveThresholdParams: {
+            /**
+             * Maxvalue
+             * @description 임계값 초과 시 적용할 최대값 (0~255)
+             * @default 255
+             */
+            maxValue: number;
+            /**
+             * Adaptivemethod
+             * @description 적응형 방법 ('gaussian' 또는 'mean')
+             * @default gaussian
+             */
+            adaptiveMethod: string;
+            /**
+             * Blocksize
+             * @description 블록 크기 (홀수, 3 이상)
+             * @default 11
+             */
+            blockSize: number;
+            /**
+             * C
+             * @description 평균/가중평균에서 차감할 상수
+             * @default 2
+             */
+            c: number;
+        };
+        /**
+         * MorphologicalParams
+         * @description 형태학적 연산 파라미터 (erosion/dilation/opening/closing).
+         */
+        MorphologicalParams: {
+            /**
+             * Kernelsize
+             * @description 커널 크기 (홀수 권장)
+             * @default 5
+             */
+            kernelSize: number;
+            /**
+             * Kernelshape
+             * @description 커널 모양 ('rect', 'ellipse', 'cross')
+             * @default rect
+             */
+            kernelShape: string;
+            /**
+             * Iterations
+             * @description 연산 반복 횟수
+             * @default 1
+             */
+            iterations: number;
+        };
     };
-    /** Body_img_processing_save_api_image_processing_save_post */
-    Body_img_processing_save_api_image_processing_save_post: {
-      /** Blob */
-      blob: string;
-      /** Prctype */
-      prcType: string;
-    };
-    /** FileListItem */
-    FileListItem: {
-      /** Id */
-      id: string;
-      /** Originnm */
-      originNm: string;
-      /** Nm */
-      nm: string;
-      /** Path */
-      path: string;
-      /** Mimetype */
-      mimeType: string;
-      /** Sizebytes */
-      sizeBytes: number;
-      /**
-       * Uploadedat
-       * Format: date-time
-       */
-      uploadedAt: string;
-      /** Options */
-      options: {
-        [key: string]: string;
-      };
-    };
-    /** FileListResponse */
-    FileListResponse: {
-      /** Items */
-      items: components['schemas']['FileListItem'][];
-      /** Hasmore */
-      hasMore: boolean;
-      /** Nextcursoruploadedat */
-      nextCursorUploadedAt?: string | null;
-      /** Nextcursorid */
-      nextCursorId?: string | null;
-    };
-    /** FileSaveResponse */
-    FileSaveResponse: {
-      /** Id */
-      id: string;
-      /** Originnm */
-      originNm: string;
-      /** Nm */
-      nm: string;
-      /** Path */
-      path: string;
-      /** Mimetype */
-      mimeType: string;
-      /** Sizebytes */
-      sizeBytes: number;
-      /**
-       * Uploadedat
-       * Format: date-time
-       */
-      uploadedAt: string;
-      /** Options */
-      options: {
-        [key: string]: string;
-      };
-    };
-    /** HTTPValidationError */
-    HTTPValidationError: {
-      /** Detail */
-      detail?: components['schemas']['ValidationError'][];
-    };
-    /** HealthResponse */
-    HealthResponse: {
-      /** Status */
-      status: string;
-    };
-    /** ValidationError */
-    ValidationError: {
-      /** Location */
-      loc: (string | number)[];
-      /** Message */
-      msg: string;
-      /** Error Type */
-      type: string;
-      /** Input */
-      input?: unknown;
-      /** Context */
-      ctx?: Record<string, never>;
-    };
-  };
-  responses: never;
-  parameters: never;
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
+    responses: never;
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  read_root__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    read_root__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    get_saved_images_api_image_processing_get: {
+        parameters: {
+            query?: {
+                /** @description 반환할 최대 항목 수 */
+                limit?: number;
+                /** @description 커서 기준 업로드 시각 (cursorId와 함께 제공) */
+                cursorUploadedAt?: string | null;
+                /** @description 커서 기준 파일 ID (cursorUploadedAt와 함께 제공) */
+                cursorId?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          'application/json': {
-            [key: string]: string;
-          };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
-      };
     };
-  };
-  health_check_api_health_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    img_processing_api_image_processing_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_img_processing_api_image_processing_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    get_filter_params_api_image_processing_params__prc_type__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prc_type: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing";
+            };
+            cookie?: never;
         };
-        content: {
-          'application/json': components['schemas']['HealthResponse'];
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
-      };
     };
-  };
-  get_saved_images_api_image_processing_get: {
-    parameters: {
-      query?: {
-        limit?: number;
-        cursorUploadedAt?: string | null;
-        cursorId?: string | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
+    get_all_filter_params_api_image_processing_params_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    img_processing_save_api_image_processing_save_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          'application/json': components['schemas']['FileListResponse'];
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_img_processing_save_api_image_processing_save_post"];
+            };
         };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileSaveResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
     };
-  };
-  img_processing_api_image_processing_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    img_processing_batch_api_image_processing_batch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_img_processing_batch_api_image_processing_batch_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
     };
-    requestBody: {
-      content: {
-        'multipart/form-data': components['schemas']['Body_img_processing_api_image_processing_post'];
-      };
+    img_processing_batch_tree_api_image_processing_batch_tree_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_img_processing_batch_tree_api_image_processing_batch_tree_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TreeBatchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
     };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    get_presets_api_presets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          'application/json': unknown;
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PresetListResponse"];
+                };
+            };
         };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
     };
-  };
-  img_processing_save_api_image_processing_save_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    create_preset_endpoint_api_presets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PresetCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PresetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
     };
-    requestBody: {
-      content: {
-        'multipart/form-data': components['schemas']['Body_img_processing_save_api_image_processing_save_post'];
-      };
+    get_preset_detail_api_presets__preset_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                preset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PresetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
     };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    update_preset_endpoint_api_presets__preset_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                preset_id: string;
+            };
+            cookie?: never;
         };
-        content: {
-          'application/json': components['schemas']['FileSaveResponse'];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PresetUpdate"];
+            };
         };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PresetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
     };
-  };
+    delete_preset_endpoint_api_presets__preset_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                preset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_processes_api_processes_get: {
+        parameters: {
+            query?: {
+                /** @description 원본 파일 ID로 필터 */
+                fileId?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProcessListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_process_endpoint_api_processes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProcessCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProcessResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_process_detail_api_processes__process_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                process_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProcessResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_process_endpoint_api_processes__process_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                process_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProcessUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProcessResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_process_endpoint_api_processes__process_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                process_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
 }
