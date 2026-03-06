@@ -1,4 +1,20 @@
 import { api } from 'src/boot/axios';
+import type {
+  PresetCreate,
+  PresetUpdate,
+  PresetResponse,
+  PresetListResponse,
+} from 'src/types/presetType';
+
+export type {
+  PresetStepBase,
+  PresetStepCreate,
+  PresetStepResponse,
+  PresetCreate,
+  PresetUpdate,
+  PresetResponse,
+  PresetListResponse,
+} from 'src/types/presetType';
 
 export async function getPresets(): Promise<PresetListResponse> {
   const res = await api.get<PresetListResponse>('/presets');
@@ -22,46 +38,4 @@ export async function updatePreset(presetId: string, body: PresetUpdate): Promis
 
 export async function deletePreset(presetId: string): Promise<void> {
   await api.delete(`/presets/${presetId}`);
-}
-
-//ANCHOR - Types
-
-export interface PresetStepBase {
-  algorithmNm: string;
-  stepOrder: number;
-  parameters: Record<string, unknown>;
-  isEnabled: boolean;
-}
-
-export interface PresetStepCreate extends PresetStepBase {}
-
-export interface PresetStepResponse extends PresetStepBase {
-  id: string;
-}
-
-export interface PresetCreate {
-  nm: string;
-  description?: string | null;
-  isSystem?: boolean;
-  steps: PresetStepCreate[];
-}
-
-export interface PresetUpdate {
-  nm?: string | null;
-  description?: string | null;
-  steps?: PresetStepCreate[] | null;
-}
-
-export interface PresetResponse {
-  id: string;
-  nm: string;
-  description: string | null;
-  isSystem: boolean;
-  createdAt: string;
-  updatedAt: string;
-  steps: PresetStepResponse[];
-}
-
-export interface PresetListResponse {
-  items: PresetResponse[];
 }

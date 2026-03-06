@@ -1,4 +1,22 @@
 import { api } from 'src/boot/axios';
+import type {
+  GetProcessesOptions,
+  ProcessCreate,
+  ProcessUpdate,
+  ProcessResponse,
+  ProcessListResponse,
+} from 'src/types/process';
+
+export type {
+  ProcessStepBase,
+  ProcessStepCreate,
+  ProcessStepResponse,
+  ProcessCreate,
+  ProcessUpdate,
+  ProcessResponse,
+  ProcessListResponse,
+  GetProcessesOptions,
+} from 'src/types/process';
 
 export async function getProcesses(options: GetProcessesOptions = {}): Promise<ProcessListResponse> {
   const res = await api.get<ProcessListResponse>('/processes', {
@@ -29,57 +47,4 @@ export async function updateProcess(
 
 export async function deleteProcess(processId: string): Promise<void> {
   await api.delete(`/processes/${processId}`);
-}
-
-//ANCHOR - Types
-
-export interface ProcessStepBase {
-  algorithmNm: string;
-  stepOrder: number;
-  parameters: Record<string, unknown>;
-  isEnabled: boolean;
-  presetId?: string | null;
-}
-
-export interface ProcessStepCreate extends ProcessStepBase {}
-
-export interface ProcessStepResponse extends ProcessStepBase {
-  id: string;
-  processId: string;
-  createdAt: string;
-  executionMs: number | null;
-}
-
-export interface ProcessCreate {
-  nm: string;
-  fileId: string;
-  steps: ProcessStepCreate[];
-}
-
-export interface ProcessUpdate {
-  nm?: string | null;
-  finalFileId?: string | null;
-  isLatest?: boolean | null;
-  totalExecutionMs?: number | null;
-  steps?: ProcessStepCreate[] | null;
-}
-
-export interface ProcessResponse {
-  id: string;
-  nm: string;
-  fileId: string;
-  finalFileId: string | null;
-  isLatest: boolean;
-  totalExecutionMs: number | null;
-  createdAt: string;
-  updatedAt: string;
-  steps: ProcessStepResponse[];
-}
-
-export interface ProcessListResponse {
-  items: ProcessResponse[];
-}
-
-export interface GetProcessesOptions {
-  fileId?: string;
 }

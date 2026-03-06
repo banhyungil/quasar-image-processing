@@ -1,5 +1,29 @@
 import { api } from 'src/boot/axios';
-import type { components, operations } from 'src/types/api';
+import type {
+  ImgPrcOptions,
+  SavePrcImageOptions,
+  GetProcessingImageOptions,
+  FileSaveResponse,
+  FileListResponse,
+  BatchStep,
+  BatchResult,
+  TreeBatchStep,
+  TreeBatchResult,
+} from 'src/types/imgPrcType';
+
+export type {
+  PrcType,
+  FileSaveResponse,
+  FileListResponse,
+  ImgPrcOptions,
+  SavePrcImageOptions,
+  GetProcessingImageOptions,
+  BatchStep,
+  BatchResult,
+  TreeBatchStep,
+  TreeNodeResult,
+  TreeBatchResult,
+} from 'src/types/imgPrcType';
 
 export async function imageProcessing(options: ImgPrcOptions) {
   const form = new FormData();
@@ -46,43 +70,24 @@ export async function getProcessingImage(options: GetProcessingImageOptions = {}
   return res.data;
 }
 
-//ANCHOR - Types
+// ── Tree Batch Processing ───────────────────────────────────────────────────
 
-// api.d.ts 기반 타입 별칭
-export type PrcType =
-  components['schemas']['Body_img_processing_api_image_processing_post']['prcType'];
-export type FileSaveResponse = components['schemas']['FileSaveResponse'];
-export type FileListResponse = components['schemas']['FileListResponse'];
-export type FileListItem = components['schemas']['FileListItem'];
-export type GetProcessingImageOptions = NonNullable<
-  operations['get_saved_images_api_image_processing_get']['parameters']['query']
->;
+export async function batchTreeProcessing(
+  file: File | Blob,
+  steps: TreeBatchStep[],
+): Promise<TreeBatchResult> {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('steps', JSON.stringify(steps));
 
-interface ImgPrcOptions {
-  file: File;
-  prcType: PrcType;
-  kernelSize: number;
+  const res = await api.post<TreeBatchResult>('/image-processing/batch-tree', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+
+  return res.data;
 }
 
-interface SavePrcImageOptions {
-  blob: Blob;
-  originFileNm: string;
-  /** 처리 유형 */
-  prcType: PrcType;
-  /** 처리시간 */
-  prcMs: number;
-}
-
-export interface BatchStep {
-  prcType: PrcType;
-  parameters?: Record<string, unknown>;
-}
-
-export interface BatchResult {
-  blob: Blob;
-  totalExecutionMs: number;
-  stepTimes: { prcType: string; executionMs: number }[];
-}
+// ── Legacy Batch Processing ─────────────────────────────────────────────────
 
 export async function batchProcessing(file: File | Blob, steps: BatchStep[]): Promise<BatchResult> {
   const form = new FormData();
