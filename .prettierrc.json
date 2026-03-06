@@ -1,5 +1,13 @@
 {
   "$schema": "https://json.schemastore.org/prettierrc",
   "singleQuote": true,
-  "printWidth": 100
+  "printWidth": 100,
+  "overrides": [
+    {
+      "files": "src/constants/imgPrc.ts",
+      "options": {
+        "printWidth": 200
+      }
+    }
+  ]
 }

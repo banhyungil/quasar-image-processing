@@ -8,8 +8,8 @@
 // - 알고리즘 OFF 기능은 적용할 알고리즘 리스트에 따라 재연산 기능을 수행하도록 한다.
 
 import { VueDraggableNext } from 'vue-draggable-next';
-import { FN_LIST, FN_OPTIONS_MAP } from 'src/constants/imgPrc';
-import type { FunctionKey } from 'src/constants/imgPrc';
+import { FN_LIST, FN_OPTIONS_MAP, PARAM_FIELDS } from 'src/constants/imgPrc';
+import type { FunctionKey, ParamFieldDef } from 'src/constants/imgPrc';
 import { batchProcessing } from 'src/apis/imgPrcApi';
 import type { PrcType } from 'src/apis/imgPrcApi';
 import {
@@ -36,10 +36,11 @@ interface NodeItem {
   prcType: PrcType;
   label: string;
   enabled: boolean;
+  parameters: Record<string, unknown>;
 }
 
 const showOptionPanel = ref(false);
-const optionPanelTarget = ref<PrcType | null>(null);
+const optionPanelTarget = ref<string | null>(null); // node ID
 const nodeList = ref<NodeItem[]>([]);
 const presets = ref<PresetResponse[]>([]);
 const processList = ref<ProcessResponse[]>([]);
@@ -114,14 +115,34 @@ async function loadProcessList() {
   processList.value = res.items;
 }
 
-function toggleOptionPanel(prcType: PrcType) {
-  if (optionPanelTarget.value === prcType && showOptionPanel.value) {
+function toggleOptionPanel(nodeId: string) {
+  if (optionPanelTarget.value === nodeId && showOptionPanel.value) {
     showOptionPanel.value = false;
     optionPanelTarget.value = null;
   } else {
-    optionPanelTarget.value = prcType;
+    optionPanelTarget.value = nodeId;
     showOptionPanel.value = true;
   }
+}
+
+const selectedNode = computed(() =>
+  nodeList.value.find((n) => n.id === optionPanelTarget.value) ?? null,
+);
+
+const selectedNodeFields = computed<ParamFieldDef[]>(() => {
+  if (!selectedNode.value) return [];
+  return PARAM_FIELDS[selectedNode.value.prcType] ?? [];
+});
+
+function getDefaultParams(prcType: string): Record<string, unknown> {
+  const fields = PARAM_FIELDS[prcType];
+  if (!fields) return {};
+  return Object.fromEntries(fields.map((f) => [f.key, f.default]));
+}
+
+function updateParam(key: string, value: unknown) {
+  if (!selectedNode.value) return;
+  selectedNode.value.parameters[key] = value;
 }
 
 function addNode(prcType: PrcType, label: string) {
@@ -130,10 +151,15 @@ function addNode(prcType: PrcType, label: string) {
     prcType,
     label,
     enabled: true,
+    parameters: getDefaultParams(prcType),
   });
 }
 
 function removeNode(id: string) {
+  if (optionPanelTarget.value === id) {
+    showOptionPanel.value = false;
+    optionPanelTarget.value = null;
+  }
   const idx = nodeList.value.findIndex((n) => n.id === id);
   if (idx !== -1) nodeList.value.splice(idx, 1);
 }
@@ -147,8 +173,7 @@ async function savePreset() {
     steps: nodeList.value.map((n, i) => ({
       algorithmNm: n.prcType,
       stepOrder: i,
-      parameters: {},
-      isEnabled: n.enabled,
+      parameters: { ...n.parameters },
     })),
   });
   presetName.value = '';
@@ -163,7 +188,8 @@ function loadPreset(preset: PresetResponse) {
     id: `${s.algorithmNm}-${Date.now()}-${s.stepOrder}`,
     prcType: s.algorithmNm as PrcType,
     label: s.algorithmNm,
-    enabled: s.isEnabled,
+    enabled: true,
+    parameters: { ...getDefaultParams(s.algorithmNm), ...(s.parameters ?? {}) },
   }));
 }
 
@@ -203,7 +229,7 @@ async function onProcessBatch() {
   try {
     const steps = enabledNodes.value.map((n) => ({
       prcType: n.prcType,
-      parameters: {} as Record<string, unknown>,
+      parameters: { ...n.parameters },
     }));
     const result = await batchProcessing(originalFile.value, steps);
     if (resultPreviewUrl.value) {
@@ -225,6 +251,7 @@ async function onProcessDblClick(process: ProcessResponse) {
     prcType: s.algorithmNm as PrcType,
     label: s.algorithmNm,
     enabled: s.isEnabled,
+    parameters: { ...getDefaultParams(s.algorithmNm), ...(s.parameters ?? {}) },
   }));
   mainTab.value = 'prc';
 }
@@ -266,19 +293,6 @@ async function onProcessDblClick(process: ProcessResponse) {
                     round
                     dense
                     size="xs"
-                    icon="tune"
-                    :color="
-                      optionPanelTarget === option.value && showOptionPanel ? 'primary' : 'grey-5'
-                    "
-                    @click="toggleOptionPanel(option.value)"
-                  >
-                    <q-tooltip>옵션</q-tooltip>
-                  </q-btn>
-                  <q-btn
-                    flat
-                    round
-                    dense
-                    size="xs"
                     icon="add"
                     color="positive"
                     @click="addNode(option.value, option.label)"
@@ -293,32 +307,9 @@ async function onProcessDblClick(process: ProcessResponse) {
       </q-scroll-area>
     </div>
 
-    <!-- 2. 옵션 패널 (필터별 토글) -->
-    <transition name="slide-option">
-      <div
-        v-if="showOptionPanel && optionPanelTarget"
-        class="column option-panel"
-        style="width: 220px; min-width: 220px; border-right: 1px solid rgba(0, 0, 0, 0.12)"
-      >
-        <div
-          class="row items-center no-wrap q-px-sm q-py-xs"
-          style="border-bottom: 1px solid rgba(0, 0, 0, 0.12); flex-shrink: 0"
-        >
-          <div class="col text-body2 text-weight-medium q-ml-xs">옵션</div>
-          <q-btn flat round dense size="xs" icon="close" @click="showOptionPanel = false" />
-        </div>
-        <q-scroll-area class="col">
-          <!-- 필터별 옵션 컴포넌트 자리 -->
-          <div class="q-pa-md text-caption text-grey-6 text-center q-pt-xl">
-            [{{ optionPanelTarget }}]<br />옵션 컴포넌트<br />(추후 구현)
-          </div>
-        </q-scroll-area>
-      </div>
-    </transition>
-
     <!-- 메인 영역 -->
     <div class="row col min-h-0 overflow-hidden">
-      <!-- 3. 노드 리스트 + Preset 아코디언 -->
+      <!-- 2. 노드 리스트 + Preset 아코디언 -->
       <div
         class="col-4"
         style="border-bottom: 1px solid rgba(0, 0, 0, 0.12); overflow-y: auto; flex-shrink: 0"
@@ -365,7 +356,17 @@ async function onProcessDblClick(process: ProcessResponse) {
                 <div class="col text-body2 ellipsis" :class="{ 'text-grey-5': !node.enabled }">
                   {{ node.label }}
                 </div>
-                <q-btn flat round dense size="xs" icon="more_vert" color="negative" />
+                <q-btn
+                  flat
+                  round
+                  dense
+                  size="xs"
+                  icon="tune"
+                  :color="
+                    optionPanelTarget === node.id && showOptionPanel ? 'primary' : 'grey-5'
+                  "
+                  @click="toggleOptionPanel(node.id)"
+                />
                 <q-toggle v-model="node.enabled" dense size="xs" />
                 <q-btn
                   flat
@@ -423,8 +424,73 @@ async function onProcessDblClick(process: ProcessResponse) {
         </q-expansion-item>
       </div>
 
+      <!-- 3. 파라미터 패널 (필터별 토글) -->
+      <transition name="slide-option">
+        <div
+          v-if="showOptionPanel && optionPanelTarget"
+          class="column option-panel"
+          style="width: 220px; min-width: 220px; border-right: 1px solid rgba(0, 0, 0, 0.12)"
+        >
+          <div
+            class="row items-center no-wrap q-px-sm q-py-xs"
+            style="border-bottom: 1px solid rgba(0, 0, 0, 0.12); flex-shrink: 0"
+          >
+            <div class="col text-body2 text-weight-medium q-ml-xs">옵션</div>
+            <q-btn flat round dense size="xs" icon="close" @click="showOptionPanel = false" />
+          </div>
+          <q-scroll-area class="col">
+            <div v-if="selectedNode" class="q-pa-sm column q-gutter-sm">
+              <div class="text-caption text-grey-7 q-mb-xs">{{ selectedNode.label }}</div>
+
+              <template v-if="selectedNodeFields.length === 0">
+                <div class="text-caption text-grey-5 text-center q-pt-md">
+                  파라미터 없음
+                </div>
+              </template>
+
+              <template v-for="field in selectedNodeFields" :key="field.key">
+                <q-input
+                  v-if="field.type === 'number'"
+                  :model-value="selectedNode.parameters[field.key] as number"
+                  @update:model-value="updateParam(field.key, Number($event))"
+                  :label="field.label"
+                  type="number"
+                  :min="field.min"
+                  :max="field.max"
+                  :step="field.step"
+                  outlined
+                  dense
+                />
+                <q-select
+                  v-else-if="field.type === 'select'"
+                  :model-value="selectedNode.parameters[field.key]"
+                  @update:model-value="updateParam(field.key, $event)"
+                  :label="field.label"
+                  :options="field.options"
+                  emit-value
+                  map-options
+                  outlined
+                  dense
+                />
+              </template>
+
+              <q-btn
+                flat
+                dense
+                size="sm"
+                label="기본값 초기화"
+                icon="restart_alt"
+                color="grey-7"
+                class="q-mt-sm"
+                @click="selectedNode.parameters = getDefaultParams(selectedNode.prcType)"
+              />
+            </div>
+          </q-scroll-area>
+        </div>
+      </transition>
+
       <!-- 4. 이미지 표시 탭 -->
-      <div class="col-8 column min-h-0">
+      <div class="col column min-h-0">
         <div class="row items-center no-wrap">
           <q-tabs
             v-model="mainTab"
