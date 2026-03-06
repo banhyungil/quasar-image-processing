@@ -5,7 +5,7 @@ import type {
   ProcessUpdate,
   ProcessResponse,
   ProcessListResponse,
-} from 'src/types/process';
+} from 'src/types/processType';
 
 export type {
   ProcessStepBase,
@@ -16,9 +16,11 @@ export type {
   ProcessResponse,
   ProcessListResponse,
   GetProcessesOptions,
-} from 'src/types/process';
+} from 'src/types/processType';
 
-export async function getProcesses(options: GetProcessesOptions = {}): Promise<ProcessListResponse> {
+export async function getProcesses(
+  options: GetProcessesOptions = {},
+): Promise<ProcessListResponse> {
   const res = await api.get<ProcessListResponse>('/processes', {
     params: {
       fileId: options.fileId ?? undefined,
