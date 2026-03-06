@@ -668,11 +668,8 @@ async function onProcessDblClick(process: ProcessResponse) {
             v-model:nodes="nodes"
             v-model:edges="edges"
             :default-viewport="{ zoom: 1, x: 0, y: 0 }"
-            :zoom-on-scroll="false"
-            :zoom-on-pinch="false"
-            :zoom-on-double-click="false"
-            :min-zoom="1"
-            :max-zoom="1"
+            :min-zoom="0.2"
+            :max-zoom="3"
             class="flow-canvas"
             @connect="onConnect"
           >

@@ -2,7 +2,7 @@
 import { Handle, Position } from '@vue-flow/core';
 import type { ProcessNodeData } from 'src/types/flowTypes';
 
-defineProps<{
+const props = defineProps<{
   id: string;
   data: ProcessNodeData;
 }>();
@@ -12,6 +12,7 @@ const emit = defineEmits<{
   (e: 'remove', nodeId: string): void;
   (e: 'toggle-enabled', nodeId: string): void;
 }>();
+debugger;
 </script>
 
 <template>
@@ -23,7 +24,15 @@ const emit = defineEmits<{
     <div class="filter-node__header">
       <div class="filter-node__label ellipsis">{{ data.label }}</div>
       <div class="filter-node__actions">
-        <q-btn flat round dense size="xs" icon="tune" color="grey-7" @click="emit('open-params', id)">
+        <q-btn
+          flat
+          round
+          dense
+          size="xs"
+          icon="tune"
+          color="grey-7"
+          @click="emit('open-params', id)"
+        >
           <q-tooltip>파라미터</q-tooltip>
         </q-btn>
         <q-toggle
