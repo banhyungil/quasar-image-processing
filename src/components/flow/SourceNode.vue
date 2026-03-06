@@ -26,8 +26,8 @@ const emit = defineEmits<{
         round
         dense
         size="xs"
-        icon="close"
-        color="negative"
+        icon="refresh"
+        color="primary"
         @click.stop="emit('clear-image')"
       >
         <q-tooltip>초기화</q-tooltip>

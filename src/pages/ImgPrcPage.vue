@@ -65,13 +65,10 @@ const optionPanelTarget = ref<string | null>(null);
 
 // ── Preset ─────────────────────────────────────────────────────────────────
 const presets = ref<PresetResponse[]>([]);
+const activePresetId = ref<string | null>(null);
 const showSavePresetDialog = ref(false);
 const presetName = ref('');
 const presetDescription = ref('');
-const editingPresetId = ref<string | null>(null);
-const showEditPresetDialog = ref(false);
-const editPresetName = ref('');
-const editPresetDescription = ref('');
 
 // ── 처리목록 ───────────────────────────────────────────────────────────────
 const processList = ref<ProcessResponse[]>([]);
@@ -417,32 +414,62 @@ function resetCanvas() {
   selectedNodeId.value = null;
   showOptionPanel.value = false;
   optionPanelTarget.value = null;
+  activePresetId.value = null;
 }
 
 // ── Preset CRUD ────────────────────────────────────────────────────────────
 const hasFilterNodes = computed(() => nodes.value.some((n) => n.type === 'filter'));
 
-async function savePreset() {
+const isEditingPreset = ref(false);
+
+function openSavePresetDialog() {
+  isEditingPreset.value = false;
+  const active = presets.value.find((p) => p.id === activePresetId.value);
+  presetName.value = active ? `${active.nm} copy` : '';
+  presetDescription.value = active ? `${active.description}` : '';
+  showSavePresetDialog.value = true;
+}
+
+function openUpdatePresetDialog() {
+  if (!activePresetId.value) return;
+  isEditingPreset.value = true;
+  const active = presets.value.find((p) => p.id === activePresetId.value);
+  presetName.value = active?.nm ?? '';
+  presetDescription.value = active?.description ?? '';
+  showSavePresetDialog.value = true;
+}
+
+async function confirmPresetDialog() {
   if (!presetName.value.trim()) return;
   const steps = flowToSteps(getNodes.value, getEdges.value);
-  await presetApi.createPreset({
-    nm: presetName.value.trim(),
-    description: presetDescription.value.trim() || null,
-    steps: steps.map((s, i) => ({
-      algorithmNm: s.algorithmNm,
-      stepOrder: i,
-      parameters: s.parameters,
-      clientId: s.id,
-      parentClientId: s.parentId,
-    })),
-  });
-  presetName.value = '';
-  presetDescription.value = '';
+  const stepPayload = steps.map((s, i) => ({
+    algorithmNm: s.algorithmNm,
+    stepOrder: i,
+    parameters: s.parameters,
+    clientId: s.id,
+    parentClientId: s.parentId,
+  }));
+
+  if (isEditingPreset.value && activePresetId.value) {
+    await presetApi.updatePreset(activePresetId.value, {
+      nm: presetName.value.trim(),
+      description: presetDescription.value.trim() || null,
+      steps: stepPayload,
+    });
+  } else {
+    const created = await presetApi.createPreset({
+      nm: presetName.value.trim(),
+      description: presetDescription.value.trim() || null,
+      steps: stepPayload,
+    });
+    activePresetId.value = created.id;
+  }
   showSavePresetDialog.value = false;
   await loadPresets();
 }
 
 function loadPreset(preset: PresetResponse) {
+  activePresetId.value = preset.id;
   const flatSteps: FlatStep[] = preset.steps.map((s) => ({
     id: s.id ?? crypto.randomUUID(),
     parentId: s.parentId ?? null,
@@ -460,26 +487,11 @@ function loadPreset(preset: PresetResponse) {
   });
 }
 
-function openEditPreset(preset: PresetResponse) {
-  editingPresetId.value = preset.id;
-  editPresetName.value = preset.nm;
-  editPresetDescription.value = preset.description ?? '';
-  showEditPresetDialog.value = true;
-}
-
-async function confirmEditPreset() {
-  if (!editingPresetId.value || !editPresetName.value.trim()) return;
-  await presetApi.updatePreset(editingPresetId.value, {
-    nm: editPresetName.value.trim(),
-    description: editPresetDescription.value.trim() || null,
-  });
-  showEditPresetDialog.value = false;
-  editingPresetId.value = null;
-  await loadPresets();
-}
-
 async function removePreset(presetId: string) {
   await presetApi.deletePreset(presetId);
+  if (activePresetId.value === presetId) {
+    activePresetId.value = null;
+  }
   await loadPresets();
 }
 
@@ -625,22 +637,12 @@ async function saveProcess() {
               <div
                 v-for="preset in presets"
                 :key="preset.id"
-                class="row items-center no-wrap q-pa-xs q-mb-xs rounded-borders bg-grey-1 preset-item"
+                class="row items-center no-wrap q-pa-xs q-mb-xs rounded-borders preset-item"
+                :class="activePresetId === preset.id ? 'bg-light-blue-1' : 'bg-grey-1'"
               >
                 <div class="col text-body2 ellipsis cursor-pointer" @click="loadPreset(preset)">
                   {{ preset.nm }}
                 </div>
-                <q-btn
-                  flat
-                  round
-                  dense
-                  size="xs"
-                  icon="edit"
-                  color="grey-7"
-                  @click.stop="openEditPreset(preset)"
-                >
-                  <q-tooltip>수정</q-tooltip>
-                </q-btn>
                 <q-btn
                   flat
                   round
@@ -760,6 +762,17 @@ async function saveProcess() {
           <q-tooltip>처리 데이터 저장</q-tooltip>
         </q-btn>
         <q-btn
+          v-if="activePresetId"
+          flat
+          dense
+          size="sm"
+          icon="edit"
+          label="Preset 수정"
+          color="secondary"
+          :disabled="!hasFilterNodes"
+          @click="openUpdatePresetDialog"
+        />
+        <q-btn
           flat
           dense
           size="sm"
@@ -767,7 +780,7 @@ async function saveProcess() {
           label="Preset 저장"
           color="secondary"
           :disabled="!hasFilterNodes"
-          @click="showSavePresetDialog = true"
+          @click="openSavePresetDialog"
         />
       </div>
 
@@ -832,11 +845,11 @@ async function saveProcess() {
     <!-- 다이얼로그                                                          -->
     <!-- ================================================================== -->
 
-    <!-- Preset 저장 다이얼로그 -->
+    <!-- Preset 저장/수정 다이얼로그 -->
     <q-dialog v-model="showSavePresetDialog">
       <q-card style="min-width: 300px">
         <q-card-section>
-          <div class="text-h6">Preset 저장</div>
+          <div class="text-h6">{{ isEditingPreset ? 'Preset 수정' : 'Preset 저장' }}</div>
         </q-card-section>
         <q-card-section class="q-pt-none column q-gutter-sm">
           <q-input
@@ -845,7 +858,7 @@ async function saveProcess() {
             outlined
             dense
             autofocus
-            @keyup.enter="savePreset"
+            @keyup.enter="confirmPresetDialog"
           />
           <q-input v-model="presetDescription" label="설명 (선택)" outlined dense />
         </q-card-section>
@@ -853,40 +866,10 @@ async function saveProcess() {
           <q-btn flat label="취소" v-close-popup />
           <q-btn
             unelevated
-            label="저장"
+            :label="isEditingPreset ? '수정' : '저장'"
             color="primary"
             :disabled="!presetName.trim()"
-            @click="savePreset"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
-    <!-- Preset 수정 다이얼로그 -->
-    <q-dialog v-model="showEditPresetDialog">
-      <q-card style="min-width: 300px">
-        <q-card-section>
-          <div class="text-h6">Preset 수정</div>
-        </q-card-section>
-        <q-card-section class="q-pt-none column q-gutter-sm">
-          <q-input
-            v-model="editPresetName"
-            label="Preset 이름"
-            outlined
-            dense
-            autofocus
-            @keyup.enter="confirmEditPreset"
-          />
-          <q-input v-model="editPresetDescription" label="설명 (선택)" outlined dense />
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="취소" v-close-popup />
-          <q-btn
-            unelevated
-            label="수정"
-            color="primary"
-            :disabled="!editPresetName.trim()"
-            @click="confirmEditPreset"
+            @click="confirmPresetDialog"
           />
         </q-card-actions>
       </q-card>
