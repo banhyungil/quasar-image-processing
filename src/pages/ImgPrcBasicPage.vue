@@ -169,7 +169,7 @@ function selectSavedImage(item: FileSaveResponse) {
     URL.revokeObjectURL(resultPreviewUrl.value);
   }
   resultPreviewUrl.value = item.path;
-  prcOption.value = item.options.prcType as PrcType;
+  prcOption.value = item.options.prcType;
   prcMs.value = Number(item.options.prcMs ?? 0);
   selectedSavedImageId.value = item.id;
 }

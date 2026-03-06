@@ -13,7 +13,9 @@ declare module 'vue' {
   export interface GlobalComponents {
     EssentialLink: typeof import('./components/EssentialLink.vue')['default']
     ExampleComponent: typeof import('./components/ExampleComponent.vue')['default']
+    FilterNode: typeof import('./components/flow/FilterNode.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SourceNode: typeof import('./components/flow/SourceNode.vue')['default']
   }
 }
