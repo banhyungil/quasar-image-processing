@@ -5,6 +5,7 @@ import type {
   GetProcessingImageOptions,
   FileSaveResponse,
   FileListResponse,
+  FileUploadResponse,
   BatchStep,
   BatchResult,
   TreeBatchStep,
@@ -15,6 +16,7 @@ export type {
   PrcType,
   FileSaveResponse,
   FileListResponse,
+  FileUploadResponse,
   ImgPrcOptions,
   SavePrcImageOptions,
   GetProcessingImageOptions,
@@ -110,4 +112,17 @@ export async function batchProcessing(file: File | Blob, steps: BatchStep[]): Pr
     });
 
   return { blob: res.data, totalExecutionMs: totalMs, stepTimes };
+}
+
+// ── File Upload ─────────────────────────────────────────────────────────────
+
+export async function uploadFile(file: File | Blob): Promise<FileUploadResponse> {
+  const form = new FormData();
+  form.append('file', file);
+
+  const res = await api.post<FileUploadResponse>('/image-processing/upload', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+
+  return res.data;
 }

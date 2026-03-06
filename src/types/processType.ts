@@ -7,7 +7,10 @@ export interface ProcessStepBase {
   parentId?: string | null;
 }
 
-export interface ProcessStepCreate extends ProcessStepBase {}
+export interface ProcessStepCreate extends ProcessStepBase {
+  clientId?: string | null;
+  parentClientId?: string | null;
+}
 
 export interface ProcessStepResponse extends ProcessStepBase {
   id: string;

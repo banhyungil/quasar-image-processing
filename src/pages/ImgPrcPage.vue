@@ -8,17 +8,12 @@ import '@vue-flow/core/dist/theme-default.css';
 import { FN_LIST, FN_OPTIONS_MAP, PARAM_FIELDS } from 'src/constants/imgPrc';
 import type { FunctionKey } from 'src/constants/imgPrc';
 import type { PrcType } from 'src/types/imgPrcType';
-import {
-  getPresets,
-  createPreset,
-  updatePreset as updatePresetApi,
-  deletePreset as deletePresetApi,
-} from 'src/apis/presetApi';
+import * as presetApi from 'src/apis/presetApi';
 import type { PresetResponse } from 'src/apis/presetApi';
-import { getProcesses, getProcess } from 'src/apis/processApi';
+import * as processApi from 'src/apis/processApi';
 import type { ProcessResponse } from 'src/apis/processApi';
-import { batchTreeProcessing, batchProcessing } from 'src/apis/imgPrcApi';
-import type { TreeBatchStep, BatchStep } from 'src/types/imgPrcType';
+import * as imgPrcApi from 'src/apis/imgPrcApi';
+import type { TreeBatchStep } from 'src/types/imgPrcType';
 
 import FilterNode from 'src/components/flow/FilterNode.vue';
 import SourceNode from 'src/components/flow/SourceNode.vue';
@@ -86,6 +81,7 @@ const originalFile = ref<File | null>(null);
 const originalPreviewUrl = ref<string | null>(null);
 const originalInputRef = ref<HTMLInputElement | null>(null);
 
+/** 원본 이미지 설정 */
 function setOriginalFile(file: File | null) {
   if (file == null) {
     originalFile.value = null;
@@ -109,6 +105,8 @@ function setOriginalFile(file: File | null) {
   if (sourceNode) {
     (sourceNode.data as SourceNodeData).previewUrl = originalPreviewUrl.value;
   }
+
+  processAllLeaves();
 }
 
 function openOriginalPicker() {
@@ -126,12 +124,12 @@ onMounted(async () => {
 });
 
 async function loadPresets() {
-  const res = await getPresets();
+  const res = await presetApi.getPresets();
   presets.value = res.items;
 }
 
 async function loadProcessList() {
-  const res = await getProcesses();
+  const res = await processApi.getProcesses();
   processList.value = res.items;
 }
 
@@ -259,7 +257,7 @@ async function processNodeThumbnail(targetNodeId: string) {
   if (steps.length === 0) return;
 
   try {
-    const result = await batchTreeProcessing(originalFile.value, steps);
+    const result = await imgPrcApi.batchTreeProcessing(originalFile.value, steps);
     // 결과를 각 노드에 매핑
     for (const nr of result.results) {
       const node = nodes.value.find((n) => n.id === nr.nodeId);
@@ -427,7 +425,7 @@ const hasFilterNodes = computed(() => nodes.value.some((n) => n.type === 'filter
 async function savePreset() {
   if (!presetName.value.trim()) return;
   const steps = flowToSteps(getNodes.value, getEdges.value);
-  await createPreset({
+  await presetApi.createPreset({
     nm: presetName.value.trim(),
     description: presetDescription.value.trim() || null,
     steps: steps.map((s, i) => ({
@@ -471,7 +469,7 @@ function openEditPreset(preset: PresetResponse) {
 
 async function confirmEditPreset() {
   if (!editingPresetId.value || !editPresetName.value.trim()) return;
-  await updatePresetApi(editingPresetId.value, {
+  await presetApi.updatePreset(editingPresetId.value, {
     nm: editPresetName.value.trim(),
     description: editPresetDescription.value.trim() || null,
   });
@@ -481,13 +479,13 @@ async function confirmEditPreset() {
 }
 
 async function removePreset(presetId: string) {
-  await deletePresetApi(presetId);
+  await presetApi.deletePreset(presetId);
   await loadPresets();
 }
 
 // ── 처리목록 → 캔버스 로드 ────────────────────────────────────────────────
 async function onProcessDblClick(process: ProcessResponse) {
-  const detail = await getProcess(process.id);
+  const detail = await processApi.getProcess(process.id);
   const flatSteps: FlatStep[] = detail.steps.map((s) => ({
     id: s.id ?? crypto.randomUUID(),
     parentId: s.parentId ?? null,
@@ -515,52 +513,32 @@ function processAllLeaves() {
   }
 }
 
-// ── 처리된 이미지 저장 ──────────────────────────────────────────────────────
-const isSaving = ref(false);
+// ── 처리 데이터 저장 ────────────────────────────────────────────────────────
+const showSaveProcessDialog = ref(false);
+const processName = ref('');
 
-async function saveProcessedImage() {
-  if (!originalFile.value) return;
+async function saveProcess() {
+  if (!processName.value.trim() || !originalFile.value) return;
 
-  // 저장 대상: 선택된 노드 또는 마지막 리프
-  const targetId = selectedNodeId.value ?? findLastLeaf();
-  if (targetId === SOURCE_NODE_ID) return;
+  // 원본 이미지 업로드 → fileId 획득
+  const uploaded = await imgPrcApi.uploadFile(originalFile.value);
 
-  const targetNode = nodes.value.find((n) => n.id === targetId);
-  if (!targetNode || targetNode.type !== 'filter') return;
-
-  // source → target 경로에서 enabled 노드만 추출
-  const pathNodeIds = collectPathToNode(targetId);
-  const steps: BatchStep[] = [];
-  for (const nodeId of pathNodeIds) {
-    const node = nodes.value.find((n) => n.id === nodeId);
-    if (!node || node.type !== 'filter') continue;
-    const data = node.data as ProcessNodeData;
-    if (!data.enabled) continue;
-    steps.push({
-      prcType: data.algorithmNm,
-      parameters: { ...data.parameters },
-    });
-  }
-  if (steps.length === 0) return;
-
-  isSaving.value = true;
-  try {
-    const result = await batchProcessing(originalFile.value, steps);
-    // blob → 다운로드
-    const url = URL.createObjectURL(result.blob);
-    const a = document.createElement('a');
-    const originalName = originalFile.value.name.replace(/\.[^/.]+$/, '');
-    a.href = url;
-    a.download = `${originalName}_processed.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  } catch (err) {
-    console.error('이미지 저장 실패:', err);
-  } finally {
-    isSaving.value = false;
-  }
+  const steps = flowToSteps(getNodes.value, getEdges.value);
+  await processApi.createProcess({
+    nm: processName.value.trim(),
+    fileId: uploaded.id,
+    steps: steps.map((s, i) => ({
+      algorithmNm: s.algorithmNm,
+      stepOrder: i,
+      parameters: s.parameters,
+      isEnabled: s.isEnabled ?? true,
+      clientId: s.id,
+      parentClientId: s.parentId,
+    })),
+  });
+  processName.value = '';
+  showSaveProcessDialog.value = false;
+  await loadProcessList();
 }
 </script>
 
@@ -773,14 +751,13 @@ async function saveProcessedImage() {
           flat
           dense
           size="sm"
-          icon="download"
-          label="이미지 저장"
+          icon="save_alt"
+          label="처리 저장"
           color="primary"
           :disabled="!hasFilterNodes || !originalFile"
-          :loading="isSaving"
-          @click="saveProcessedImage"
+          @click="showSaveProcessDialog = true"
         >
-          <q-tooltip>처리된 이미지 다운로드</q-tooltip>
+          <q-tooltip>처리 데이터 저장</q-tooltip>
         </q-btn>
         <q-btn
           flat
@@ -828,7 +805,11 @@ async function saveProcessedImage() {
               />
             </template>
             <template #node-source="nodeProps">
-              <SourceNode v-bind="nodeProps" @pick-image="openOriginalPicker" @clear-image="setOriginalFile(null)" />
+              <SourceNode
+                v-bind="nodeProps"
+                @pick-image="openOriginalPicker"
+                @clear-image="setOriginalFile(null)"
+              />
             </template>
 
             <Background />
@@ -906,6 +887,35 @@ async function saveProcessedImage() {
             color="primary"
             :disabled="!editPresetName.trim()"
             @click="confirmEditPreset"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- 처리 저장 다이얼로그 -->
+    <q-dialog v-model="showSaveProcessDialog">
+      <q-card style="min-width: 300px">
+        <q-card-section>
+          <div class="text-h6">처리 데이터 저장</div>
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <q-input
+            v-model="processName"
+            label="처리 이름"
+            outlined
+            dense
+            autofocus
+            @keyup.enter="saveProcess"
+          />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="취소" v-close-popup />
+          <q-btn
+            unelevated
+            label="저장"
+            color="primary"
+            :disabled="!processName.trim()"
+            @click="saveProcess"
           />
         </q-card-actions>
       </q-card>

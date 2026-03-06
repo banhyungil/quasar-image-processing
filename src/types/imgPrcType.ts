@@ -35,6 +35,18 @@ export interface BatchResult {
   stepTimes: { prcType: string; executionMs: number }[];
 }
 
+// ── File Upload ─────────────────────────────────────────────────────────────
+
+export interface FileUploadResponse {
+  id: string;
+  originNm: string;
+  nm: string;
+  path: string;
+  mimeType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+}
+
 // ── Tree Batch Processing ───────────────────────────────────────────────────
 
 export interface TreeBatchStep {

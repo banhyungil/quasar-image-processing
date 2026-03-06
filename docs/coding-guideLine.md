@@ -21,6 +21,11 @@
   - setup root scope에서 선언해야 된다. 그렇지 않으면 component lifecycle hook을 주입받을 수 없음(onMounted, unMounted 등과 같은 hook 사용 불가능)
   - setup root scope에서 사용하더라도. watch immediate가 발동하면 setup process가 종료된다. watch immediate가 선언된 composable은 사용시 제일 마지막에 사용하도록 한다.
 
+## api 사용
+
+- api 함수 사용시에는 api 파일명을 namespace로 사용한다
+  - ex. presetApi.getPreset()
+
 ## Naming
 
 ### Event
