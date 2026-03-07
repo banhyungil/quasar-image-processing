@@ -74,13 +74,26 @@ export async function getProcessingImage(options: GetProcessingImageOptions = {}
 
 // ── Tree Batch Processing ───────────────────────────────────────────────────
 
+/**
+ * file에 따른 steps 연산처리를 수행한다.
+ * 원본 이미지를 넘기는 경우 동일 해상도로 연산처리
+ *
+ * @param file
+ * @param steps
+ * @param options
+ * @returns
+ */
 export async function batchTreeProcessing(
   file: File | Blob,
   steps: TreeBatchStep[],
+  options?: { fullSize?: boolean },
 ): Promise<TreeBatchResult> {
   const form = new FormData();
   form.append('file', file);
   form.append('steps', JSON.stringify(steps));
+  if (options?.fullSize) {
+    form.append('fullSize', 'true');
+  }
 
   const res = await api.post<TreeBatchResult>('/image-processing/batch-tree', form, {
     headers: { 'Content-Type': 'multipart/form-data' },

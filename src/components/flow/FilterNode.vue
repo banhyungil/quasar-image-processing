@@ -7,9 +7,10 @@ const props = defineProps<{
   id: string;
   data: ProcessNodeData;
   selected?: boolean;
+  zoomed?: boolean;
 }>();
 
-const paramSummary = computed(() => {
+const cParamSummary = computed(() => {
   const fields = PARAM_FIELDS[props.data.algorithmNm];
   if (!fields) return [];
   return fields.map((f) => ({
@@ -22,6 +23,7 @@ const emit = defineEmits<{
   (e: 'open-params', nodeId: string): void;
   (e: 'remove', nodeId: string): void;
   (e: 'toggle-enabled', nodeId: string): void;
+  (e: 'zoom', nodeId: string): void;
 }>();
 </script>
 
@@ -54,6 +56,18 @@ const emit = defineEmits<{
           size="xs"
           @update:model-value="emit('toggle-enabled', id)"
         />
+        <q-btn
+          v-if="data.thumbnail"
+          flat
+          round
+          dense
+          size="xs"
+          icon="zoom_in"
+          :color="zoomed ? 'primary' : 'grey-7'"
+          @click.stop="emit('zoom', id)"
+        >
+          <q-tooltip>이미지 확대</q-tooltip>
+        </q-btn>
         <q-btn flat round dense size="xs" icon="close" color="negative" @click="emit('remove', id)">
           <q-tooltip>삭제</q-tooltip>
         </q-btn>
@@ -82,7 +96,7 @@ const emit = defineEmits<{
 
     <!-- 파라미터 정보 -->
     <div class="filter-node__params">
-      <div v-for="p in paramSummary" :key="p.label" class="filter-node__param">
+      <div v-for="p in cParamSummary" :key="p.label" class="filter-node__param">
         <span class="filter-node__param-label">{{ p.label }}</span>
         <span class="filter-node__param-value">{{ p.value }}</span>
       </div>

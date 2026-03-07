@@ -22,7 +22,7 @@ watch(
   },
 );
 
-const fields = computed<ParamFieldDef[]>(() => {
+const cFields = computed<ParamFieldDef[]>(() => {
   return PARAM_FIELDS[props.nodeData.algorithmNm] ?? [];
 });
 
@@ -37,9 +37,7 @@ function resetParams() {
 }
 
 function apply() {
-  // 로컬 파라미터를 원본에 반영 후 emit
-  Object.assign(props.nodeData.parameters, localParams.value);
-  emit('apply', props.nodeData);
+  emit('apply', { ...props.nodeData, parameters: { ...localParams.value } });
 }
 </script>
 
@@ -59,11 +57,11 @@ function apply() {
       <div class="q-pa-sm column q-gutter-sm">
         <div class="text-caption text-grey-7 q-mb-xs">{{ nodeData.label }}</div>
 
-        <template v-if="fields.length === 0">
+        <template v-if="cFields.length === 0">
           <div class="text-caption text-grey-5 text-center q-pt-md">파라미터 없음</div>
         </template>
 
-        <template v-for="field in fields" :key="field.key">
+        <template v-for="field in cFields" :key="field.key">
           <q-input
             v-if="field.type === 'number'"
             :model-value="localParams[field.key] as number"
