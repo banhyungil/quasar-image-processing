@@ -19,6 +19,7 @@ import { API_HOST } from 'src/boot/axios';
 import FilterNode from 'src/components/flow/FilterNode.vue';
 import SourceNode from 'src/components/flow/SourceNode.vue';
 import ParamPanel from 'src/components/flow/ParamPanel.vue';
+import ImageZoomPopup from 'src/components/flow/ImageZoomPopup.vue';
 import type { ProcessNodeData, SourceNodeData, FlatStep } from 'src/types/flowTypes';
 import { stepsToFlow, flowToSteps } from 'src/utils/flowConverter';
 import { applyDagreLayout } from 'src/utils/flowLayout';
@@ -59,6 +60,7 @@ function onPaneClick() {
 
 // ── 사이드바 탭 ────────────────────────────────────────────────────────────
 const sidebarTab = ref<'filters' | 'presets' | 'processes'>('filters');
+const splitterSize = ref(20);
 
 // ── 파라미터 패널 ──────────────────────────────────────────────────────────
 const showOptionPanel = ref(false);
@@ -149,7 +151,7 @@ function openParamPanel(nodeId: string) {
   }
 }
 
-const selectedNodeData = computed<ProcessNodeData | null>(() => {
+const cSelNodeData = computed<ProcessNodeData | null>(() => {
   if (!optionPanelTarget.value) return null;
   const n = nodes.value.find((n) => n.id === optionPanelTarget.value);
   if (!n || n.type !== 'filter') return null;
@@ -421,7 +423,7 @@ function resetCanvas() {
 }
 
 // ── Preset CRUD ────────────────────────────────────────────────────────────
-const hasFilterNodes = computed(() => nodes.value.some((n) => n.type === 'filter'));
+const cHasFilterNodes = computed(() => nodes.value.some((n) => n.type === 'filter'));
 
 const isEditingPreset = ref(false);
 
@@ -600,320 +602,419 @@ async function removeProcess(processId: string) {
   }
   await loadProcessList();
 }
+
+// ── 이미지 확대 팝업 (모달리스, 복수) ─────────────────────────────────────────
+interface ZoomPopup {
+  id: string;
+  nodeId: string;
+  src: string;
+  title: string;
+}
+const zoomPopups = ref<ZoomPopup[]>([]);
+const cZoomedNodeIds = computed(() => new Set(zoomPopups.value.map((p) => p.nodeId)));
+
+function closeZoomPopup(popupId: string) {
+  zoomPopups.value = zoomPopups.value.filter((p) => p.id !== popupId);
+}
+
+/**
+ * 확대 이미지 표시
+ * 확대 이미지 표시시에는 원본 해상도로 표시
+ *
+ * @param nodeId
+ */
+async function onNodeZoom(nodeId: string) {
+  if (zoomPopups.value.some((p) => p.nodeId === nodeId)) return;
+
+  if (nodeId === SOURCE_NODE_ID) {
+    if (!originalPreviewUrl.value) return;
+    zoomPopups.value.push({
+      id: crypto.randomUUID(),
+      nodeId,
+      src: originalPreviewUrl.value,
+      title: '원본 이미지',
+    });
+    return;
+  }
+
+  // 필터 노드: batch-tree API로 원본 해상도 연산
+  if (!originalFile.value) return;
+
+  const pathNodeIds = collectPathToNode(nodeId);
+  const steps: TreeBatchStep[] = [];
+  const enabledIds = new Set<string>();
+
+  for (const nid of pathNodeIds) {
+    const node = nodes.value.find((n) => n.id === nid);
+    if (!node || node.type !== 'filter') continue;
+    const data = node.data as ProcessNodeData;
+    if (!data.enabled) continue;
+
+    let parentId: string | null = null;
+    const parentEdge = edges.value.find((e) => e.target === nid);
+    let cursor = parentEdge?.source ?? null;
+    while (cursor && cursor !== SOURCE_NODE_ID) {
+      if (enabledIds.has(cursor)) {
+        parentId = cursor;
+        break;
+      }
+      const pe = edges.value.find((e) => e.target === cursor);
+      cursor = pe?.source ?? null;
+    }
+
+    enabledIds.add(nid);
+    steps.push({
+      nodeId: nid,
+      prcType: data.algorithmNm,
+      parameters: { ...data.parameters },
+      parentId,
+    });
+  }
+  if (steps.length === 0) return;
+
+  try {
+    const result = await imgPrcApi.batchTreeProcessing(originalFile.value, steps, {
+      fullSize: true,
+    });
+    const target = result.results.find((r) => r.nodeId === nodeId);
+    if (target) {
+      const node = nodes.value.find((n) => n.id === nodeId);
+      zoomPopups.value.push({
+        id: crypto.randomUUID(),
+        nodeId,
+        src: 'data:image/png;base64,' + target.thumbnail,
+        title: (node?.data as ProcessNodeData)?.label ?? '처리 결과',
+      });
+    }
+  } catch (err) {
+    console.error('확대 이미지 연산 실패:', err);
+  }
+}
 </script>
 
 <template>
-  <q-page class="fit row overflow-hidden">
-    <!-- ================================================================== -->
-    <!-- 1. 사이드바: 탭 (필터함수 / Preset / 처리목록)                      -->
-    <!-- ================================================================== -->
-    <div
-      class="column"
-      style="width: 280px; min-width: 280px; border-right: 1px solid rgba(0, 0, 0, 0.12)"
-    >
-      <q-tabs
-        v-model="sidebarTab"
-        dense
-        align="justify"
-        active-color="primary"
-        indicator-color="primary"
-        narrow-indicator
-        class="text-grey-7"
-        style="flex-shrink: 0"
-      >
-        <q-tab name="filters" icon="filter_alt" label="필터" />
-        <q-tab name="presets" icon="bookmarks" label="Preset" />
-        <q-tab name="processes" icon="list_alt" label="처리목록" />
-      </q-tabs>
-      <q-separator />
+  <q-page class="overflow-hidden">
+    <!-- absolute-full을 통해 page 전체 확장 -->
+    <q-splitter v-model="splitterSize" :limits="[15, 40]" class="absolute-full">
+      <template #before>
+        <!-- ================================================================== -->
+        <!-- 1. 사이드바: 탭 (필터함수 / Preset / 처리목록)                      -->
+        <!-- ================================================================== -->
+        <div class="column fit">
+          <q-tabs
+            v-model="sidebarTab"
+            dense
+            align="justify"
+            active-color="primary"
+            indicator-color="primary"
+            narrow-indicator
+            class="text-grey-7"
+            style="flex-shrink: 0"
+          >
+            <q-tab name="filters" icon="filter_alt" label="필터" />
+            <q-tab name="presets" icon="bookmarks" label="Preset" />
+            <q-tab name="processes" icon="list_alt" label="처리목록" />
+          </q-tabs>
+          <q-separator />
 
-      <q-tab-panels v-model="sidebarTab" animated class="col" style="min-height: 0">
-        <!-- 가. 필터함수 탭 -->
-        <q-tab-panel name="filters" class="q-pa-none" style="height: 100%">
-          <q-scroll-area style="height: 100%">
-            <q-list>
-              <q-expansion-item
-                v-for="fn in FN_LIST"
-                :key="fn.value"
-                :icon="CATEGORY_ICONS[fn.value]"
-                :label="fn.label"
-                default-opened
-                expand-separator
-              >
-                <div
-                  v-for="option in FN_OPTIONS_MAP[fn.value]"
-                  :key="option.value"
-                  class="q-px-sm q-py-xs"
-                  draggable="true"
-                  @dragstart="onSidebarDragStart($event, option.value, option.label)"
-                >
-                  <q-card flat bordered class="filter-card">
-                    <q-card-section class="q-pa-xs row items-center no-wrap q-gutter-x-xs">
-                      <q-icon
-                        :name="CATEGORY_ICONS[fn.value]"
-                        size="xs"
-                        color="primary"
-                        class="q-ml-xs"
-                      />
-                      <div class="col text-caption ellipsis">{{ option.label }}</div>
-                      <q-btn
-                        flat
-                        round
-                        dense
-                        size="xs"
-                        icon="add"
-                        color="positive"
-                        @click="addFilterNode(option.value, option.label)"
-                      >
-                        <q-tooltip>노드에 추가</q-tooltip>
-                      </q-btn>
-                    </q-card-section>
-                  </q-card>
-                </div>
-              </q-expansion-item>
-            </q-list>
-          </q-scroll-area>
-        </q-tab-panel>
+          <q-tab-panels v-model="sidebarTab" animated class="col" style="min-height: 0">
+            <!-- 가. 필터함수 탭 -->
+            <q-tab-panel name="filters" class="q-pa-none" style="height: 100%">
+              <q-scroll-area style="height: 100%">
+                <q-list>
+                  <q-expansion-item
+                    v-for="fn in FN_LIST"
+                    :key="fn.value"
+                    :icon="CATEGORY_ICONS[fn.value]"
+                    :label="fn.label"
+                    default-opened
+                    expand-separator
+                  >
+                    <div
+                      v-for="option in FN_OPTIONS_MAP[fn.value]"
+                      :key="option.value"
+                      class="q-px-sm q-py-xs"
+                      draggable="true"
+                      @dragstart="onSidebarDragStart($event, option.value, option.label)"
+                    >
+                      <q-card flat bordered class="filter-card">
+                        <q-card-section class="q-pa-xs row items-center no-wrap q-gutter-x-xs">
+                          <q-icon
+                            :name="CATEGORY_ICONS[fn.value]"
+                            size="xs"
+                            color="primary"
+                            class="q-ml-xs"
+                          />
+                          <div class="col text-caption ellipsis">{{ option.label }}</div>
+                          <q-btn
+                            flat
+                            round
+                            dense
+                            size="xs"
+                            icon="add"
+                            color="positive"
+                            @click="addFilterNode(option.value, option.label)"
+                          >
+                            <q-tooltip>노드에 추가</q-tooltip>
+                          </q-btn>
+                        </q-card-section>
+                      </q-card>
+                    </div>
+                  </q-expansion-item>
+                </q-list>
+              </q-scroll-area>
+            </q-tab-panel>
 
-        <!-- 나. Preset 탭 -->
-        <q-tab-panel name="presets" class="q-pa-none" style="height: 100%">
-          <q-scroll-area style="height: 100%">
-            <div class="q-pa-sm">
-              <div v-if="presets.length === 0" class="text-center text-caption text-grey-6 q-pa-md">
-                저장된 Preset이 없습니다
-              </div>
-              <div
-                v-for="preset in presets"
-                :key="preset.id"
-                class="row items-center no-wrap q-pa-xs q-mb-xs rounded-borders preset-item"
-                :class="activePresetId === preset.id ? 'bg-light-blue-1' : 'bg-grey-1'"
-              >
-                <div class="col text-body2 ellipsis cursor-pointer" @click="loadPreset(preset)">
-                  {{ preset.nm }}
-                </div>
-                <q-btn
-                  flat
-                  round
-                  dense
-                  size="xs"
-                  icon="delete"
-                  color="negative"
-                  @click.stop="removePreset(preset.id)"
-                >
-                  <q-tooltip>삭제</q-tooltip>
-                </q-btn>
-              </div>
-            </div>
-          </q-scroll-area>
-        </q-tab-panel>
-
-        <!-- 다. 처리목록 탭 -->
-        <q-tab-panel name="processes" class="q-pa-none" style="height: 100%">
-          <q-scroll-area style="height: 100%">
-            <div class="q-pa-sm">
-              <div
-                v-if="processList.length === 0"
-                class="text-center text-caption text-grey-6 q-pa-md"
-              >
-                처리된 이미지가 없습니다
-              </div>
-              <div
-                v-for="proc in processList"
-                :key="proc.id"
-                class="row items-center no-wrap q-pa-xs q-mb-xs rounded-borders process-item"
-                :class="activeProcessId === proc.id ? 'bg-light-blue-1' : 'bg-grey-1'"
-              >
-                <q-avatar square size="40px" class="q-mr-xs" style="flex-shrink: 0">
-                  <img
-                    v-if="proc.filePath"
-                    :src="`${API_HOST}/${proc.filePath}`"
-                    style="object-fit: cover"
-                  />
-                  <q-icon v-else name="image" color="grey-5" />
-                </q-avatar>
-                <div class="col cursor-pointer" @dblclick="onProcessDblClick(proc)">
-                  <div class="text-body2 ellipsis">{{ proc.nm }}</div>
-                  <div class="text-caption text-grey-6">
-                    {{ proc.steps.length }}단계
-                    <template v-if="proc.totalExecutionMs != null">
-                      · {{ proc.totalExecutionMs }}ms
-                    </template>
+            <!-- 나. Preset 탭 -->
+            <q-tab-panel name="presets" class="q-pa-none" style="height: 100%">
+              <q-scroll-area style="height: 100%">
+                <div class="q-pa-sm">
+                  <div
+                    v-if="presets.length === 0"
+                    class="text-center text-caption text-grey-6 q-pa-md"
+                  >
+                    저장된 Preset이 없습니다
+                  </div>
+                  <div
+                    v-for="preset in presets"
+                    :key="preset.id"
+                    class="row items-center no-wrap q-pa-xs q-mb-xs rounded-borders preset-item"
+                    :class="activePresetId === preset.id ? 'bg-light-blue-1' : 'bg-grey-1'"
+                  >
+                    <div class="col text-body2 ellipsis cursor-pointer" @click="loadPreset(preset)">
+                      {{ preset.nm }}
+                    </div>
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      size="xs"
+                      icon="delete"
+                      color="negative"
+                      @click.stop="removePreset(preset.id)"
+                    >
+                      <q-tooltip>삭제</q-tooltip>
+                    </q-btn>
                   </div>
                 </div>
-                <q-badge
-                  :color="proc.isLatest ? 'positive' : 'grey-5'"
-                  :label="proc.isLatest ? '최신' : '이전'"
-                  class="q-mr-xs"
-                />
-                <q-btn
-                  flat
-                  round
-                  dense
-                  size="xs"
-                  icon="delete"
-                  color="negative"
-                  @click.stop="removeProcess(proc.id)"
-                >
-                  <q-tooltip>삭제</q-tooltip>
-                </q-btn>
-              </div>
-            </div>
-          </q-scroll-area>
-        </q-tab-panel>
-      </q-tab-panels>
-    </div>
+              </q-scroll-area>
+            </q-tab-panel>
 
-    <!-- ================================================================== -->
-    <!-- 2. Node Flow 메인 섹션                                              -->
-    <!-- ================================================================== -->
-    <div class="col column min-h-0 overflow-hidden">
-      <!-- 상단 툴바 -->
-      <div
-        class="row items-center no-wrap q-px-sm q-py-xs q-gutter-x-sm"
-        style="flex-shrink: 0; border-bottom: 1px solid rgba(0, 0, 0, 0.12)"
-      >
-        <q-btn
-          flat
-          dense
-          size="sm"
-          icon="image"
-          :label="originalFile ? originalFile.name : '원본 이미지 선택'"
-          @click="openOriginalPicker"
-        />
-        <q-btn
-          v-if="originalFile"
-          flat
-          dense
-          round
-          size="xs"
-          icon="close"
-          color="grey-6"
-          @click="setOriginalFile(null)"
-        >
-          <q-tooltip>원본 초기화</q-tooltip>
-        </q-btn>
-
-        <q-space />
-
-        <q-btn
-          flat
-          dense
-          size="sm"
-          icon="delete_sweep"
-          label="초기화"
-          color="negative"
-          :disabled="!hasFilterNodes"
-          @click="resetCanvas"
-        >
-          <q-tooltip>전체 노드 초기화</q-tooltip>
-        </q-btn>
-        <q-btn flat dense size="sm" icon="account_tree" label="정렬" @click="relayout()">
-          <q-tooltip>자동 레이아웃</q-tooltip>
-        </q-btn>
-        <q-btn
-          v-if="activeProcessId"
-          flat
-          dense
-          size="sm"
-          icon="edit_note"
-          label="처리 수정"
-          color="primary"
-          :disabled="!hasFilterNodes || !originalFile"
-          @click="openUpdateProcessDialog"
-        >
-          <q-tooltip>처리 데이터 수정</q-tooltip>
-        </q-btn>
-        <q-btn
-          flat
-          dense
-          size="sm"
-          icon="save_alt"
-          label="처리 저장"
-          color="primary"
-          :disabled="!hasFilterNodes || !originalFile"
-          @click="openSaveProcessDialog"
-        >
-          <q-tooltip>처리 데이터 저장</q-tooltip>
-        </q-btn>
-        <q-btn
-          v-if="activePresetId"
-          flat
-          dense
-          size="sm"
-          icon="edit"
-          label="Preset 수정"
-          color="secondary"
-          :disabled="!hasFilterNodes"
-          @click="openUpdatePresetDialog"
-        />
-        <q-btn
-          flat
-          dense
-          size="sm"
-          icon="save"
-          label="Preset 저장"
-          color="secondary"
-          :disabled="!hasFilterNodes"
-          @click="openSavePresetDialog"
-        />
-      </div>
-
-      <input
-        ref="originalInputRef"
-        type="file"
-        accept="image/*"
-        class="hidden"
-        @change="onOriginalInputChange"
-      />
-
-      <!-- vue-flow 캔버스 + 파라미터 패널 -->
-      <div class="col row min-h-0 overflow-hidden">
-        <!-- 캔버스 -->
-        <div class="col" @dragover="onCanvasDragOver" @drop="onCanvasDrop">
-          <VueFlow
-            v-model:nodes="nodes"
-            v-model:edges="edges"
-            :default-viewport="{ zoom: 1, x: 0, y: 0 }"
-            :min-zoom="0.2"
-            :max-zoom="3"
-            class="flow-canvas"
-            @connect="onConnect"
-            @node-click="onNodeClick"
-            @pane-click="onPaneClick"
-          >
-            <!-- 커스텀 노드 이벤트 핸들링 -->
-            <template #node-filter="nodeProps">
-              <FilterNode
-                v-bind="nodeProps"
-                :selected="selectedNodeId === nodeProps.id"
-                @open-params="openParamPanel"
-                @remove="removeFilterNode"
-                @toggle-enabled="toggleEnabled"
-              />
-            </template>
-            <template #node-source="nodeProps">
-              <SourceNode
-                v-bind="nodeProps"
-                @pick-image="openOriginalPicker"
-                @clear-image="setOriginalFile(null)"
-              />
-            </template>
-
-            <Background />
-          </VueFlow>
+            <!-- 다. 처리목록 탭 -->
+            <q-tab-panel name="processes" class="q-pa-none" style="height: 100%">
+              <q-scroll-area style="height: 100%">
+                <div class="q-pa-sm">
+                  <div
+                    v-if="processList.length === 0"
+                    class="text-center text-caption text-grey-6 q-pa-md"
+                  >
+                    처리된 이미지가 없습니다
+                  </div>
+                  <div
+                    v-for="proc in processList"
+                    :key="proc.id"
+                    class="row items-center no-wrap q-pa-xs q-mb-xs rounded-borders process-item"
+                    :class="activeProcessId === proc.id ? 'bg-light-blue-1' : 'bg-grey-1'"
+                  >
+                    <q-avatar square size="40px" class="q-mr-xs" style="flex-shrink: 0">
+                      <img
+                        v-if="proc.filePath"
+                        :src="`${API_HOST}/${proc.filePath}`"
+                        style="object-fit: cover"
+                      />
+                      <q-icon v-else name="image" color="grey-5" />
+                    </q-avatar>
+                    <div class="col cursor-pointer" @dblclick="onProcessDblClick(proc)">
+                      <div class="text-body2 ellipsis">{{ proc.nm }}</div>
+                      <div class="text-caption text-grey-6">
+                        {{ proc.steps.length }}단계
+                        <template v-if="proc.totalExecutionMs != null">
+                          · {{ proc.totalExecutionMs }}ms
+                        </template>
+                      </div>
+                    </div>
+                    <q-badge
+                      :color="proc.isLatest ? 'positive' : 'grey-5'"
+                      :label="proc.isLatest ? '최신' : '이전'"
+                      class="q-mr-xs"
+                    />
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      size="xs"
+                      icon="delete"
+                      color="negative"
+                      @click.stop="removeProcess(proc.id)"
+                    >
+                      <q-tooltip>삭제</q-tooltip>
+                    </q-btn>
+                  </div>
+                </div>
+              </q-scroll-area>
+            </q-tab-panel>
+          </q-tab-panels>
         </div>
+      </template>
 
-        <!-- 파라미터 패널 (우측 슬라이드) -->
-        <transition name="slide-option">
-          <ParamPanel
-            v-if="showOptionPanel && selectedNodeData"
-            :node-data="selectedNodeData"
-            @close="showOptionPanel = false"
-            @apply="onParamApply"
+      <template #after>
+        <!-- ================================================================== -->
+        <!-- 2. Node Flow 메인 섹션                                              -->
+        <!-- ================================================================== -->
+        <div class="column fit overflow-hidden">
+          <!-- 상단 툴바 -->
+          <div
+            class="row items-center no-wrap q-px-sm q-py-xs q-gutter-x-sm"
+            style="flex-shrink: 0; border-bottom: 1px solid rgba(0, 0, 0, 0.12)"
+          >
+            <q-btn
+              flat
+              dense
+              size="sm"
+              icon="image"
+              :label="originalFile ? originalFile.name : '원본 이미지 선택'"
+              @click="openOriginalPicker"
+            />
+            <q-btn
+              v-if="originalFile"
+              flat
+              dense
+              round
+              size="xs"
+              icon="close"
+              color="grey-6"
+              @click="setOriginalFile(null)"
+            >
+              <q-tooltip>원본 초기화</q-tooltip>
+            </q-btn>
+
+            <q-space />
+
+            <q-btn
+              flat
+              dense
+              size="sm"
+              icon="delete_sweep"
+              label="초기화"
+              color="negative"
+              :disabled="!cHasFilterNodes"
+              @click="resetCanvas"
+            >
+              <q-tooltip>전체 노드 초기화</q-tooltip>
+            </q-btn>
+            <q-btn flat dense size="sm" icon="account_tree" label="정렬" @click="relayout()">
+              <q-tooltip>자동 레이아웃</q-tooltip>
+            </q-btn>
+            <q-btn
+              v-if="activeProcessId"
+              flat
+              dense
+              size="sm"
+              icon="edit_note"
+              label="처리 수정"
+              color="primary"
+              :disabled="!cHasFilterNodes || !originalFile"
+              @click="openUpdateProcessDialog"
+            >
+              <q-tooltip>처리 데이터 수정</q-tooltip>
+            </q-btn>
+            <q-btn
+              flat
+              dense
+              size="sm"
+              icon="save_alt"
+              label="처리 저장"
+              color="primary"
+              :disabled="!cHasFilterNodes || !originalFile"
+              @click="openSaveProcessDialog"
+            >
+              <q-tooltip>처리 데이터 저장</q-tooltip>
+            </q-btn>
+            <q-btn
+              v-if="activePresetId"
+              flat
+              dense
+              size="sm"
+              icon="edit"
+              label="Preset 수정"
+              color="secondary"
+              :disabled="!cHasFilterNodes"
+              @click="openUpdatePresetDialog"
+            />
+            <q-btn
+              flat
+              dense
+              size="sm"
+              icon="save"
+              label="Preset 저장"
+              color="secondary"
+              :disabled="!cHasFilterNodes"
+              @click="openSavePresetDialog"
+            />
+          </div>
+
+          <input
+            ref="originalInputRef"
+            type="file"
+            accept="image/*"
+            class="hidden"
+            @change="onOriginalInputChange"
           />
-        </transition>
-      </div>
-    </div>
+
+          <!-- vue-flow 캔버스 + 파라미터 패널 -->
+          <div class="col row min-h-0 overflow-hidden">
+            <!-- 캔버스 -->
+            <div class="col" @dragover="onCanvasDragOver" @drop="onCanvasDrop">
+              <VueFlow
+                v-model:nodes="nodes"
+                v-model:edges="edges"
+                :default-viewport="{ zoom: 1, x: 0, y: 0 }"
+                :min-zoom="0.2"
+                :max-zoom="3"
+                class="flow-canvas"
+                @connect="onConnect"
+                @node-click="onNodeClick"
+                @pane-click="onPaneClick"
+              >
+                <!-- 커스텀 노드 이벤트 핸들링 -->
+                <template #node-filter="nodeProps">
+                  <FilterNode
+                    v-bind="nodeProps"
+                    :selected="selectedNodeId === nodeProps.id"
+                    :zoomed="cZoomedNodeIds.has(nodeProps.id)"
+                    @open-params="openParamPanel"
+                    @remove="removeFilterNode"
+                    @toggle-enabled="toggleEnabled"
+                    @zoom="onNodeZoom"
+                  />
+                </template>
+                <template #node-source="nodeProps">
+                  <SourceNode
+                    v-bind="nodeProps"
+                    :zoomed="cZoomedNodeIds.has(nodeProps.id)"
+                    @pick-image="openOriginalPicker"
+                    @clear-image="setOriginalFile(null)"
+                    @zoom="onNodeZoom"
+                  />
+                </template>
+
+                <Background />
+              </VueFlow>
+            </div>
+
+            <!-- 파라미터 패널 (우측 슬라이드) -->
+            <transition name="slide-option">
+              <ParamPanel
+                v-if="showOptionPanel && cSelNodeData"
+                :node-data="cSelNodeData"
+                @close="showOptionPanel = false"
+                @apply="onParamApply"
+              />
+            </transition>
+          </div>
+        </div>
+      </template>
+    </q-splitter>
 
     <!-- ================================================================== -->
     <!-- 다이얼로그                                                          -->
@@ -979,6 +1080,15 @@ async function removeProcess(processId: string) {
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- 이미지 확대 팝업 (복수 모달리스) -->
+    <ImageZoomPopup
+      v-for="popup in zoomPopups"
+      :key="popup.id"
+      :src="popup.src"
+      :title="popup.title"
+      @close="closeZoomPopup(popup.id)"
+    />
   </q-page>
 </template>
 

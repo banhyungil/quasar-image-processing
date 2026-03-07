@@ -5,11 +5,13 @@ import type { SourceNodeData } from 'src/types/flowTypes';
 defineProps<{
   id: string;
   data: SourceNodeData;
+  zoomed?: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: 'pick-image'): void;
   (e: 'clear-image'): void;
+  (e: 'zoom', nodeId: string): void;
 }>();
 </script>
 
@@ -20,6 +22,18 @@ const emit = defineEmits<{
       <q-icon name="image" size="xs" color="primary" />
       <span class="source-node__label">원본 이미지</span>
       <q-space />
+      <q-btn
+        v-if="data.previewUrl"
+        flat
+        round
+        dense
+        size="xs"
+        icon="zoom_in"
+        :color="zoomed ? 'accent' : 'primary'"
+        @click.stop="emit('zoom', id)"
+      >
+        <q-tooltip>이미지 확대</q-tooltip>
+      </q-btn>
       <q-btn
         v-if="data.previewUrl"
         flat
@@ -73,6 +87,7 @@ const emit = defineEmits<{
   }
 
   &__body {
+    position: relative;
     height: 130px;
     display: flex;
     align-items: center;
