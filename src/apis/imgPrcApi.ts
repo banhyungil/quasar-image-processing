@@ -86,11 +86,14 @@ export async function getProcessingImage(options: GetProcessingImageOptions = {}
 export async function batchTreeProcessing(
   file: File | Blob,
   steps: TreeBatchStep[],
-  options?: { fullSize?: boolean },
+  options?: { fileId: string; fullSize?: boolean },
 ): Promise<TreeBatchResult> {
   const form = new FormData();
   form.append('file', file);
   form.append('steps', JSON.stringify(steps));
+  if (options?.fileId) {
+    form.append('fileId', options.fileId);
+  }
   if (options?.fullSize) {
     form.append('fullSize', 'true');
   }

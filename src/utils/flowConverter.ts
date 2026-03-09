@@ -29,7 +29,7 @@ export function stepsToFlow(
       label: step.algorithmNm,
       enabled: step.isEnabled ?? true,
       parameters: { ...step.parameters },
-      thumbnail: null,
+      imageUrl: null,
       executionMs: step.executionMs ?? null,
     },
   }));

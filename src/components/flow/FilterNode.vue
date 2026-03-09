@@ -57,7 +57,7 @@ const emit = defineEmits<{
           @update:model-value="emit('toggle-enabled', id)"
         />
         <q-btn
-          v-if="data.thumbnail"
+          v-if="data.imageUrl"
           flat
           round
           dense
@@ -77,8 +77,8 @@ const emit = defineEmits<{
     <!-- 썸네일 -->
     <div class="filter-node__body">
       <img
-        v-if="data.thumbnail"
-        :src="'data:image/png;base64,' + data.thumbnail"
+        v-if="data.imageUrl"
+        :src="data.imageUrl"
         class="filter-node__thumbnail"
       />
       <div v-else class="filter-node__placeholder">

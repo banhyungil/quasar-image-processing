@@ -79,13 +79,15 @@ const activeProcessId = ref<string | null>(null);
 
 // ── 원본 이미지 ────────────────────────────────────────────────────────────
 const originalFile = ref<File | null>(null);
+const originalFileId = ref<string | null>(null);
 const originalPreviewUrl = ref<string | null>(null);
 const originalInputRef = ref<HTMLInputElement | null>(null);
 
-/** 원본 이미지 설정 */
-function setOriginalFile(file: File | null) {
+/** 원본 이미지 설정 + 서버 업로드 (fileId 획득) */
+async function setOriginalFile(file: File | null) {
   if (file == null) {
     originalFile.value = null;
+    originalFileId.value = null;
     if (originalPreviewUrl.value) {
       URL.revokeObjectURL(originalPreviewUrl.value);
       originalPreviewUrl.value = null;
@@ -95,11 +97,30 @@ function setOriginalFile(file: File | null) {
     }
   } else {
     if (!file.type.startsWith('image/')) return;
+
+    // 동일 파일 선택 시 업로드 스킵 (이름·크기·수정시각 비교)
+    const prev = originalFile.value;
+    const isSameFile =
+      prev != null &&
+      prev.name === file.name &&
+      prev.size === file.size &&
+      prev.lastModified === file.lastModified;
+
     originalFile.value = file;
     if (originalPreviewUrl.value) {
       URL.revokeObjectURL(originalPreviewUrl.value);
     }
     originalPreviewUrl.value = URL.createObjectURL(file);
+
+    // 동일 파일이고 fileId가 이미 있으면 업로드 스킵
+    if (!(isSameFile && originalFileId.value)) {
+      try {
+        const uploaded = await imgPrcApi.uploadFile(file);
+        originalFileId.value = uploaded.id;
+      } catch (err) {
+        console.error('원본 이미지 업로드 실패:', err);
+      }
+    }
   }
   // 소스 노드 previewUrl 동기화
   const sourceNode = nodes.value.find((n) => n.id === SOURCE_NODE_ID);
@@ -178,7 +199,7 @@ function addFilterNode(prcType: PrcType, label: string) {
       label,
       enabled: true,
       parameters: getDefaultParams(prcType),
-      thumbnail: null,
+      imageUrl: null,
       executionMs: null,
     },
   };
@@ -218,7 +239,7 @@ function findLastLeaf(): string {
 
 /** 특정 노드까지의 경로(source→…→nodeId)에 대해 batch-tree API를 호출하여 썸네일을 갱신 */
 async function processNodeThumbnail(targetNodeId: string) {
-  if (!originalFile.value) return;
+  if (!originalFile.value || !originalFileId.value) return;
 
   // source → targetNodeId 경로에 있는 노드 수집
   const pathNodeIds = collectPathToNode(targetNodeId);
@@ -258,13 +279,15 @@ async function processNodeThumbnail(targetNodeId: string) {
   if (steps.length === 0) return;
 
   try {
-    const result = await imgPrcApi.batchTreeProcessing(originalFile.value, steps);
+    const result = await imgPrcApi.batchTreeProcessing(originalFile.value, steps, {
+      fileId: originalFileId.value!,
+    });
     // 결과를 각 노드에 매핑
     for (const nr of result.results) {
       const node = nodes.value.find((n) => n.id === nr.nodeId);
       if (node && node.type === 'filter') {
         const data = node.data as ProcessNodeData;
-        data.thumbnail = nr.thumbnail;
+        data.imageUrl = API_HOST + nr.imageUrl;
         data.executionMs = nr.executionMs;
       }
     }
@@ -535,7 +558,7 @@ async function onProcessDblClick(process: ProcessResponse) {
 
 /** 모든 리프 노드에 대해 썸네일 연산 실행 */
 function processAllLeaves() {
-  if (!originalFile.value) return;
+  if (!originalFile.value || !originalFileId.value) return;
   const leaves = collectDescendantLeaves(SOURCE_NODE_ID);
   for (const leafId of leaves) {
     void processNodeThumbnail(leafId);
@@ -581,11 +604,11 @@ async function saveProcessDialog() {
       steps: stepPayload,
     });
   } else {
-    // 원본 이미지 업로드 → fileId 획득
-    const uploaded = await imgPrcApi.uploadFile(originalFile.value);
+    // 원본 이미지 업로드 → fileId 획득 (이미 업로드된 경우 재사용)
+    const fileId = originalFileId.value ?? (await imgPrcApi.uploadFile(originalFile.value)).id;
     const created = await processApi.createProcess({
       nm: processName.value.trim(),
-      fileId: uploaded.id,
+      fileId,
       steps: stepPayload,
     });
     activeProcessId.value = created.id;
@@ -638,7 +661,7 @@ async function onNodeZoom(nodeId: string) {
   }
 
   // 필터 노드: batch-tree API로 원본 해상도 연산
-  if (!originalFile.value) return;
+  if (!originalFile.value || !originalFileId.value) return;
 
   const pathNodeIds = collectPathToNode(nodeId);
   const steps: TreeBatchStep[] = [];
@@ -674,6 +697,7 @@ async function onNodeZoom(nodeId: string) {
 
   try {
     const result = await imgPrcApi.batchTreeProcessing(originalFile.value, steps, {
+      fileId: originalFileId.value!,
       fullSize: true,
     });
     const target = result.results.find((r) => r.nodeId === nodeId);
@@ -682,7 +706,7 @@ async function onNodeZoom(nodeId: string) {
       zoomPopups.value.push({
         id: crypto.randomUUID(),
         nodeId,
-        src: 'data:image/png;base64,' + target.thumbnail,
+        src: API_HOST + target.imageUrl,
         title: (node?.data as ProcessNodeData)?.label ?? '처리 결과',
       });
     }

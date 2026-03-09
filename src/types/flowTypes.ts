@@ -6,7 +6,7 @@ export interface ProcessNodeData {
   label: string;
   enabled: boolean;
   parameters: Record<string, unknown>;
-  thumbnail?: string | null;
+  imageUrl?: string | null;
   executionMs?: number | null;
 }
 

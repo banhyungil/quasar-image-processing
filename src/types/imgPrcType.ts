@@ -58,7 +58,7 @@ export interface TreeBatchStep {
 
 export interface TreeNodeResult {
   nodeId: string;
-  thumbnail: string;
+  imageUrl: string;
   executionMs: number;
 }
 
