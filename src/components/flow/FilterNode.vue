@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Handle, Position } from '@vue-flow/core';
 import { PARAM_FIELDS } from 'src/constants/imgPrc';
+import type { PrcType } from 'src/types/imgPrcType';
 import type { ProcessNodeData } from 'src/types/flowTypes';
+import FilterTreeSelect from './FilterTreeSelect.vue';
 
 const props = defineProps<{
   id: string;
@@ -9,6 +11,19 @@ const props = defineProps<{
   selected?: boolean;
   zoomed?: boolean;
 }>();
+
+const emit = defineEmits<{
+  (e: 'open-params', nodeId: string): void;
+  (e: 'remove', nodeId: string): void;
+  (e: 'toggle-enabled', nodeId: string): void;
+  (e: 'zoom', nodeId: string): void;
+  (e: 'change-filter', nodeId: string, prcType: PrcType, label: string): void;
+}>();
+
+function onSelectFilter(prcType: PrcType, label: string) {
+  if (prcType === props.data.algorithmNm) return;
+  emit('change-filter', props.id, prcType, label);
+}
 
 const cParamSummary = computed(() => {
   const fields = PARAM_FIELDS[props.data.algorithmNm];
@@ -18,13 +33,6 @@ const cParamSummary = computed(() => {
     value: props.data.parameters[f.key] ?? f.default,
   }));
 });
-
-const emit = defineEmits<{
-  (e: 'open-params', nodeId: string): void;
-  (e: 'remove', nodeId: string): void;
-  (e: 'toggle-enabled', nodeId: string): void;
-  (e: 'zoom', nodeId: string): void;
-}>();
 </script>
 
 <template>
@@ -37,7 +45,12 @@ const emit = defineEmits<{
 
     <!-- 헤더 -->
     <div class="filter-node__header">
-      <div class="filter-node__label ellipsis">{{ data.label }}</div>
+      <FilterTreeSelect
+        class="filter-node__label"
+        :model-value="data.algorithmNm"
+        :label="data.label"
+        @select="onSelectFilter"
+      />
       <div class="filter-node__actions">
         <q-btn
           flat
@@ -138,6 +151,15 @@ const emit = defineEmits<{
     flex: 1;
     font-size: 13px;
     font-weight: 500;
+    min-width: 0;
+
+    :deep(.q-btn__content) {
+      flex-wrap: nowrap;
+    }
+    :deep(.q-btn-dropdown__arrow) {
+      font-size: 14px;
+      margin-left: 2px;
+    }
   }
 
   &__actions {

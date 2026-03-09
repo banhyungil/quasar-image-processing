@@ -350,6 +350,29 @@ function toggleEnabled(nodeId: string) {
   }
 }
 
+function onChangeFilter(nodeId: string, prcType: PrcType, label: string) {
+  const node = nodes.value.find((n) => n.id === nodeId);
+  if (!node || node.type !== 'filter') return;
+  const data = node.data as ProcessNodeData;
+  data.algorithmNm = prcType;
+  data.label = label;
+  data.parameters = getDefaultParams(prcType);
+  data.imageUrl = null;
+  data.executionMs = null;
+
+  if (originalFile.value) {
+    const descendants = collectDescendantLeaves(nodeId);
+    for (const leafId of descendants) {
+      void processNodeThumbnail(leafId);
+    }
+  }
+
+  // 파라미터 패널이 열려있으면 새 알고리즘의 파라미터로 갱신
+  if (optionPanelTarget.value === nodeId) {
+    showOptionPanel.value = true;
+  }
+}
+
 /** nodeId 자신 포함, 하위의 모든 리프 노드 ID를 반환 */
 function collectDescendantLeaves(nodeId: string): string[] {
   const children = edges.value.filter((e) => e.source === nodeId).map((e) => e.target);
@@ -1009,6 +1032,7 @@ async function onNodeZoom(nodeId: string) {
                     @open-params="openParamPanel"
                     @remove="removeFilterNode"
                     @toggle-enabled="toggleEnabled"
+                    @change-filter="onChangeFilter"
                     @zoom="onNodeZoom"
                   />
                 </template>
@@ -1033,6 +1057,7 @@ async function onNodeZoom(nodeId: string) {
                 :node-data="cSelNodeData"
                 @close="showOptionPanel = false"
                 @apply="onParamApply"
+                @change-filter="(prcType, label) => optionPanelTarget && onChangeFilter(optionPanelTarget, prcType, label)"
               />
             </transition>
           </div>

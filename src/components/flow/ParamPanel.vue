@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { PARAM_FIELDS } from 'src/constants/imgPrc';
 import type { ParamFieldDef } from 'src/constants/imgPrc';
+import type { PrcType } from 'src/types/imgPrcType';
 import type { ProcessNodeData } from 'src/types/flowTypes';
+import FilterTreeSelect from './FilterTreeSelect.vue';
 
 const props = defineProps<{
   nodeData: ProcessNodeData;
@@ -10,6 +12,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'apply', nodeData: ProcessNodeData): void;
+  (e: 'change-filter', prcType: PrcType, label: string): void;
 }>();
 
 // 로컬 파라미터 복사본 (적용 전까지 원본에 영향 없음)
@@ -55,7 +58,11 @@ function apply() {
     <!-- 바디 -->
     <q-scroll-area class="col">
       <div class="q-pa-sm column q-gutter-sm">
-        <div class="text-caption text-grey-7 q-mb-xs">{{ nodeData.label }}</div>
+        <FilterTreeSelect
+          :model-value="nodeData.algorithmNm"
+          :label="nodeData.label"
+          @select="(prcType, label) => emit('change-filter', prcType, label)"
+        />
 
         <template v-if="cFields.length === 0">
           <div class="text-caption text-grey-5 text-center q-pt-md">파라미터 없음</div>

@@ -14,6 +14,7 @@ declare module 'vue' {
     EssentialLink: typeof import('./components/EssentialLink.vue')['default']
     ExampleComponent: typeof import('./components/ExampleComponent.vue')['default']
     FilterNode: typeof import('./components/flow/FilterNode.vue')['default']
+    FilterTreeSelect: typeof import('./components/flow/FilterTreeSelect.vue')['default']
     ImageZoomPopup: typeof import('./components/flow/ImageZoomPopup.vue')['default']
     ParamPanel: typeof import('./components/flow/ParamPanel.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
