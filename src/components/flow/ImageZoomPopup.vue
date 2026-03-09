@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import OsdViewer from './OsdViewer.vue';
+
 import { ZoomImg } from 'vue3-zoomer';
 
 defineProps<{
   src: string | null;
+  dziUrl?: string;
   title?: string;
 }>();
 
@@ -73,7 +76,8 @@ function bringToFront() {
 
       <!-- 이미지 영역 -->
       <div class="col" style="min-height: 0; position: relative">
-        <div v-if="src" class="zoom-container">
+        <OsdViewer v-if="dziUrl" :dzi-url="dziUrl" class="fit" />
+        <div v-else-if="src" class="zoom-container">
           <ZoomImg :src="src" :zoom-scale="3" :step="1" />
         </div>
         <div v-else class="fit column items-center justify-center text-grey-5">

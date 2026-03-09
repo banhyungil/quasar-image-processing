@@ -137,7 +137,7 @@ function openOriginalPicker() {
 
 function onOriginalInputChange(event: Event) {
   const input = event.target as HTMLInputElement;
-  setOriginalFile(input.files?.[0] ?? null);
+  void setOriginalFile(input.files?.[0] ?? null);
 }
 
 // ── 초기 데이터 로드 ───────────────────────────────────────────────────────
@@ -280,7 +280,7 @@ async function processNodeThumbnail(targetNodeId: string) {
 
   try {
     const result = await imgPrcApi.batchTreeProcessing(originalFile.value, steps, {
-      fileId: originalFileId.value!,
+      fileId: originalFileId.value,
     });
     // 결과를 각 노드에 매핑
     for (const nr of result.results) {
@@ -557,7 +557,8 @@ async function onProcessDblClick(process: ProcessResponse) {
     const blob = await res.blob();
     const fileName = detail.filePath.split('/').pop() ?? 'image.png';
     const file = new File([blob], fileName, { type: blob.type });
-    setOriginalFile(file);
+
+    void setOriginalFile(file);
   }
 
   const flatSteps: FlatStep[] = detail.steps.map((s) => ({
@@ -654,6 +655,7 @@ interface ZoomPopup {
   id: string;
   nodeId: string;
   src: string;
+  dziUrl?: string;
   title: string;
 }
 const zoomPopups = ref<ZoomPopup[]>([]);
@@ -720,7 +722,7 @@ async function onNodeZoom(nodeId: string) {
 
   try {
     const result = await imgPrcApi.batchTreeProcessing(originalFile.value, steps, {
-      fileId: originalFileId.value!,
+      fileId: originalFileId.value,
       fullSize: true,
     });
     const target = result.results.find((r) => r.nodeId === nodeId);
@@ -730,6 +732,7 @@ async function onNodeZoom(nodeId: string) {
         id: crypto.randomUUID(),
         nodeId,
         src: API_HOST + target.imageUrl,
+        dziUrl: target.dziUrl ? API_HOST + target.dziUrl : undefined,
         title: (node?.data as ProcessNodeData)?.label ?? '처리 결과',
       });
     }
@@ -1057,7 +1060,10 @@ async function onNodeZoom(nodeId: string) {
                 :node-data="cSelNodeData"
                 @close="showOptionPanel = false"
                 @apply="onParamApply"
-                @change-filter="(prcType, label) => optionPanelTarget && onChangeFilter(optionPanelTarget, prcType, label)"
+                @change-filter="
+                  (prcType, label) =>
+                    optionPanelTarget && onChangeFilter(optionPanelTarget, prcType, label)
+                "
               />
             </transition>
           </div>
@@ -1135,6 +1141,7 @@ async function onNodeZoom(nodeId: string) {
       v-for="popup in zoomPopups"
       :key="popup.id"
       :src="popup.src"
+      :dzi-url="popup.dziUrl"
       :title="popup.title"
       @close="closeZoomPopup(popup.id)"
     />

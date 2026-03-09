@@ -16,6 +16,7 @@ declare module 'vue' {
     FilterNode: typeof import('./components/flow/FilterNode.vue')['default']
     FilterTreeSelect: typeof import('./components/flow/FilterTreeSelect.vue')['default']
     ImageZoomPopup: typeof import('./components/flow/ImageZoomPopup.vue')['default']
+    OsdViewer: typeof import('./components/flow/OsdViewer.vue')['default']
     ParamPanel: typeof import('./components/flow/ParamPanel.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
