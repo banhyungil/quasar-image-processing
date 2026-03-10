@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import OsdViewer from './OsdViewer.vue';
 
-import { ZoomImg } from 'vue3-zoomer';
-
 defineProps<{
   src: string | null;
   dziUrl?: string;
@@ -14,6 +12,8 @@ const emit = defineEmits<{
 }>();
 
 const isMaximized = ref(false);
+const zoomSensitivity = ref(1.5);
+const zoomLevel = ref(1);
 
 // ── 드래그 이동 ──────────────────────────────────────────────────────────────
 const pos = ref({ x: 100 + Math.random() * 60, y: 80 + Math.random() * 60 });
@@ -59,8 +59,41 @@ function bringToFront() {
     >
       <!-- 헤더 (드래그 핸들) -->
       <div class="zoom-header row items-center q-py-xs q-px-sm" @mousedown="onHeaderMouseDown">
-        <div class="text-subtitle2 text-weight-medium ellipsis">{{ title ?? '이미지 확대' }}</div>
+        <div class="text-subtitle2 text-weight-medium ellipsis">
+          {{ title ?? '이미지 확대' }}
+          <span class="text-caption text-grey-6 q-ml-xs">{{ zoomLevel.toFixed(1) }}x</span>
+        </div>
         <q-space />
+        <q-btn
+          flat
+          round
+          dense
+          size="xs"
+          icon="remove"
+          :disable="zoomSensitivity <= 1.1"
+          @click.stop="zoomSensitivity = Math.round((zoomSensitivity - 0.1) * 10) / 10"
+        />
+        <q-slider
+          v-model="zoomSensitivity"
+          :min="1.1"
+          :max="2.5"
+          :step="0.1"
+          :label-value="`x${zoomSensitivity.toFixed(1)}`"
+          label-always
+          switch-label-side
+          dense
+          style="width: 80px"
+          @mousedown.stop
+        />
+        <q-btn
+          flat
+          round
+          dense
+          size="xs"
+          icon="add"
+          :disable="zoomSensitivity >= 2.5"
+          @click.stop="zoomSensitivity = Math.round((zoomSensitivity + 0.1) * 10) / 10"
+        />
         <q-btn
           flat
           round
@@ -76,10 +109,8 @@ function bringToFront() {
 
       <!-- 이미지 영역 -->
       <div class="col" style="min-height: 0; position: relative">
-        <OsdViewer v-if="dziUrl" :dzi-url="dziUrl" class="fit" />
-        <div v-else-if="src" class="zoom-container">
-          <ZoomImg :src="src" :zoom-scale="3" :step="1" />
-        </div>
+        <OsdViewer v-if="dziUrl" :dzi-url="dziUrl" :zoom-per-scroll="zoomSensitivity" class="fit" @zoom="zoomLevel = $event" />
+        <OsdViewer v-else-if="src" :src="src" :zoom-per-scroll="zoomSensitivity" class="fit" @zoom="zoomLevel = $event" />
         <div v-else class="fit column items-center justify-center text-grey-5">
           이미지가 없습니다
         </div>
@@ -119,18 +150,5 @@ function bringToFront() {
   flex-shrink: 0;
   background: #fafafa;
   user-select: none;
-}
-
-.zoom-container {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-
-  :deep(.vz-zoomimg-container),
-  :deep(.vz-zoomimg-img) {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-  }
 }
 </style>

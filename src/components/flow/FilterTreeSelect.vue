@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { QBtnDropdown } from 'quasar';
 import { FN_LIST, FN_OPTIONS_MAP } from 'src/constants/imgPrc';
 import type { PrcType } from 'src/types/imgPrcType';
 
@@ -31,7 +32,7 @@ const fnTreeNodes: FnTreeNode[] = FN_LIST.map((cat) => ({
 }));
 
 const filterSearch = ref('');
-const btnDropdownRef = ref<InstanceType<typeof import('quasar')['QBtnDropdown']> | null>(null);
+const btnDropdownRef = ref<InstanceType<typeof QBtnDropdown> | null>(null);
 
 function onSelectFilter(value: string, label: string) {
   emit('select', value as PrcType, label);
@@ -70,10 +71,7 @@ function onSelectFilter(value: string, label: string) {
         dense
       >
         <template #default-header="{ node }">
-          <div
-            v-if="node.children"
-            class="text-weight-bold text-caption"
-          >
+          <div v-if="node.children" class="text-weight-bold text-caption">
             {{ node.label }}
           </div>
           <div
