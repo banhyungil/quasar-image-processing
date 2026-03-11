@@ -5,6 +5,7 @@ import type { PrcType } from 'src/types/imgPrcType';
 import type { ProcessNodeData } from 'src/types/flowTypes';
 import { useSettingsStore } from 'src/stores/settings-store';
 import FilterTreeSelect from './FilterTreeSelect.vue';
+import ZoomableImage from './ZoomableImage.vue';
 
 const settings = useSettingsStore();
 
@@ -101,11 +102,7 @@ const cParamSummary = computed(() => {
 
     <!-- 썸네일 -->
     <div class="filter-node__body" :style="{ height: `${settings.nodeSize.thumbHeight}px` }">
-      <img
-        v-if="data.imageUrl"
-        :src="data.imageUrl"
-        class="filter-node__thumbnail"
-      />
+      <ZoomableImage v-if="data.imageUrl" :src="data.imageUrl" class="cursor-pointer" />
       <div v-else class="filter-node__placeholder">
         <q-icon name="image" size="sm" color="grey-4" />
       </div>
@@ -195,12 +192,6 @@ const cParamSummary = computed(() => {
     align-items: center;
     justify-content: center;
     background: #f5f5f5;
-  }
-
-  &__thumbnail {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
   }
 
   &__placeholder {

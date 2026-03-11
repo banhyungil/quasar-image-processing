@@ -29,5 +29,6 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     SettingsDialog: typeof import('./components/dialog/SettingsDialog.vue')['default']
     SourceNode: typeof import('./components/flow/SourceNode.vue')['default']
+    ZoomableImage: typeof import('./components/flow/ZoomableImage.vue')['default']
   }
 }
