@@ -5,7 +5,7 @@ import { Background } from '@vue-flow/background';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 
-import { PARAM_FIELDS } from 'src/constants/imgPrc';
+import { PARAM_FIELDS, buildChainFilename } from 'src/constants/imgPrc';
 import type { PrcType } from 'src/types/imgPrcType';
 import * as presetApi from 'src/apis/presetApi';
 import type { PresetResponse } from 'src/apis/presetApi';
@@ -742,23 +742,8 @@ function closeZoomPopup(popupId: string) {
  *
  * @param nodeId
  */
-async function onNodeZoom(nodeId: string) {
-  if (zoomPopups.value.some((p) => p.nodeId === nodeId)) return;
-
-  if (nodeId === SOURCE_NODE_ID) {
-    if (!originalPreviewUrl.value) return;
-    zoomPopups.value.push({
-      id: crypto.randomUUID(),
-      nodeId,
-      src: originalPreviewUrl.value,
-      title: '원본 이미지',
-    });
-    return;
-  }
-
-  // 필터 노드: DZI API로 원본 해상도 생성
-  if (!originalFileId.value) return;
-
+/** 타겟 노드까지의 steps를 구축한다 (zoom, download 공용). */
+function buildStepsToNode(nodeId: string): TreeBatchStep[] {
   const pathNodeIds = collectPathToNode(nodeId);
   const steps: TreeBatchStep[] = [];
   const enabledIds = new Set<string>();
@@ -789,6 +774,26 @@ async function onNodeZoom(nodeId: string) {
       parentId,
     });
   }
+  return steps;
+}
+
+async function onNodeZoom(nodeId: string) {
+  if (zoomPopups.value.some((p) => p.nodeId === nodeId)) return;
+
+  if (nodeId === SOURCE_NODE_ID) {
+    if (!originalPreviewUrl.value) return;
+    zoomPopups.value.push({
+      id: crypto.randomUUID(),
+      nodeId,
+      src: originalPreviewUrl.value,
+      title: '원본 이미지',
+    });
+    return;
+  }
+
+  if (!originalFileId.value) return;
+
+  const steps = buildStepsToNode(nodeId);
   if (steps.length === 0) return;
 
   try {
@@ -807,6 +812,29 @@ async function onNodeZoom(nodeId: string) {
     });
   } catch (err) {
     console.error('확대 이미지 연산 실패:', err);
+  }
+}
+
+async function onNodeDownload(nodeId: string) {
+  if (!originalFileId.value) return;
+
+  const steps = buildStepsToNode(nodeId);
+  if (steps.length === 0) return;
+
+  try {
+    const blob = await imgPrcApi.downloadNodeImage(originalFileId.value, steps, nodeId);
+    const prcTypes = steps.map((s) => s.prcType);
+    const chainSuffix = buildChainFilename(prcTypes);
+    const baseName = originalFile.value?.name.replace(/\.[^.]+$/, '') ?? 'image';
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${baseName}_${chainSuffix}.png`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('이미지 다운로드 실패:', err);
   }
 }
 </script>
@@ -1001,6 +1029,7 @@ async function onNodeZoom(nodeId: string) {
                     @toggle-enabled="toggleEnabled"
                     @change-filter="onChangeFilter"
                     @zoom="onNodeZoom"
+                    @download="onNodeDownload"
                   />
                 </template>
                 <template #node-source="nodeProps">

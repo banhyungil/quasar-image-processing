@@ -47,6 +47,52 @@ export const DEFAULT_KERNEL_SIZES: Partial<Record<PrcType, number>> = {
   bilateralFilter: 9,
 };
 
+// PrcType 약어 매핑 (다운로드 파일명용)
+export const PRC_ABBR: Record<string, string> = {
+  sobel: 'sob',
+  prewitt: 'prew',
+  laplacian: 'lap',
+  canny: 'can',
+  roberts: 'rob',
+  gaussian: 'gaus',
+  blur: 'blur',
+  gaussianBlur: 'gBlur',
+  medianBlur: 'mBlur',
+  bilateralFilter: 'bilat',
+  boxFilter: 'box',
+  findContour: 'cont',
+  convexHull: 'hull',
+  boundingBox: 'bbox',
+  plus: 'brt+',
+  minus: 'brt-',
+  gamma: 'gam',
+  histogramEqualization: 'hEq',
+  binary: 'bin',
+  inverse: 'inv',
+  tozero: 'tz',
+  tozeroInverse: 'tzInv',
+  truncate: 'trun',
+  otsu: 'otsu',
+  adaptive: 'adpt',
+  erosion: 'ero',
+  dilation: 'dil',
+  opening: 'open',
+  closing: 'close',
+  custom: 'cust',
+};
+
+/**
+ * 처리 체인 요약 파일명을 생성한다.
+ * - 3단계 이하: 모든 약어를 연결 (e.g. "gBlur_sob_bin")
+ * - 4단계 이상: 처음 2개 + ...N개... + 마지막 1개 (e.g. "gBlur_sob_+3_bin")
+ */
+export function buildChainFilename(prcTypes: string[]): string {
+  const abbrs = prcTypes.map((t) => PRC_ABBR[t] ?? t);
+  if (abbrs.length <= 3) return abbrs.join('_');
+  const mid = abbrs.length - 3;
+  return `${abbrs[0]}_${abbrs[1]}_+${mid}_${abbrs[abbrs.length - 1]}`;
+}
+
 // 파라미터 필드 정의
 export interface ParamFieldDef {
   key: string;

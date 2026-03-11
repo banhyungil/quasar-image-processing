@@ -20,6 +20,7 @@ const emit = defineEmits<{
   (e: 'remove', nodeId: string): void;
   (e: 'toggle-enabled', nodeId: string): void;
   (e: 'zoom', nodeId: string): void;
+  (e: 'download', nodeId: string): void;
   (e: 'change-filter', nodeId: string, prcType: PrcType, label: string, filterId?: string): void;
 }>();
 
@@ -84,6 +85,18 @@ const cParamSummary = computed(() => {
           @click.stop="emit('zoom', id)"
         >
           <q-tooltip>이미지 확대</q-tooltip>
+        </q-btn>
+        <q-btn
+          v-if="data.imageUrl"
+          flat
+          round
+          dense
+          size="xs"
+          icon="download"
+          color="grey-7"
+          @click.stop="emit('download', id)"
+        >
+          <q-tooltip>이미지 다운로드</q-tooltip>
         </q-btn>
         <q-btn flat round dense size="xs" icon="close" color="negative" @click="emit('remove', id)">
           <q-tooltip>삭제</q-tooltip>
@@ -155,13 +168,22 @@ const cParamSummary = computed(() => {
     font-size: 13px;
     font-weight: 500;
     min-width: 0;
+    overflow: hidden;
 
     :deep(.q-btn__content) {
       flex-wrap: nowrap;
+      overflow: hidden;
+
+      > span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
     }
     :deep(.q-btn-dropdown__arrow) {
       font-size: 14px;
       margin-left: 2px;
+      flex-shrink: 0;
     }
   }
 
