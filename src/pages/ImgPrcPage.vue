@@ -340,7 +340,7 @@ async function processNodeThumbnail(targetNodeId: string) {
       const node = nodes.value.find((n) => n.id === nr.nodeId);
       if (node && node.type === 'filter') {
         const data = node.data as ProcessNodeData;
-        data.imageUrl = API_HOST + nr.imageUrl;
+        data.imageUrl = nr.imageUrl.startsWith('data:') ? nr.imageUrl : API_HOST + nr.imageUrl;
         data.executionMs = nr.executionMs;
       }
     }
@@ -799,7 +799,7 @@ async function onNodeZoom(nodeId: string) {
       zoomPopups.value.push({
         id: crypto.randomUUID(),
         nodeId,
-        src: API_HOST + target.imageUrl,
+        src: target.imageUrl.startsWith('data:') ? target.imageUrl : API_HOST + target.imageUrl,
         dziUrl: target.dziUrl ? API_HOST + target.dziUrl : undefined,
         title: (node?.data as ProcessNodeData)?.label ?? '처리 결과',
       });
