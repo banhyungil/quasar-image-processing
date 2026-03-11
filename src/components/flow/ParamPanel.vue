@@ -43,10 +43,10 @@ const cFields = computed<ParamFieldDef[]>(() => {
 });
 
 function getDefaultParams(): Record<string, unknown> {
-  const defaults = Object.fromEntries(cFields.value.map((f) => [f.key, f.default]));
+  const defaults: Record<string, unknown> = Object.fromEntries(cFields.value.map((f) => [f.key, f.default]));
   // 커스텀 필터: filterId 유지
   if (props.nodeData.algorithmNm === 'custom' && props.nodeData.parameters?.filterId) {
-    defaults.filterId = props.nodeData.parameters.filterId;
+    defaults.filterId = props.nodeData.parameters.filterId as string;
   }
   return defaults;
 }

@@ -2,6 +2,10 @@
 
 A Quasar Project
 
+## 서버시작
+
+npm run dev
+
 ## Install the dependencies
 
 ```bash
