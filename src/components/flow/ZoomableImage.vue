@@ -14,11 +14,11 @@ const translateX = ref(0);
 const translateY = ref(0);
 const containerRef = ref<HTMLElement>();
 
-const isZoomed = computed(() => scale.value > 1);
+const cIsZoomed = computed(() => scale.value > 1);
 
 const transformStyle = computed(() => ({
   transform: `translate(${translateX.value}px, ${translateY.value}px) scale(${scale.value})`,
-  cursor: isZoomed.value ? 'grab' : 'pointer',
+  cursor: cIsZoomed.value ? 'grab' : 'pointer',
 }));
 
 function onWheel(e: WheelEvent) {
@@ -46,8 +46,7 @@ const dragging = ref(false);
 const dragStart = { x: 0, y: 0, tx: 0, ty: 0 };
 
 function onPointerDown(e: PointerEvent) {
-  if (!isZoomed.value) return;
-  e.stopPropagation();
+  if (!cIsZoomed.value) return;
   dragging.value = true;
   dragStart.x = e.clientX;
   dragStart.y = e.clientY;
@@ -84,7 +83,13 @@ defineExpose({ goHome });
 </script>
 
 <template>
-  <div ref="containerRef" class="zoomable-image" @wheel="onWheel" @dblclick="onDblClick">
+  <div
+    ref="containerRef"
+    class="zoomable-image"
+    :class="{ nodrag: cIsZoomed, nowheel: cIsZoomed }"
+    @wheel="onWheel"
+    @dblclick="onDblClick"
+  >
     <img
       :src="src"
       :style="transformStyle"
