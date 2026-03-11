@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { useSettingsStore } from 'stores/settings-store';
-
 const settingsStore = useSettingsStore();
 
 const show = defineModel<boolean>({ required: true });

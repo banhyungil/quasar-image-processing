@@ -75,6 +75,7 @@ export default defineConfig((/* ctx */) => {
           'unplugin-auto-import/vite',
           {
             imports: ['vue', 'vue-router'],
+            dirs: ['src/composables', 'src/stores'],
             dts: 'src/auto-imports.d.ts',
           },
         ],

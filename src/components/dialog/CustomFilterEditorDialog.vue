@@ -63,6 +63,10 @@ function removeParamDef(index: number) {
   paramDefs.value.splice(index, 1);
 }
 
+// ── Monaco 자동완성 ──────────────────────────────────────────────────────────
+
+const { register: onEditorMount } = useParamCompletion(paramDefs);
+
 // ── 저장 ────────────────────────────────────────────────────────────────────
 
 const canSave = computed(() => nm.value.trim() && code.value.trim());
@@ -120,11 +124,12 @@ def <strong>{{ nm.trim() || 'filter_name' }}</strong>(image: np.ndarray, params:
     <span class="text-grey-6"># image : BGR uint8 원본 이미지</span>
     <span class="text-grey-6"># params: 파라미터 dict — params.get('key', default)</span>
     <span class="text-grey-6"># return: result (np.ndarray, uint8)</span></pre>
-        <div class="editor-wrapper col">
+        <div class="editor-wrapper col" @keydown.stop>
           <VueMonacoEditor
             v-model:value="code"
             language="python"
             theme="vs"
+            @mount="onEditorMount"
             :options="{
               minimap: { enabled: false },
               fontSize: 14,

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { useSettingsStore } from 'stores/settings-store';
-
 import OsdViewer from './OsdViewer.vue';
 
 const settingsStore = useSettingsStore();
@@ -97,8 +95,22 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
 
       <!-- 이미지 영역 -->
       <div class="col" style="min-height: 0; position: relative">
-        <OsdViewer v-if="dziUrl" ref="osdViewerRef" :dzi-url="dziUrl" :zoom-per-scroll="settingsStore.defaultZoomPerScroll" class="fit" @zoom="zoomLevel = $event" />
-        <OsdViewer v-else-if="src" ref="osdViewerRef" :src="src" :zoom-per-scroll="settingsStore.defaultZoomPerScroll" class="fit" @zoom="zoomLevel = $event" />
+        <OsdViewer
+          v-if="dziUrl"
+          ref="osdViewerRef"
+          :dzi-url="dziUrl"
+          :zoom-per-scroll="settingsStore.defaultZoomPerScroll"
+          class="fit"
+          @zoom="zoomLevel = $event"
+        />
+        <OsdViewer
+          v-else-if="src"
+          ref="osdViewerRef"
+          :src="src"
+          :zoom-per-scroll="settingsStore.defaultZoomPerScroll"
+          class="fit"
+          @zoom="zoomLevel = $event"
+        />
         <div v-else class="fit column items-center justify-center text-grey-5">
           이미지가 없습니다
         </div>
