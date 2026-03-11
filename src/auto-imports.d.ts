@@ -7,6 +7,7 @@
 export {}
 declare global {
   const EffectScope: typeof import('vue').EffectScope
+  const NODE_SIZE_PRESETS: typeof import('./stores/settings-store').NODE_SIZE_PRESETS
   const computed: typeof import('vue').computed
   const createApp: typeof import('vue').createApp
   const customRef: typeof import('vue').customRef
@@ -82,4 +83,7 @@ declare global {
   // @ts-ignore
   export type { PiniaCustomProperties } from './stores/index'
   import('./stores/index')
+  // @ts-ignore
+  export type { NodeSizeKey } from './stores/settings-store'
+  import('./stores/settings-store')
 }

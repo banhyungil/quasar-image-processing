@@ -1,7 +1,17 @@
 <script setup lang="ts">
+import { useSettingsStore, type NodeSizeKey } from 'src/stores/settings-store';
+
 const settingsStore = useSettingsStore();
 
 const show = defineModel<boolean>({ required: true });
+
+const nodeSizeOptions: { label: string; value: NodeSizeKey }[] = [
+  { label: 'XS', value: 'xs' },
+  { label: 'S', value: 'sm' },
+  { label: 'M', value: 'md' },
+  { label: 'L', value: 'lg' },
+  { label: 'XL', value: 'xl' },
+];
 </script>
 
 <template>
@@ -49,6 +59,22 @@ const show = defineModel<boolean>({ required: true });
               )
             "
           />
+        </div>
+      </q-card-section>
+
+      <q-card-section>
+        <div class="text-subtitle2 q-mb-sm">노드 크기</div>
+        <q-btn-toggle
+          :model-value="settingsStore.nodeSizeKey"
+          toggle-color="primary"
+          :options="nodeSizeOptions"
+          spread
+          no-caps
+          unelevated
+          @update:model-value="settingsStore.setNodeSize($event as NodeSizeKey)"
+        />
+        <div class="text-caption text-grey-6 q-mt-xs">
+          썸네일 해상도: {{ settingsStore.nodeSize.thumbResolution }}px
         </div>
       </q-card-section>
 

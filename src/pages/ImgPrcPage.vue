@@ -29,6 +29,9 @@ import type { CustomFilter } from 'src/apis/customFilterApi';
 import type { ProcessNodeData, SourceNodeData, FlatStep } from 'src/types/flowTypes';
 import { stepsToFlow, flowToSteps } from 'src/utils/flowConverter';
 import { applyDagreLayout } from 'src/utils/flowLayout';
+import { useSettingsStore } from 'src/stores/settings-store';
+
+const settingsStore = useSettingsStore();
 
 const SOURCE_NODE_ID = 'source';
 
@@ -332,7 +335,9 @@ async function processNodeThumbnail(targetNodeId: string) {
   if (steps.length === 0) return;
 
   try {
-    const result = await imgPrcApi.batchTreeProcessing(originalFile.value, steps);
+    const result = await imgPrcApi.batchTreeProcessing(originalFile.value, steps, {
+      thumbnailSize: settingsStore.nodeSize.thumbResolution,
+    });
     // 결과를 각 노드에 매핑
     for (const nr of result.results) {
       const node = nodes.value.find((n) => n.id === nr.nodeId);

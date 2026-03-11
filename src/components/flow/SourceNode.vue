@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { Handle, Position } from '@vue-flow/core';
 import type { SourceNodeData } from 'src/types/flowTypes';
+import { useSettingsStore } from 'src/stores/settings-store';
+
+const settings = useSettingsStore();
 
 defineProps<{
   id: string;
@@ -16,7 +19,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="source-node cursor-pointer">
+  <div class="source-node cursor-pointer" :style="{ width: `${settings.nodeSize.width}px` }">
     <!-- 헤더 -->
     <div class="source-node__header">
       <q-icon name="image" size="xs" color="primary" />
@@ -49,10 +52,10 @@ const emit = defineEmits<{
     </div>
 
     <!-- 이미지 영역 -->
-    <div v-if="data.previewUrl" class="source-node__body">
+    <div v-if="data.previewUrl" class="source-node__body" :style="{ height: `${settings.nodeSize.thumbHeight}px` }">
       <img :src="data.previewUrl" class="source-node__preview" />
     </div>
-    <div v-else class="source-node__body source-node__body--empty" @click="emit('pick-image')">
+    <div v-else class="source-node__body source-node__body--empty" :style="{ height: `${settings.nodeSize.thumbHeight}px` }" @click="emit('pick-image')">
       <q-icon name="add_photo_alternate" size="md" color="grey-4" />
       <span class="text-caption text-grey-5">클릭하여 업로드</span>
     </div>
@@ -64,7 +67,6 @@ const emit = defineEmits<{
 
 <style scoped lang="scss">
 .source-node {
-  width: 200px;
   background: white;
   border: 2px solid #1976d2;
   border-radius: 8px;
@@ -88,7 +90,6 @@ const emit = defineEmits<{
 
   &__body {
     position: relative;
-    height: 130px;
     display: flex;
     align-items: center;
     justify-content: center;

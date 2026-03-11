@@ -86,10 +86,14 @@ export async function getProcessingImage(options: GetProcessingImageOptions = {}
 export async function batchTreeProcessing(
   file: File | Blob,
   steps: TreeBatchStep[],
+  options?: { thumbnailSize?: number },
 ): Promise<TreeBatchResult> {
   const form = new FormData();
   form.append('file', file);
   form.append('steps', JSON.stringify(steps));
+  if (options?.thumbnailSize) {
+    form.append('thumbnailSize', options.thumbnailSize.toString());
+  }
 
   const res = await api.post<TreeBatchResult>('/image-processing/batch-tree', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -114,6 +118,29 @@ export async function generateDzi(
     `/image-processing/dzi/${fileId}`,
     form,
     { headers: { 'Content-Type': 'multipart/form-data' } },
+  );
+  return res.data;
+}
+
+/**
+ * 개별 노드 이미지 다운로드 — 원본 이미지에 steps 체인을 적용하고 타겟 노드의 결과를 PNG로 다운로드한다.
+ */
+export async function downloadNodeImage(
+  fileId: string,
+  steps: TreeBatchStep[],
+  nodeId: string,
+): Promise<Blob> {
+  const form = new FormData();
+  form.append('steps', JSON.stringify(steps));
+  form.append('nodeId', nodeId);
+
+  const res = await api.post<Blob>(
+    `/image-processing/download/${fileId}`,
+    form,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      responseType: 'blob',
+    },
   );
   return res.data;
 }

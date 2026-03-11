@@ -3,7 +3,10 @@ import { Handle, Position } from '@vue-flow/core';
 import { PARAM_FIELDS } from 'src/constants/imgPrc';
 import type { PrcType } from 'src/types/imgPrcType';
 import type { ProcessNodeData } from 'src/types/flowTypes';
+import { useSettingsStore } from 'src/stores/settings-store';
 import FilterTreeSelect from './FilterTreeSelect.vue';
+
+const settings = useSettingsStore();
 
 const props = defineProps<{
   id: string;
@@ -39,6 +42,7 @@ const cParamSummary = computed(() => {
   <div
     class="filter-node cursor-pointer"
     :class="{ 'filter-node--disabled': !data.enabled, 'filter-node--selected': selected }"
+    :style="{ width: `${settings.nodeSize.width}px` }"
   >
     <!-- Input Handle -->
     <Handle type="target" :position="Position.Top" class="handle" />
@@ -88,7 +92,7 @@ const cParamSummary = computed(() => {
     </div>
 
     <!-- 썸네일 -->
-    <div class="filter-node__body">
+    <div class="filter-node__body" :style="{ height: `${settings.nodeSize.thumbHeight}px` }">
       <img
         v-if="data.imageUrl"
         :src="data.imageUrl"
@@ -122,7 +126,6 @@ const cParamSummary = computed(() => {
 
 <style scoped lang="scss">
 .filter-node {
-  width: 200px;
   background: white;
   border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 8px;
@@ -171,7 +174,6 @@ const cParamSummary = computed(() => {
 
   &__body {
     position: relative;
-    height: 130px;
     display: flex;
     align-items: center;
     justify-content: center;
