@@ -481,11 +481,9 @@ export interface components {
             code: string;
             /**
              * Params
-             * @description 기본 파라미터 정의 (key, type, default)
+             * @description 파라미터 정의 (ParamFieldDef 배열)
              */
-            params?: {
-                [key: string]: unknown;
-            };
+            params?: components["schemas"]["ParamFieldDef"][];
         };
         /** CustomFilterListResponse */
         CustomFilterListResponse: {
@@ -520,11 +518,9 @@ export interface components {
             code: string;
             /**
              * Params
-             * @description 기본 파라미터 정의
+             * @description 파라미터 정의 (ParamFieldDef 배열)
              */
-            params?: {
-                [key: string]: unknown;
-            };
+            params?: components["schemas"]["ParamFieldDef"][];
             /**
              * Version
              * @description 코드 버전
@@ -562,11 +558,9 @@ export interface components {
             code?: string | null;
             /**
              * Params
-             * @description 기본 파라미터 정의
+             * @description 파라미터 정의 (ParamFieldDef 배열)
              */
-            params?: {
-                [key: string]: unknown;
-            } | null;
+            params?: components["schemas"]["ParamFieldDef"][] | null;
         };
         /** FileItem */
         FileItem: {
@@ -755,6 +749,31 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** ParamFieldDef */
+        ParamFieldDef: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "number" | "select";
+            /**
+             * Default
+             * @default 0
+             */
+            default: number | string;
+            /** Min */
+            min?: number | null;
+            /** Max */
+            max?: number | null;
+            /** Step */
+            step?: number | null;
+            /** Options */
+            options?: components["schemas"]["SelectOption"][] | null;
         };
         /** PresetCreate */
         PresetCreate: {
@@ -1119,6 +1138,13 @@ export interface components {
              * @description 처리 단계 목록 (전체 교체)
              */
             steps?: components["schemas"]["ProcessStepCreate"][] | null;
+        };
+        /** SelectOption */
+        SelectOption: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: string | number;
         };
         /** TFile */
         TFile: {
