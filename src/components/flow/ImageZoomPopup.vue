@@ -49,6 +49,16 @@ function bringToFront() {
   focused.value = true;
   setTimeout(() => (focused.value = false), 10);
 }
+
+// ESC 키: 최대화 → 원래 크기
+function onKeyDown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && isMaximized.value) {
+    isMaximized.value = false;
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', onKeyDown));
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
 </script>
 
 <template>

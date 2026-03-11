@@ -8,6 +8,16 @@ defineProps<{
 
 const showSettings = ref(false);
 
+function onKeyDown(e: KeyboardEvent) {
+  if (e.ctrlKey && e.key === ',') {
+    e.preventDefault();
+    showSettings.value = !showSettings.value;
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', onKeyDown));
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
+
 const linksList: EssentialLinkProps[] = [
   {
     title: '영상처리 기본',
