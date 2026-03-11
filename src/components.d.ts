@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AppSidebar: typeof import('./components/AppSidebar.vue')['default']
     EssentialLink: typeof import('./components/EssentialLink.vue')['default']
     ExampleComponent: typeof import('./components/ExampleComponent.vue')['default']
     FilterNode: typeof import('./components/flow/FilterNode.vue')['default']
@@ -18,8 +19,11 @@ declare module 'vue' {
     ImageZoomPopup: typeof import('./components/flow/ImageZoomPopup.vue')['default']
     OsdViewer: typeof import('./components/flow/OsdViewer.vue')['default']
     ParamPanel: typeof import('./components/flow/ParamPanel.vue')['default']
+    PresetSaveDialog: typeof import('./components/dialog/PresetSaveDialog.vue')['default']
+    ProcessSaveDialog: typeof import('./components/dialog/ProcessSaveDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SettingsDialog: typeof import('./components/dialog/SettingsDialog.vue')['default']
     SourceNode: typeof import('./components/flow/SourceNode.vue')['default']
   }
 }

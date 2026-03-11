@@ -20,6 +20,8 @@ import FilterNode from 'src/components/flow/FilterNode.vue';
 import SourceNode from 'src/components/flow/SourceNode.vue';
 import ParamPanel from 'src/components/flow/ParamPanel.vue';
 import ImageZoomPopup from 'src/components/flow/ImageZoomPopup.vue';
+import PresetSaveDialog from 'src/components/dialog/PresetSaveDialog.vue';
+import ProcessSaveDialog from 'src/components/dialog/ProcessSaveDialog.vue';
 import type { ProcessNodeData, SourceNodeData, FlatStep } from 'src/types/flowTypes';
 import { stepsToFlow, flowToSteps } from 'src/utils/flowConverter';
 import { applyDagreLayout } from 'src/utils/flowLayout';
@@ -70,8 +72,8 @@ const optionPanelTarget = ref<string | null>(null);
 const presets = ref<PresetResponse[]>([]);
 const activePresetId = ref<string | null>(null);
 const showSavePresetDialog = ref(false);
-const presetName = ref('');
-const presetDescription = ref('');
+const presetDialogName = ref('');
+const presetDialogDescription = ref('');
 
 // ── 처리목록 ───────────────────────────────────────────────────────────────
 const processList = ref<ProcessResponse[]>([]);
@@ -476,8 +478,8 @@ const isEditingPreset = ref(false);
 function openSavePresetDialog() {
   isEditingPreset.value = false;
   const active = presets.value.find((p) => p.id === activePresetId.value);
-  presetName.value = active ? `${active.nm} copy` : '';
-  presetDescription.value = active ? `${active.description}` : '';
+  presetDialogName.value = active ? `${active.nm} copy` : '';
+  presetDialogDescription.value = active ? `${active.description}` : '';
   showSavePresetDialog.value = true;
 }
 
@@ -485,13 +487,12 @@ function openUpdatePresetDialog() {
   if (!activePresetId.value) return;
   isEditingPreset.value = true;
   const active = presets.value.find((p) => p.id === activePresetId.value);
-  presetName.value = active?.nm ?? '';
-  presetDescription.value = active?.description ?? '';
+  presetDialogName.value = active?.nm ?? '';
+  presetDialogDescription.value = active?.description ?? '';
   showSavePresetDialog.value = true;
 }
 
-async function confirmPresetDialog() {
-  if (!presetName.value.trim()) return;
+async function onConfirmPreset(name: string, description: string) {
   const steps = flowToSteps(getNodes.value, getEdges.value);
   const stepPayload = steps.map((s, i) => ({
     algorithmNm: s.algorithmNm,
@@ -503,14 +504,14 @@ async function confirmPresetDialog() {
 
   if (isEditingPreset.value && activePresetId.value) {
     await presetApi.updatePreset(activePresetId.value, {
-      nm: presetName.value.trim(),
-      description: presetDescription.value.trim() || null,
+      nm: name,
+      description: description || null,
       steps: stepPayload,
     });
   } else {
     const created = await presetApi.createPreset({
-      nm: presetName.value.trim(),
-      description: presetDescription.value.trim() || null,
+      nm: name,
+      description: description || null,
       steps: stepPayload,
     });
     activePresetId.value = created.id;
@@ -591,13 +592,13 @@ function processAllLeaves() {
 
 // ── 처리 데이터 저장/수정/삭제 ────────────────────────────────────────────
 const showSaveProcessDialog = ref(false);
-const processName = ref('');
+const processDialogName = ref('');
 const isEditingProcess = ref(false);
 
 function openSaveProcessDialog() {
   isEditingProcess.value = false;
   const active = processList.value.find((p) => p.id === activeProcessId.value);
-  processName.value = active ? `${active.nm} copy` : '';
+  processDialogName.value = active ? `${active.nm} copy` : '';
   showSaveProcessDialog.value = true;
 }
 
@@ -605,12 +606,12 @@ function openUpdateProcessDialog() {
   if (!activeProcessId.value) return;
   isEditingProcess.value = true;
   const active = processList.value.find((p) => p.id === activeProcessId.value);
-  processName.value = active?.nm ?? '';
+  processDialogName.value = active?.nm ?? '';
   showSaveProcessDialog.value = true;
 }
 
-async function saveProcessDialog() {
-  if (!processName.value.trim() || !originalFile.value) return;
+async function onConfirmProcess(name: string) {
+  if (!originalFile.value) return;
 
   const steps = flowToSteps(getNodes.value, getEdges.value);
   const stepPayload = steps.map((s, i) => ({
@@ -624,20 +625,18 @@ async function saveProcessDialog() {
 
   if (isEditingProcess.value && activeProcessId.value) {
     await processApi.updateProcess(activeProcessId.value, {
-      nm: processName.value.trim(),
+      nm: name,
       steps: stepPayload,
     });
   } else {
-    // 원본 이미지 업로드 → fileId 획득 (이미 업로드된 경우 재사용)
     const fileId = originalFileId.value ?? (await imgPrcApi.uploadFile(originalFile.value)).id;
     const created = await processApi.createProcess({
-      nm: processName.value.trim(),
+      nm: name,
       fileId,
       steps: stepPayload,
     });
     activeProcessId.value = created.id;
   }
-  processName.value = '';
   showSaveProcessDialog.value = false;
   await loadProcessList();
 }
@@ -1075,66 +1074,20 @@ async function onNodeZoom(nodeId: string) {
     <!-- 다이얼로그                                                          -->
     <!-- ================================================================== -->
 
-    <!-- Preset 저장/수정 다이얼로그 -->
-    <q-dialog v-model="showSavePresetDialog">
-      <q-card style="min-width: 300px">
-        <q-card-section>
-          <div class="text-h6">{{ isEditingPreset ? 'Preset 수정' : 'Preset 저장' }}</div>
-        </q-card-section>
-        <q-card-section class="q-pt-none column q-gutter-sm">
-          <q-input
-            v-model="presetName"
-            label="Preset 이름"
-            outlined
-            dense
-            autofocus
-            @keyup.enter="confirmPresetDialog"
-          />
-          <q-input v-model="presetDescription" label="설명 (선택)" outlined dense />
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="취소" v-close-popup />
-          <q-btn
-            unelevated
-            :label="isEditingPreset ? '수정' : '저장'"
-            color="primary"
-            :disabled="!presetName.trim()"
-            @click="confirmPresetDialog"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <PresetSaveDialog
+      v-model="showSavePresetDialog"
+      :is-editing="isEditingPreset"
+      :initial-name="presetDialogName"
+      :initial-description="presetDialogDescription"
+      @confirm="onConfirmPreset"
+    />
 
-    <!-- 처리 저장/수정 다이얼로그 -->
-    <q-dialog v-model="showSaveProcessDialog">
-      <q-card style="min-width: 300px">
-        <q-card-section>
-          <div class="text-h6">
-            {{ isEditingProcess ? '처리 데이터 수정' : '처리 데이터 저장' }}
-          </div>
-        </q-card-section>
-        <q-card-section class="q-pt-none">
-          <q-input
-            v-model="processName"
-            label="처리 이름"
-            outlined
-            dense
-            autofocus
-            @keyup.enter="saveProcessDialog"
-          />
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="취소" v-close-popup />
-          <q-btn
-            unelevated
-            :label="isEditingProcess ? '수정' : '저장'"
-            color="primary"
-            :disabled="!processName.trim()"
-            @click="saveProcessDialog"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <ProcessSaveDialog
+      v-model="showSaveProcessDialog"
+      :is-editing="isEditingProcess"
+      :initial-name="processDialogName"
+      @confirm="onConfirmProcess"
+    />
 
     <!-- 이미지 확대 팝업 (복수 모달리스) -->
     <ImageZoomPopup

@@ -39,14 +39,7 @@
       :width="240"
       :mini-width="72"
     >
-      <q-list>
-        <EssentialLink
-          v-for="link in linksList"
-          :key="link.title"
-          v-bind="link"
-          :mini="isLeftDrawerMini"
-        />
-      </q-list>
+      <AppSidebar :mini="isLeftDrawerMini" />
     </q-drawer>
 
     <q-page-container>
@@ -58,54 +51,9 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useQuasar } from 'quasar';
-import EssentialLink, { type EssentialLinkProps } from 'components/EssentialLink.vue';
+import AppSidebar from 'components/AppSidebar.vue';
 
 const $q = useQuasar();
-
-const linksList: EssentialLinkProps[] = [
-  {
-    title: '영상처리 기본',
-    caption: '영상처리 연습',
-    icon: 'photo_filter',
-    to: { name: 'img-prc-basic' },
-  },
-  {
-    title: '영상처리',
-    caption: '영상처리',
-    icon: 'photo_filter',
-    to: { name: 'img-prc' },
-  },
-  // {
-  //   title: 'Discord Chat Channel',
-  //   caption: 'chat.quasar.dev',
-  //   icon: 'chat',
-  //   link: 'https://chat.quasar.dev',
-  // },
-  // {
-  //   title: 'Forum',
-  //   caption: 'forum.quasar.dev',
-  //   icon: 'record_voice_over',
-  //   link: 'https://forum.quasar.dev',
-  // },
-  // {
-  //   title: 'Twitter',
-  //   caption: '@quasarframework',
-  //   icon: 'rss_feed',
-  //   link: 'https://twitter.quasar.dev',
-  // },
-  // {
-  //   title: 'Facebook',
-  //   caption: '@QuasarFramework',
-  //   icon: 'public',
-  //   link: 'https://facebook.quasar.dev',
-  // },
-  // {
-  //   title: 'Quasar Awesome',
-  //   caption: 'Community Quasar projects',
-  //   icon: 'favorite',
-  //   link: 'https://awesome.quasar.dev',
-  // },
-];
 
 const isLeftDrawerOpen = ref(true);
 const isLeftDrawerMini = ref(false);

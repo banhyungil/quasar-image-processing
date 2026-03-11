@@ -1,5 +1,9 @@
 <script setup lang="ts">
+import { useSettingsStore } from 'stores/settings-store';
+
 import OsdViewer from './OsdViewer.vue';
+
+const settingsStore = useSettingsStore();
 
 defineProps<{
   src: string | null;
@@ -12,7 +16,7 @@ const emit = defineEmits<{
 }>();
 
 const isMaximized = ref(false);
-const zoomSensitivity = ref(1.5);
+const zoomSensitivity = ref(settingsStore.defaultZoomPerScroll);
 const zoomLevel = ref(1);
 
 // ── 드래그 이동 ──────────────────────────────────────────────────────────────
