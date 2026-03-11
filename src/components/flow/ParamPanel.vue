@@ -3,16 +3,18 @@ import { PARAM_FIELDS } from 'src/constants/imgPrc';
 import type { ParamFieldDef } from 'src/constants/imgPrc';
 import type { PrcType } from 'src/types/imgPrcType';
 import type { ProcessNodeData } from 'src/types/flowTypes';
+import type { CustomFilter } from 'src/apis/customFilterApi';
 import FilterTreeSelect from './FilterTreeSelect.vue';
 
 const props = defineProps<{
   nodeData: ProcessNodeData;
+  customFilters?: CustomFilter[];
 }>();
 
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'apply', nodeData: ProcessNodeData): void;
-  (e: 'change-filter', prcType: PrcType, label: string): void;
+  (e: 'change-filter', prcType: PrcType, label: string, filterId?: string): void;
 }>();
 
 // 로컬 파라미터 복사본 (적용 전까지 원본에 영향 없음)
@@ -26,13 +28,27 @@ watch(
 );
 
 const cFields = computed<ParamFieldDef[]>(() => {
+  if (props.nodeData.algorithmNm === 'custom') {
+    // 커스텀 필터: filterId로 커스텀 필터 조회 → params 기반 동적 폼 생성
+    const filterId = props.nodeData.parameters?.filterId as string | undefined;
+    if (filterId && props.customFilters) {
+      const cf = props.customFilters.find((c) => c.id === filterId);
+      if (cf && Array.isArray(cf.params)) {
+        return cf.params as unknown as ParamFieldDef[];
+      }
+    }
+    return [];
+  }
   return PARAM_FIELDS[props.nodeData.algorithmNm] ?? [];
 });
 
 function getDefaultParams(): Record<string, unknown> {
-  const defs = PARAM_FIELDS[props.nodeData.algorithmNm];
-  if (!defs) return {};
-  return Object.fromEntries(defs.map((f) => [f.key, f.default]));
+  const defaults = Object.fromEntries(cFields.value.map((f) => [f.key, f.default]));
+  // 커스텀 필터: filterId 유지
+  if (props.nodeData.algorithmNm === 'custom' && props.nodeData.parameters?.filterId) {
+    defaults.filterId = props.nodeData.parameters.filterId;
+  }
+  return defaults;
 }
 
 function resetParams() {
@@ -61,7 +77,8 @@ function apply() {
         <FilterTreeSelect
           :model-value="nodeData.algorithmNm"
           :label="nodeData.label"
-          @select="(prcType, label) => emit('change-filter', prcType, label)"
+          :custom-filters="customFilters"
+          @select="(prcType, label, filterId) => emit('change-filter', prcType, label, filterId)"
         />
 
         <template v-if="cFields.length === 0">

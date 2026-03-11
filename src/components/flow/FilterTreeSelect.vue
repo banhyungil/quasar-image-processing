@@ -2,40 +2,62 @@
 import { QBtnDropdown } from 'quasar';
 import { FN_LIST, FN_OPTIONS_MAP } from 'src/constants/imgPrc';
 import type { PrcType } from 'src/types/imgPrcType';
+import type { CustomFilter } from 'src/apis/customFilterApi';
 
 interface FnTreeNode {
   label: string;
   value: string;
+  filterId?: string;
   selectable?: boolean;
   children?: FnTreeNode[];
 }
 
-defineProps<{
+const props = defineProps<{
   /** 현재 선택된 알고리즘 */
   modelValue: PrcType;
   /** 버튼에 표시할 라벨 */
   label: string;
+  /** 커스텀 필터 목록 */
+  customFilters?: CustomFilter[];
 }>();
 
 const emit = defineEmits<{
-  (e: 'select', prcType: PrcType, label: string): void;
+  (e: 'select', prcType: PrcType, label: string, filterId?: string): void;
 }>();
 
-const fnTreeNodes: FnTreeNode[] = FN_LIST.map((cat) => ({
-  label: cat.label,
-  value: cat.value,
-  selectable: false,
-  children: FN_OPTIONS_MAP[cat.value].map((opt) => ({
-    label: opt.label,
-    value: opt.value,
-  })),
-}));
+const fnTreeNodes = computed<FnTreeNode[]>(() => {
+  const builtIn: FnTreeNode[] = FN_LIST.map((cat) => ({
+    label: cat.label,
+    value: cat.value,
+    selectable: false,
+    children: FN_OPTIONS_MAP[cat.value].map((opt) => ({
+      label: opt.label,
+      value: opt.value,
+    })),
+  }));
+
+  const customs = props.customFilters ?? [];
+  if (customs.length > 0) {
+    builtIn.push({
+      label: '커스텀',
+      value: '_custom_category',
+      selectable: false,
+      children: customs.map((cf) => ({
+        label: cf.nm,
+        value: 'custom',
+        filterId: cf.id,
+      })),
+    });
+  }
+
+  return builtIn;
+});
 
 const filterSearch = ref('');
 const btnDropdownRef = ref<InstanceType<typeof QBtnDropdown> | null>(null);
 
-function onSelectFilter(value: string, label: string) {
-  emit('select', value as PrcType, label);
+function onSelectFilter(node: FnTreeNode) {
+  emit('select', node.value as PrcType, node.label, node.filterId);
   btnDropdownRef.value?.hide();
 }
 </script>
@@ -78,7 +100,7 @@ function onSelectFilter(value: string, label: string) {
             v-else
             class="cursor-pointer filter-tree-select__leaf"
             :class="{ 'text-primary text-weight-bold': node.value === modelValue }"
-            @click="onSelectFilter(node.value, node.label)"
+            @click="onSelectFilter(node)"
           >
             {{ node.label }}
           </div>

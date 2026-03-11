@@ -12,14 +12,18 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppSidebar: typeof import('./components/AppSidebar.vue')['default']
+    CustomFilterEditorDialog: typeof import('./components/dialog/CustomFilterEditorDialog.vue')['default']
     EssentialLink: typeof import('./components/EssentialLink.vue')['default']
     ExampleComponent: typeof import('./components/ExampleComponent.vue')['default']
+    FilterListPanel: typeof import('./components/sidebar/FilterListPanel.vue')['default']
     FilterNode: typeof import('./components/flow/FilterNode.vue')['default']
     FilterTreeSelect: typeof import('./components/flow/FilterTreeSelect.vue')['default']
     ImageZoomPopup: typeof import('./components/flow/ImageZoomPopup.vue')['default']
     OsdViewer: typeof import('./components/flow/OsdViewer.vue')['default']
     ParamPanel: typeof import('./components/flow/ParamPanel.vue')['default']
+    PresetListPanel: typeof import('./components/sidebar/PresetListPanel.vue')['default']
     PresetSaveDialog: typeof import('./components/dialog/PresetSaveDialog.vue')['default']
+    ProcessListPanel: typeof import('./components/sidebar/ProcessListPanel.vue')['default']
     ProcessSaveDialog: typeof import('./components/dialog/ProcessSaveDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

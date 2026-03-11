@@ -5,8 +5,7 @@ import { Background } from '@vue-flow/background';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 
-import { FN_LIST, FN_OPTIONS_MAP, PARAM_FIELDS } from 'src/constants/imgPrc';
-import type { FunctionKey } from 'src/constants/imgPrc';
+import { PARAM_FIELDS } from 'src/constants/imgPrc';
 import type { PrcType } from 'src/types/imgPrcType';
 import * as presetApi from 'src/apis/presetApi';
 import type { PresetResponse } from 'src/apis/presetApi';
@@ -22,17 +21,14 @@ import ParamPanel from 'src/components/flow/ParamPanel.vue';
 import ImageZoomPopup from 'src/components/flow/ImageZoomPopup.vue';
 import PresetSaveDialog from 'src/components/dialog/PresetSaveDialog.vue';
 import ProcessSaveDialog from 'src/components/dialog/ProcessSaveDialog.vue';
+import CustomFilterEditorDialog from 'src/components/dialog/CustomFilterEditorDialog.vue';
+import FilterListPanel from 'src/components/sidebar/FilterListPanel.vue';
+import PresetListPanel from 'src/components/sidebar/PresetListPanel.vue';
+import ProcessListPanel from 'src/components/sidebar/ProcessListPanel.vue';
+import type { CustomFilter } from 'src/apis/customFilterApi';
 import type { ProcessNodeData, SourceNodeData, FlatStep } from 'src/types/flowTypes';
 import { stepsToFlow, flowToSteps } from 'src/utils/flowConverter';
 import { applyDagreLayout } from 'src/utils/flowLayout';
-
-const CATEGORY_ICONS: Record<FunctionKey, string> = {
-  filtering: 'filter_alt',
-  blurring: 'blur_on',
-  findContour: 'category',
-  brightness: 'brightness_6',
-  threshold: 'tonality',
-};
 
 const SOURCE_NODE_ID = 'source';
 
@@ -227,6 +223,61 @@ function addFilterNode(prcType: PrcType, label: string) {
   });
 }
 
+// ── 커스텀 필터 ─────────────────────────────────────────────────────────────
+const showCustomFilterEditor = ref(false);
+const editingCustomFilter = ref<CustomFilter | undefined>();
+const filterListPanelRef = ref<InstanceType<typeof FilterListPanel> | null>(null);
+
+function openCustomFilterEditor(cf?: CustomFilter) {
+  editingCustomFilter.value = cf;
+  showCustomFilterEditor.value = true;
+}
+
+function onCustomFilterSaved() {
+  filterListPanelRef.value?.loadCustomFilters();
+}
+
+function addCustomFilterNode(cf: CustomFilter) {
+  const id = crypto.randomUUID();
+  const paramDefs = Array.isArray(cf.params) ? (cf.params as unknown as Array<{ key: string; default: unknown }>) : [];
+  const defaultParams: Record<string, unknown> = {
+    filterId: cf.id,
+    ...Object.fromEntries(paramDefs.map((p) => [p.key, p.default])),
+  };
+
+  const newNode: Node<ProcessNodeData> = {
+    id,
+    type: 'filter',
+    position: { x: 0, y: 0 },
+    data: {
+      algorithmNm: 'custom' as PrcType,
+      label: cf.nm,
+      enabled: true,
+      parameters: defaultParams,
+      imageUrl: null,
+      executionMs: null,
+    },
+  };
+
+  const parentId = selectedNodeId.value ?? findLastLeaf();
+  const newEdge: Edge = {
+    id: `e-${parentId}-${id}`,
+    source: parentId,
+    target: id,
+    animated: true,
+  };
+
+  addNodes([newNode]);
+  addEdges([newEdge]);
+
+  void nextTick(() => {
+    relayout();
+    if (originalFile.value) {
+      void processNodeThumbnail(id);
+    }
+  });
+}
+
 /** 현재 그래프에서 outgoing edge가 없는 첫 번째 노드(리프) ID를 반환 */
 function findLastLeaf(): string {
   const sources = new Set(edges.value.map((e) => e.source));
@@ -352,13 +403,16 @@ function toggleEnabled(nodeId: string) {
   }
 }
 
-function onChangeFilter(nodeId: string, prcType: PrcType, label: string) {
+function onChangeFilter(nodeId: string, prcType: PrcType, label: string, filterId?: string) {
   const node = nodes.value.find((n) => n.id === nodeId);
   if (!node || node.type !== 'filter') return;
   const data = node.data as ProcessNodeData;
   data.algorithmNm = prcType;
   data.label = label;
   data.parameters = getDefaultParams(prcType);
+  if (filterId) {
+    data.parameters.filterId = filterId;
+  }
   data.imageUrl = null;
   data.executionMs = null;
 
@@ -449,6 +503,21 @@ function onCanvasDrop(event: DragEvent) {
   const prcType = event.dataTransfer?.getData('application/vueflow-prctype') as PrcType | undefined;
   const label = event.dataTransfer?.getData('application/vueflow-label');
   if (!prcType || !label) return;
+
+  if (prcType === 'custom') {
+    const filterId = event.dataTransfer?.getData('application/vueflow-filter-id');
+    if (filterId) {
+      // 커스텀 필터를 FilterListPanel의 목록에서 찾아 노드 추가
+      const cf = filterListPanelRef.value
+        ? (filterListPanelRef.value as unknown as { customFilters: CustomFilter[] }).customFilters?.find(
+            (c: CustomFilter) => c.id === filterId,
+          )
+        : undefined;
+      if (cf) addCustomFilterNode(cf);
+    }
+    return;
+  }
+
   addFilterNode(prcType, label);
 }
 
@@ -769,138 +838,33 @@ async function onNodeZoom(nodeId: string) {
           <q-tab-panels v-model="sidebarTab" animated class="col" style="min-height: 0">
             <!-- 가. 필터함수 탭 -->
             <q-tab-panel name="filters" class="q-pa-none" style="height: 100%">
-              <q-scroll-area style="height: 100%">
-                <q-list>
-                  <q-expansion-item
-                    v-for="fn in FN_LIST"
-                    :key="fn.value"
-                    :icon="CATEGORY_ICONS[fn.value]"
-                    :label="fn.label"
-                    default-opened
-                    expand-separator
-                  >
-                    <div
-                      v-for="option in FN_OPTIONS_MAP[fn.value]"
-                      :key="option.value"
-                      class="q-px-sm q-py-xs"
-                      draggable="true"
-                      @dragstart="onSidebarDragStart($event, option.value, option.label)"
-                    >
-                      <q-card flat bordered class="filter-card">
-                        <q-card-section class="q-pa-xs row items-center no-wrap q-gutter-x-xs">
-                          <q-icon
-                            :name="CATEGORY_ICONS[fn.value]"
-                            size="xs"
-                            color="primary"
-                            class="q-ml-xs"
-                          />
-                          <div class="col text-caption ellipsis">{{ option.label }}</div>
-                          <q-btn
-                            flat
-                            round
-                            dense
-                            size="xs"
-                            icon="add"
-                            color="positive"
-                            @click="addFilterNode(option.value, option.label)"
-                          >
-                            <q-tooltip>노드에 추가</q-tooltip>
-                          </q-btn>
-                        </q-card-section>
-                      </q-card>
-                    </div>
-                  </q-expansion-item>
-                </q-list>
-              </q-scroll-area>
+              <FilterListPanel
+                ref="filterListPanelRef"
+                @add-filter="addFilterNode"
+                @add-custom-filter="addCustomFilterNode"
+                @drag-start="onSidebarDragStart"
+                @open-editor="openCustomFilterEditor"
+              />
             </q-tab-panel>
 
             <!-- 나. Preset 탭 -->
             <q-tab-panel name="presets" class="q-pa-none" style="height: 100%">
-              <q-scroll-area style="height: 100%">
-                <div class="q-pa-sm">
-                  <div
-                    v-if="presets.length === 0"
-                    class="text-center text-caption text-grey-6 q-pa-md"
-                  >
-                    저장된 Preset이 없습니다
-                  </div>
-                  <div
-                    v-for="preset in presets"
-                    :key="preset.id"
-                    class="row items-center no-wrap q-pa-xs q-mb-xs rounded-borders preset-item"
-                    :class="activePresetId === preset.id ? 'bg-light-blue-1' : 'bg-grey-1'"
-                  >
-                    <div class="col text-body2 ellipsis cursor-pointer" @click="loadPreset(preset)">
-                      {{ preset.nm }}
-                    </div>
-                    <q-btn
-                      flat
-                      round
-                      dense
-                      size="xs"
-                      icon="delete"
-                      color="negative"
-                      @click.stop="removePreset(preset.id)"
-                    >
-                      <q-tooltip>삭제</q-tooltip>
-                    </q-btn>
-                  </div>
-                </div>
-              </q-scroll-area>
+              <PresetListPanel
+                :presets="presets"
+                :active-preset-id="activePresetId"
+                @load="loadPreset"
+                @remove="removePreset"
+              />
             </q-tab-panel>
 
             <!-- 다. 처리목록 탭 -->
             <q-tab-panel name="processes" class="q-pa-none" style="height: 100%">
-              <q-scroll-area style="height: 100%">
-                <div class="q-pa-sm">
-                  <div
-                    v-if="processList.length === 0"
-                    class="text-center text-caption text-grey-6 q-pa-md"
-                  >
-                    처리된 이미지가 없습니다
-                  </div>
-                  <div
-                    v-for="proc in processList"
-                    :key="proc.id"
-                    class="row items-center no-wrap q-pa-xs q-mb-xs rounded-borders process-item"
-                    :class="activeProcessId === proc.id ? 'bg-light-blue-1' : 'bg-grey-1'"
-                  >
-                    <q-avatar square size="40px" class="q-mr-xs" style="flex-shrink: 0">
-                      <img
-                        v-if="proc.filePath"
-                        :src="`${API_HOST}/${proc.filePath}`"
-                        style="object-fit: cover"
-                      />
-                      <q-icon v-else name="image" color="grey-5" />
-                    </q-avatar>
-                    <div class="col cursor-pointer" @dblclick="onProcessDblClick(proc)">
-                      <div class="text-body2 ellipsis">{{ proc.nm }}</div>
-                      <div class="text-caption text-grey-6">
-                        {{ proc.steps.length }}단계
-                        <template v-if="proc.totalExecutionMs != null">
-                          · {{ proc.totalExecutionMs }}ms
-                        </template>
-                      </div>
-                    </div>
-                    <q-badge
-                      :color="proc.isLatest ? 'positive' : 'grey-5'"
-                      :label="proc.isLatest ? '최신' : '이전'"
-                      class="q-mr-xs"
-                    />
-                    <q-btn
-                      flat
-                      round
-                      dense
-                      size="xs"
-                      icon="delete"
-                      color="negative"
-                      @click.stop="removeProcess(proc.id)"
-                    >
-                      <q-tooltip>삭제</q-tooltip>
-                    </q-btn>
-                  </div>
-                </div>
-              </q-scroll-area>
+              <ProcessListPanel
+                :process-list="processList"
+                :active-process-id="activeProcessId"
+                @load="onProcessDblClick"
+                @remove="removeProcess"
+              />
             </q-tab-panel>
           </q-tab-panels>
         </div>
@@ -1057,11 +1021,12 @@ async function onNodeZoom(nodeId: string) {
               <ParamPanel
                 v-if="showOptionPanel && cSelNodeData"
                 :node-data="cSelNodeData"
+                :custom-filters="(filterListPanelRef as any)?.customFilters"
                 @close="showOptionPanel = false"
                 @apply="onParamApply"
                 @change-filter="
-                  (prcType, label) =>
-                    optionPanelTarget && onChangeFilter(optionPanelTarget, prcType, label)
+                  (prcType, label, filterId) =>
+                    optionPanelTarget && onChangeFilter(optionPanelTarget, prcType, label, filterId)
                 "
               />
             </transition>
@@ -1089,6 +1054,12 @@ async function onNodeZoom(nodeId: string) {
       @confirm="onConfirmProcess"
     />
 
+    <CustomFilterEditorDialog
+      v-model="showCustomFilterEditor"
+      :custom-filter="editingCustomFilter"
+      @saved="onCustomFilterSaved"
+    />
+
     <!-- 이미지 확대 팝업 (복수 모달리스) -->
     <ImageZoomPopup
       v-for="popup in zoomPopups"
@@ -1109,19 +1080,6 @@ async function onNodeZoom(nodeId: string) {
 .flow-canvas {
   width: 100%;
   height: 100%;
-}
-
-.filter-card {
-  cursor: grab;
-}
-
-.filter-card:active {
-  cursor: grabbing;
-}
-
-.preset-item,
-.process-item {
-  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .slide-option-enter-active,

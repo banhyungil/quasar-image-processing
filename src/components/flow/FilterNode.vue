@@ -17,12 +17,12 @@ const emit = defineEmits<{
   (e: 'remove', nodeId: string): void;
   (e: 'toggle-enabled', nodeId: string): void;
   (e: 'zoom', nodeId: string): void;
-  (e: 'change-filter', nodeId: string, prcType: PrcType, label: string): void;
+  (e: 'change-filter', nodeId: string, prcType: PrcType, label: string, filterId?: string): void;
 }>();
 
-function onSelectFilter(prcType: PrcType, label: string) {
-  if (prcType === props.data.algorithmNm) return;
-  emit('change-filter', props.id, prcType, label);
+function onSelectFilter(prcType: PrcType, label: string, filterId?: string) {
+  if (prcType === props.data.algorithmNm && !filterId) return;
+  emit('change-filter', props.id, prcType, label, filterId);
 }
 
 const cParamSummary = computed(() => {

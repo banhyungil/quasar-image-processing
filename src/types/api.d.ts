@@ -21,6 +21,98 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/custom-filters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Custom Filters
+         * @description 커스텀 필터 목록 조회
+         */
+        get: operations["get_custom_filters_api_custom_filters_get"];
+        put?: never;
+        /**
+         * Create Custom Filter Endpoint
+         * @description 커스텀 필터 생성
+         */
+        post: operations["create_custom_filter_endpoint_api_custom_filters_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/custom-filters/{filter_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Custom Filter Detail
+         * @description 커스텀 필터 상세 조회
+         */
+        get: operations["get_custom_filter_detail_api_custom_filters__filter_id__get"];
+        /**
+         * Update Custom Filter Endpoint
+         * @description 커스텀 필터 수정
+         */
+        put: operations["update_custom_filter_endpoint_api_custom_filters__filter_id__put"];
+        post?: never;
+        /**
+         * Delete Custom Filter Endpoint
+         * @description 커스텀 필터 삭제
+         */
+        delete: operations["delete_custom_filter_endpoint_api_custom_filters__filter_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/custom-filters/{filter_id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Custom Filter Endpoint
+         * @description 커스텀 필터 테스트 실행 (이미지 첨부)
+         */
+        post: operations["test_custom_filter_endpoint_api_custom_filters__filter_id__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Files
+         * @description 파일 목록 조회 (MIME 타입 필터 지원)
+         */
+        get: operations["get_files_api_files_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/image-processing": {
         parameters: {
             query?: never;
@@ -105,6 +197,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/image-processing/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Img Upload
+         * @description 원본 이미지 파일 업로드 (동일 파일 중복 방지: content hash 기반)
+         */
+        post: operations["img_upload_api_image_processing_upload_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/image-processing/batch": {
         parameters: {
             query?: never;
@@ -139,7 +251,7 @@ export interface paths {
          * @description 트리 구조 배치 이미지 처리.
          *
          *     parentId로 트리를 구성하며, 같은 parentId를 가진 노드들은 분기(비교) 처리된다.
-         *     전체 실행 시 원본 이미지를, 부분 재실행 시 부모 노드의 결과 이미지를 file로 전송한다.
+         *     결과 이미지는 캐시 파일로 저장하고 URL을 반환한다.
          */
         post: operations["img_processing_batch_tree_api_image_processing_batch_tree_post"];
         delete?: never;
@@ -268,7 +380,7 @@ export interface components {
              * @description 적용할 이미지 처리 종류
              * @enum {string}
              */
-            prcType: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing";
+            prcType: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing" | "custom";
             /**
              * Parameters
              * @description 필터별 파라미터 JSON 문자열. GET /image-processing/params/{prcType}에서 스키마 확인 가능
@@ -292,7 +404,7 @@ export interface components {
         Body_img_processing_batch_tree_api_image_processing_batch_tree_post: {
             /**
              * File
-             * @description 입력 이미지 (전체 실행=원본, 부분 실행=부모 노드 결과)
+             * @description 연산처리를 위한 입력 이미지
              */
             file: string;
             /**
@@ -300,6 +412,17 @@ export interface components {
              * @description 트리 형태 처리 단계 JSON 배열. 예: [{"nodeId":"n1","prcType":"gaussianBlur","parameters":{},"parentId":null}]
              */
             steps: string;
+            /**
+             * Fileid
+             * @description 원본 파일 ID (캐시 키 루트)
+             */
+            fileId: string;
+            /**
+             * Fullsize
+             * @description true이면 썸네일 대신 원본 해상도 반환
+             * @default false
+             */
+            fullSize: boolean;
         };
         /** Body_img_processing_save_api_image_processing_save_post */
         Body_img_processing_save_api_image_processing_save_post: {
@@ -313,12 +436,206 @@ export interface components {
              * @description 이미지에 적용된 처리 종류
              * @enum {string}
              */
-            prcType: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing";
+            prcType: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing" | "custom";
             /**
              * Prcms
              * @description 처리시간
              */
             prcMs: number;
+        };
+        /** Body_img_upload_api_image_processing_upload_post */
+        Body_img_upload_api_image_processing_upload_post: {
+            /**
+             * File
+             * @description 업로드할 원본 이미지 파일
+             */
+            file: string;
+        };
+        /** Body_test_custom_filter_endpoint_api_custom_filters__filter_id__test_post */
+        Body_test_custom_filter_endpoint_api_custom_filters__filter_id__test_post: {
+            /** Image */
+            image: string;
+            /**
+             * Parameters
+             * @default {}
+             */
+            parameters: string;
+        };
+        /** CustomFilterCreate */
+        CustomFilterCreate: {
+            /**
+             * Nm
+             * @description 커스텀 필터 이름
+             */
+            nm: string;
+            /**
+             * Description
+             * @description 필터 설명
+             * @default
+             */
+            description: string;
+            /**
+             * Code
+             * @description Python 필터 코드
+             */
+            code: string;
+            /**
+             * Params
+             * @description 기본 파라미터 정의 (key, type, default)
+             */
+            params?: {
+                [key: string]: unknown;
+            };
+        };
+        /** CustomFilterListResponse */
+        CustomFilterListResponse: {
+            /**
+             * Items
+             * @description 커스텀 필터 목록
+             */
+            items: components["schemas"]["CustomFilterResponse"][];
+        };
+        /** CustomFilterResponse */
+        CustomFilterResponse: {
+            /**
+             * Id
+             * @description 커스텀 필터 ID (UUID)
+             */
+            id: string;
+            /**
+             * Nm
+             * @description 커스텀 필터 이름
+             */
+            nm: string;
+            /**
+             * Description
+             * @description 필터 설명
+             * @default
+             */
+            description: string;
+            /**
+             * Code
+             * @description Python 필터 코드
+             */
+            code: string;
+            /**
+             * Params
+             * @description 기본 파라미터 정의
+             */
+            params?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Version
+             * @description 코드 버전
+             */
+            version: number;
+            /**
+             * Createdat
+             * Format: date-time
+             * @description 생성 일시
+             */
+            createdAt: string;
+            /**
+             * Updatedat
+             * Format: date-time
+             * @description 수정 일시
+             */
+            updatedAt: string;
+        };
+        /** CustomFilterUpdate */
+        CustomFilterUpdate: {
+            /**
+             * Nm
+             * @description 커스텀 필터 이름
+             */
+            nm?: string | null;
+            /**
+             * Description
+             * @description 필터 설명
+             */
+            description?: string | null;
+            /**
+             * Code
+             * @description Python 필터 코드
+             */
+            code?: string | null;
+            /**
+             * Params
+             * @description 기본 파라미터 정의
+             */
+            params?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** FileItem */
+        FileItem: {
+            /**
+             * Id
+             * @description 파일 고유 식별자 (UUID)
+             */
+            id: string;
+            /**
+             * Originnm
+             * @description 업로드 원본 파일명
+             */
+            originNm: string;
+            /**
+             * Nm
+             * @description 서버 저장 파일명 (UUID 기반)
+             */
+            nm: string;
+            /**
+             * Path
+             * @description 서버 내 파일 경로 (uploads/ 기준)
+             */
+            path: string;
+            /**
+             * Mimetype
+             * @description 파일 MIME 타입
+             */
+            mimeType: string;
+            /**
+             * Sizebytes
+             * @description 파일 크기 (bytes)
+             */
+            sizeBytes: number;
+            /**
+             * Uploadedat
+             * Format: date-time
+             * @description 업로드 완료 시각 (UTC)
+             */
+            uploadedAt: string;
+            /**
+             * Options
+             * @description 파일 관련 추가 메타데이터
+             */
+            options?: {
+                [key: string]: unknown;
+            };
+        };
+        /** FileItemListResponse */
+        FileItemListResponse: {
+            /**
+             * Items
+             * @description 파일 목록
+             */
+            items: components["schemas"]["FileItem"][];
+            /**
+             * Hasmore
+             * @description 다음 페이지 존재 여부
+             */
+            hasMore: boolean;
+            /**
+             * Nextcursoruploadedat
+             * @description 다음 커서 기준 업로드 시각
+             */
+            nextCursorUploadedAt?: string | null;
+            /**
+             * Nextcursorid
+             * @description 다음 커서 파일 ID
+             */
+            nextCursorId?: string | null;
         };
         /** FileListResponse */
         FileListResponse: {
@@ -350,7 +667,7 @@ export interface components {
              * @description 저장 시 적용된 이미지 처리 종류
              * @enum {string}
              */
-            prcType: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing";
+            prcType: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing" | "custom";
         } & {
             [key: string]: unknown;
         };
@@ -394,6 +711,45 @@ export interface components {
             uploadedAt: string;
             /** @description 처리 시 적용된 옵션 */
             options: components["schemas"]["FileSaveOptions"];
+        };
+        /** FileUploadResponse */
+        FileUploadResponse: {
+            /**
+             * Id
+             * @description 파일 고유 식별자 (UUID)
+             */
+            id: string;
+            /**
+             * Originnm
+             * @description 업로드 원본 파일명
+             */
+            originNm: string;
+            /**
+             * Nm
+             * @description 서버 저장 파일명 (UUID 기반)
+             */
+            nm: string;
+            /**
+             * Path
+             * @description 서버 내 파일 경로 (uploads/ 기준)
+             */
+            path: string;
+            /**
+             * Mimetype
+             * @description 파일 MIME 타입 (image/png, image/jpeg)
+             */
+            mimeType: string;
+            /**
+             * Sizebytes
+             * @description 파일 크기 (bytes)
+             */
+            sizeBytes: number;
+            /**
+             * Uploadedat
+             * Format: date-time
+             * @description 업로드 완료 시각 (UTC)
+             */
+            uploadedAt: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -493,10 +849,15 @@ export interface components {
                 [key: string]: unknown;
             };
             /**
-             * Parentid
-             * @description 부모 노드 ID (NULL이면 루트)
+             * Clientid
+             * @description 클라이언트 측 임시 노드 ID (부모 참조용)
              */
-            parentId?: string | null;
+            clientId?: string | null;
+            /**
+             * Parentclientid
+             * @description 부모 노드의 client_id (NULL이면 루트)
+             */
+            parentClientId?: string | null;
         };
         /** PresetStepResponse */
         PresetStepResponse: {
@@ -591,6 +952,11 @@ export interface components {
              */
             fileId: string;
             /**
+             * Filepath
+             * @description 원본 파일 경로 (t_file.path)
+             */
+            filePath?: string | null;
+            /**
              * Finalfileid
              * @description 최종 결과 파일 ID
              */
@@ -658,6 +1024,16 @@ export interface components {
              * @description 부모 노드 ID (NULL이면 루트)
              */
             parentId?: string | null;
+            /**
+             * Clientid
+             * @description 클라이언트 측 임시 노드 ID (부모 참조용)
+             */
+            clientId?: string | null;
+            /**
+             * Parentclientid
+             * @description 부모 노드의 client_id (NULL이면 루트)
+             */
+            parentClientId?: string | null;
         };
         /** ProcessStepResponse */
         ProcessStepResponse: {
@@ -806,15 +1182,20 @@ export interface components {
              */
             nodeId: string;
             /**
-             * Thumbnail
-             * @description 처리 결과 썸네일 (base64 PNG)
+             * Imageurl
+             * @description 처리 결과 이미지 URL (썸네일)
              */
-            thumbnail: string;
+            imageUrl: string;
             /**
              * Executionms
              * @description 해당 노드 처리 시간 (ms)
              */
             executionMs: number;
+            /**
+             * Dziurl
+             * @description DZI 타일 URL (고해상도 이미지일 때만 존재)
+             */
+            dziUrl?: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -1108,6 +1489,24 @@ export interface components {
              */
             iterations: number;
         };
+        /**
+         * CustomFilterParams
+         * @description 커스텀 필터 파라미터.
+         */
+        CustomFilterParams: {
+            /**
+             * Filterid
+             * @description 커스텀 필터 ID (UUID)
+             */
+            filterId: string;
+            /**
+             * Parameters
+             * @description 사용자 정의 파라미터
+             */
+            parameters?: {
+                [key: string]: unknown;
+            };
+        };
     };
     responses: never;
     parameters: never;
@@ -1135,6 +1534,227 @@ export interface operations {
                     "application/json": {
                         [key: string]: string;
                     };
+                };
+            };
+        };
+    };
+    get_custom_filters_api_custom_filters_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFilterListResponse"];
+                };
+            };
+        };
+    };
+    create_custom_filter_endpoint_api_custom_filters_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomFilterCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFilterResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_custom_filter_detail_api_custom_filters__filter_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                filter_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFilterResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_custom_filter_endpoint_api_custom_filters__filter_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                filter_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomFilterUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFilterResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_custom_filter_endpoint_api_custom_filters__filter_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                filter_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_custom_filter_endpoint_api_custom_filters__filter_id__test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                filter_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_test_custom_filter_endpoint_api_custom_filters__filter_id__test_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_files_api_files_get: {
+        parameters: {
+            query?: {
+                /** @description 반환할 최대 항목 수 */
+                limit?: number;
+                /** @description MIME 타입 필터 (예: image/png, image/*) */
+                mimeType?: string | null;
+                /** @description 커서 기준 업로드 시각 */
+                cursorUploadedAt?: string | null;
+                /** @description 커서 기준 파일 ID */
+                cursorId?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileItemListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -1213,7 +1833,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                prc_type: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing";
+                prc_type: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing" | "custom";
             };
             cookie?: never;
         };
@@ -1283,6 +1903,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FileSaveResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    img_upload_api_image_processing_upload_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_img_upload_api_image_processing_upload_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileUploadResponse"];
                 };
             };
             /** @description Validation Error */
