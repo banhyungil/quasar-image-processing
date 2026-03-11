@@ -96,17 +96,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
       <!-- 이미지 영역 -->
       <div class="col" style="min-height: 0; position: relative">
         <OsdViewer
-          v-if="dziUrl"
+          v-if="dziUrl || src"
           ref="osdViewerRef"
-          :dzi-url="dziUrl"
-          :zoom-per-scroll="settingsStore.defaultZoomPerScroll"
-          class="fit"
-          @zoom="zoomLevel = $event"
-        />
-        <OsdViewer
-          v-else-if="src"
-          ref="osdViewerRef"
-          :src="src"
+          v-bind="dziUrl ? { dziUrl } : { src: src! }"
           :zoom-per-scroll="settingsStore.defaultZoomPerScroll"
           class="fit"
           @zoom="zoomLevel = $event"
