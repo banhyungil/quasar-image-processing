@@ -332,9 +332,7 @@ async function processNodeThumbnail(targetNodeId: string) {
   if (steps.length === 0) return;
 
   try {
-    const result = await imgPrcApi.batchTreeProcessing(originalFile.value, steps, {
-      fileId: originalFileId.value,
-    });
+    const result = await imgPrcApi.batchTreeProcessing(originalFile.value, steps);
     // 결과를 각 노드에 매핑
     for (const nr of result.results) {
       const node = nodes.value.find((n) => n.id === nr.nodeId);
@@ -753,8 +751,8 @@ async function onNodeZoom(nodeId: string) {
     return;
   }
 
-  // 필터 노드: batch-tree API로 원본 해상도 연산
-  if (!originalFile.value || !originalFileId.value) return;
+  // 필터 노드: DZI API로 원본 해상도 생성
+  if (!originalFileId.value) return;
 
   const pathNodeIds = collectPathToNode(nodeId);
   const steps: TreeBatchStep[] = [];
@@ -789,21 +787,19 @@ async function onNodeZoom(nodeId: string) {
   if (steps.length === 0) return;
 
   try {
-    const result = await imgPrcApi.batchTreeProcessing(originalFile.value, steps, {
-      fileId: originalFileId.value,
-      fullSize: true,
+    const result = await imgPrcApi.generateDzi(originalFileId.value, steps, nodeId);
+    const node = nodes.value.find((n) => n.id === nodeId);
+    const src = result.imageUrl
+      ? API_HOST + result.imageUrl
+      : (node?.data as ProcessNodeData)?.imageUrl ?? '';
+
+    zoomPopups.value.push({
+      id: crypto.randomUUID(),
+      nodeId,
+      src,
+      dziUrl: result.dziUrl ? API_HOST + result.dziUrl : undefined,
+      title: (node?.data as ProcessNodeData)?.label ?? '처리 결과',
     });
-    const target = result.results.find((r) => r.nodeId === nodeId);
-    if (target) {
-      const node = nodes.value.find((n) => n.id === nodeId);
-      zoomPopups.value.push({
-        id: crypto.randomUUID(),
-        nodeId,
-        src: target.imageUrl.startsWith('data:') ? target.imageUrl : API_HOST + target.imageUrl,
-        dziUrl: target.dziUrl ? API_HOST + target.dziUrl : undefined,
-        title: (node?.data as ProcessNodeData)?.label ?? '처리 결과',
-      });
-    }
   } catch (err) {
     console.error('확대 이미지 연산 실패:', err);
   }

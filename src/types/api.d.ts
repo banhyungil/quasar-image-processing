@@ -251,9 +251,29 @@ export interface paths {
          * @description 트리 구조 배치 이미지 처리.
          *
          *     parentId로 트리를 구성하며, 같은 parentId를 가진 노드들은 분기(비교) 처리된다.
-         *     결과 이미지는 캐시 파일로 저장하고 URL을 반환한다.
+         *     결과는 썸네일(base64 data URL)로 반환한다.
          */
         post: operations["img_processing_batch_tree_api_image_processing_batch_tree_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/image-processing/dzi/{file_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Dzi
+         * @description 원본 이미지에 steps 체인을 적용하고, 타겟 노드의 DZI 타일(또는 원본 이미지)을 생성한다.
+         */
+        post: operations["create_dzi_api_image_processing_dzi__file_id__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -368,6 +388,19 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Body_create_dzi_api_image_processing_dzi__file_id__post */
+        Body_create_dzi_api_image_processing_dzi__file_id__post: {
+            /**
+             * Steps
+             * @description 타겟 노드까지의 처리 단계 JSON 배열
+             */
+            steps: string;
+            /**
+             * Nodeid
+             * @description DZI를 생성할 타겟 노드 ID
+             */
+            nodeId: string;
+        };
         /** Body_img_processing_api_image_processing_post */
         Body_img_processing_api_image_processing_post: {
             /**
@@ -412,17 +445,6 @@ export interface components {
              * @description 트리 형태 처리 단계 JSON 배열. 예: [{"nodeId":"n1","prcType":"gaussianBlur","parameters":{},"parentId":null}]
              */
             steps: string;
-            /**
-             * Fileid
-             * @description 원본 파일 ID (캐시 키 루트)
-             */
-            fileId: string;
-            /**
-             * Fullsize
-             * @description true이면 썸네일 대신 원본 해상도 반환
-             * @default false
-             */
-            fullSize: boolean;
         };
         /** Body_img_processing_save_api_image_processing_save_post */
         Body_img_processing_save_api_image_processing_save_post: {
@@ -561,6 +583,19 @@ export interface components {
              * @description 파라미터 정의 (ParamFieldDef 배열)
              */
             params?: components["schemas"]["ParamFieldDef"][] | null;
+        };
+        /** DziResponse */
+        DziResponse: {
+            /**
+             * Dziurl
+             * @description DZI 타일 URL (고해상도일 때)
+             */
+            dziUrl?: string | null;
+            /**
+             * Imageurl
+             * @description 원본 이미지 URL (저해상도일 때)
+             */
+            imageUrl?: string | null;
         };
         /** FileItem */
         FileItem: {
@@ -1209,7 +1244,7 @@ export interface components {
             nodeId: string;
             /**
              * Imageurl
-             * @description 처리 결과 이미지 URL (썸네일)
+             * @description 처리 결과 이미지 URL (썸네일 base64 data URL)
              */
             imageUrl: string;
             /**
@@ -1217,11 +1252,6 @@ export interface components {
              * @description 해당 노드 처리 시간 (ms)
              */
             executionMs: number;
-            /**
-             * Dziurl
-             * @description DZI 타일 URL (고해상도 이미지일 때만 존재)
-             */
-            dziUrl?: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -2028,6 +2058,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TreeBatchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_dzi_api_image_processing_dzi__file_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_create_dzi_api_image_processing_dzi__file_id__post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DziResponse"];
                 };
             };
             /** @description Validation Error */

@@ -86,22 +86,35 @@ export async function getProcessingImage(options: GetProcessingImageOptions = {}
 export async function batchTreeProcessing(
   file: File | Blob,
   steps: TreeBatchStep[],
-  options?: { fileId: string; fullSize?: boolean },
 ): Promise<TreeBatchResult> {
   const form = new FormData();
   form.append('file', file);
   form.append('steps', JSON.stringify(steps));
-  if (options?.fileId) {
-    form.append('fileId', options.fileId);
-  }
-  if (options?.fullSize) {
-    form.append('fullSize', 'true');
-  }
 
   const res = await api.post<TreeBatchResult>('/image-processing/batch-tree', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 
+  return res.data;
+}
+
+/**
+ * DZI 생성 — 원본 이미지에 steps 체인을 적용하고, 타겟 노드의 DZI(또는 원본 이미지)를 생성한다.
+ */
+export async function generateDzi(
+  fileId: string,
+  steps: TreeBatchStep[],
+  nodeId: string,
+): Promise<{ dziUrl?: string; imageUrl?: string }> {
+  const form = new FormData();
+  form.append('steps', JSON.stringify(steps));
+  form.append('nodeId', nodeId);
+
+  const res = await api.post<{ dziUrl?: string; imageUrl?: string }>(
+    `/image-processing/dzi/${fileId}`,
+    form,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  );
   return res.data;
 }
 
