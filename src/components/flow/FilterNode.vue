@@ -21,6 +21,7 @@ const emit = defineEmits<{
   (e: 'toggle-enabled', nodeId: string): void;
   (e: 'zoom', nodeId: string): void;
   (e: 'download', nodeId: string): void;
+  (e: 'copy-chain', nodeId: string): void;
   (e: 'change-filter', nodeId: string, prcType: PrcType, label: string, filterId?: string): void;
 }>();
 
@@ -74,29 +75,23 @@ const cParamSummary = computed(() => {
           size="xs"
           @update:model-value="emit('toggle-enabled', id)"
         />
-        <q-btn
-          v-if="data.imageUrl"
-          flat
-          round
-          dense
-          size="xs"
-          icon="zoom_in"
-          :color="zoomed ? 'primary' : 'grey-7'"
-          @click.stop="emit('zoom', id)"
-        >
-          <q-tooltip>이미지 확대</q-tooltip>
-        </q-btn>
-        <q-btn
-          v-if="data.imageUrl"
-          flat
-          round
-          dense
-          size="xs"
-          icon="download"
-          color="grey-7"
-          @click.stop="emit('download', id)"
-        >
-          <q-tooltip>이미지 다운로드</q-tooltip>
+        <q-btn flat round dense size="xs" icon="more_vert" color="grey-7">
+          <q-menu auto-close>
+            <q-list dense style="min-width: 140px">
+              <q-item v-if="data.imageUrl" clickable @click="emit('zoom', id)">
+                <q-item-section side><q-icon name="zoom_in" size="xs" /></q-item-section>
+                <q-item-section>이미지 확대</q-item-section>
+              </q-item>
+              <q-item v-if="data.imageUrl" clickable @click="emit('download', id)">
+                <q-item-section side><q-icon name="download" size="xs" /></q-item-section>
+                <q-item-section>이미지 다운로드</q-item-section>
+              </q-item>
+              <q-item clickable @click="emit('copy-chain', id)">
+                <q-item-section side><q-icon name="content_copy" size="xs" /></q-item-section>
+                <q-item-section>체인 정보 복사</q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
         </q-btn>
         <q-btn flat round dense size="xs" icon="close" color="negative" @click="emit('remove', id)">
           <q-tooltip>삭제</q-tooltip>

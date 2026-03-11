@@ -242,7 +242,9 @@ function onCustomFilterSaved() {
 
 function addCustomFilterNode(cf: CustomFilter) {
   const id = crypto.randomUUID();
-  const paramDefs = Array.isArray(cf.params) ? (cf.params as unknown as Array<{ key: string; default: unknown }>) : [];
+  const paramDefs = Array.isArray(cf.params)
+    ? (cf.params as unknown as Array<{ key: string; default: unknown }>)
+    : [];
   const defaultParams: Record<string, unknown> = {
     filterId: cf.id,
     ...Object.fromEntries(paramDefs.map((p) => [p.key, p.default])),
@@ -512,9 +514,9 @@ function onCanvasDrop(event: DragEvent) {
     if (filterId) {
       // 커스텀 필터를 FilterListPanel의 목록에서 찾아 노드 추가
       const cf = filterListPanelRef.value
-        ? (filterListPanelRef.value as unknown as { customFilters: CustomFilter[] }).customFilters?.find(
-            (c: CustomFilter) => c.id === filterId,
-          )
+        ? (
+            filterListPanelRef.value as unknown as { customFilters: CustomFilter[] }
+          ).customFilters?.find((c: CustomFilter) => c.id === filterId)
         : undefined;
       if (cf) addCustomFilterNode(cf);
     }
@@ -801,7 +803,7 @@ async function onNodeZoom(nodeId: string) {
     const node = nodes.value.find((n) => n.id === nodeId);
     const src = result.imageUrl
       ? API_HOST + result.imageUrl
-      : (node?.data as ProcessNodeData)?.imageUrl ?? '';
+      : ((node?.data as ProcessNodeData)?.imageUrl ?? '');
 
     zoomPopups.value.push({
       id: crypto.randomUUID(),
@@ -835,6 +837,28 @@ async function onNodeDownload(nodeId: string) {
     URL.revokeObjectURL(url);
   } catch (err) {
     console.error('이미지 다운로드 실패:', err);
+  }
+}
+
+async function onCopyChain(nodeId: string) {
+  const steps = buildStepsToNode(nodeId);
+  if (steps.length === 0) return;
+
+  const lines = steps.map((s, i) => {
+    const fields = PARAM_FIELDS[s.prcType];
+    const paramStr = fields
+      ?.map((f) => {
+        const v = s.parameters?.[f.key] ?? f.default;
+        return `${f.label}=${JSON.stringify(v)}`;
+      })
+      .join(', ');
+    return `${i + 1}. ${s.prcType}${paramStr ? ` (${paramStr})` : ''}`;
+  });
+
+  try {
+    await navigator.clipboard.writeText(lines.join('\n'));
+  } catch {
+    console.error('클립보드 복사 실패');
   }
 }
 </script>
@@ -1030,6 +1054,7 @@ async function onNodeDownload(nodeId: string) {
                     @change-filter="onChangeFilter"
                     @zoom="onNodeZoom"
                     @download="onNodeDownload"
+                    @copy-chain="onCopyChain"
                   />
                 </template>
                 <template #node-source="nodeProps">
