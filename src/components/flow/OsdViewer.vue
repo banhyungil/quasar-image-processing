@@ -16,6 +16,27 @@ const emit = defineEmits<{
 
 const container = ref<HTMLElement>();
 let viewer: OpenSeadragon.Viewer | null = null;
+let scrollZoomTimer: ReturnType<typeof setTimeout> | null = null;
+
+function isZoomAnimating(): boolean {
+  if (!viewer) return false;
+  // 현재 줌과 목표 줌이 다르면 애니메이션 진행 중
+  return viewer.viewport.getZoom(true) !== viewer.viewport.getZoom(false);
+}
+
+function stopZoomAnimation() {
+  if (!viewer) return;
+  viewer.viewport.zoomTo(viewer.viewport.getZoom(true), undefined, true);
+  viewer.viewport.panTo(viewer.viewport.getCenter(true), true);
+  // 브라우저 smooth scroll로 인한 후속 wheel 이벤트 차단
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (viewer as any).gestureSettingsMouse.scrollToZoom = false;
+  if (scrollZoomTimer) clearTimeout(scrollZoomTimer);
+  scrollZoomTimer = setTimeout(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (viewer) (viewer as any).gestureSettingsMouse.scrollToZoom = true;
+  }, 500);
+}
 
 function buildTileSource() {
   if (props.dziUrl) return { tileSource: props.dziUrl };
@@ -31,6 +52,7 @@ onMounted(() => {
     showNavigationControl: true,
     minZoomLevel: 0.5,
     maxZoomLevel: 20,
+    // 뷰포트 변경 시 애니메이션 시간
     animationTime: 0.3,
     zoomPerScroll: props.zoomPerScroll,
     prefixUrl: '/node_modules/openseadragon/build/openseadragon/images/',
@@ -39,12 +61,28 @@ onMounted(() => {
   viewer.addHandler('zoom', (e) => {
     emit('zoom', e.zoom);
   });
+
+  // 클릭 시 줌 애니메이션 진행 중이면 중단, 아니면 기본 클릭 줌 허용
+  viewer.addHandler('canvas-click', (e) => {
+    if (isZoomAnimating()) {
+      stopZoomAnimation();
+      e.preventDefaultAction = true;
+    }
+  });
 });
 
 onBeforeUnmount(() => {
   viewer?.destroy();
   viewer = null;
 });
+
+function goHome() {
+  if (!viewer) return;
+  stopZoomAnimation();
+  viewer.viewport.goHome();
+}
+
+defineExpose({ goHome });
 
 watch(
   () => props.zoomPerScroll,

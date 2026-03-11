@@ -17,6 +17,7 @@ const emit = defineEmits<{
 
 const isMaximized = ref(false);
 const zoomLevel = ref(1);
+const osdViewerRef = ref<InstanceType<typeof OsdViewer> | null>(null);
 
 // ── 드래그 이동 ──────────────────────────────────────────────────────────────
 const pos = ref({ x: 100 + Math.random() * 60, y: 80 + Math.random() * 60 });
@@ -50,10 +51,14 @@ function bringToFront() {
   setTimeout(() => (focused.value = false), 10);
 }
 
-// ESC 키: 최대화 → 원래 크기
+// ESC 키: 최대화 → 원래 크기, 또는 줌 레벨 초기화
 function onKeyDown(e: KeyboardEvent) {
-  if (e.key === 'Escape' && isMaximized.value) {
-    isMaximized.value = false;
+  if (e.key === 'Escape') {
+    if (isMaximized.value) {
+      isMaximized.value = false;
+    } else {
+      osdViewerRef.value?.goHome();
+    }
   }
 }
 
@@ -92,8 +97,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
 
       <!-- 이미지 영역 -->
       <div class="col" style="min-height: 0; position: relative">
-        <OsdViewer v-if="dziUrl" :dzi-url="dziUrl" :zoom-per-scroll="settingsStore.defaultZoomPerScroll" class="fit" @zoom="zoomLevel = $event" />
-        <OsdViewer v-else-if="src" :src="src" :zoom-per-scroll="settingsStore.defaultZoomPerScroll" class="fit" @zoom="zoomLevel = $event" />
+        <OsdViewer v-if="dziUrl" ref="osdViewerRef" :dzi-url="dziUrl" :zoom-per-scroll="settingsStore.defaultZoomPerScroll" class="fit" @zoom="zoomLevel = $event" />
+        <OsdViewer v-else-if="src" ref="osdViewerRef" :src="src" :zoom-per-scroll="settingsStore.defaultZoomPerScroll" class="fit" @zoom="zoomLevel = $event" />
         <div v-else class="fit column items-center justify-center text-grey-5">
           이미지가 없습니다
         </div>
