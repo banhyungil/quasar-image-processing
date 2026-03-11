@@ -1,37 +1,14 @@
+import { useLocalStorage } from '@vueuse/core';
 import { defineStore, acceptHMRUpdate } from 'pinia';
 
-const STORAGE_KEY = 'app-settings';
+export const useSettingsStore = defineStore('settings', () => {
+  const defaultZoomPerScroll = useLocalStorage('settings-defaultZoomPerScroll', 1.2);
 
-interface SettingsState {
-  defaultZoomPerScroll: number;
-}
-
-function loadFromStorage(): Partial<SettingsState> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as Partial<SettingsState>;
-  } catch {
-    // ignore
+  function setDefaultZoomPerScroll(value: number) {
+    defaultZoomPerScroll.value = value;
   }
-  return {};
-}
 
-function saveToStorage(state: SettingsState) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
-
-export const useSettingsStore = defineStore('settings', {
-  state: (): SettingsState => ({
-    defaultZoomPerScroll: 1.5,
-    ...loadFromStorage(),
-  }),
-
-  actions: {
-    setDefaultZoomPerScroll(value: number) {
-      this.defaultZoomPerScroll = value;
-      saveToStorage(this.$state);
-    },
-  },
+  return { defaultZoomPerScroll, setDefaultZoomPerScroll };
 });
 
 if (import.meta.hot) {

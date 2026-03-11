@@ -14,7 +14,7 @@ const show = defineModel<boolean>({ required: true });
       </q-card-section>
 
       <q-card-section>
-        <div class="text-subtitle2 q-mb-sm">휠 줌 감도 기본값</div>
+        <div class="text-subtitle2 q-mb-sm">이미지 휠 줌 감도</div>
         <div class="row items-center q-gutter-sm">
           <q-btn
             flat

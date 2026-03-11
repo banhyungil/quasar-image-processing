@@ -16,7 +16,6 @@ const emit = defineEmits<{
 }>();
 
 const isMaximized = ref(false);
-const zoomSensitivity = ref(settingsStore.defaultZoomPerScroll);
 const zoomLevel = ref(1);
 
 // ── 드래그 이동 ──────────────────────────────────────────────────────────────
@@ -73,36 +72,6 @@ function bringToFront() {
           round
           dense
           size="xs"
-          icon="remove"
-          :disable="zoomSensitivity <= 1.1"
-          @click.stop="zoomSensitivity = Math.round((zoomSensitivity - 0.1) * 10) / 10"
-        />
-        <q-slider
-          v-model="zoomSensitivity"
-          :min="1.1"
-          :max="2.5"
-          :step="0.1"
-          :label-value="`x${zoomSensitivity.toFixed(1)}`"
-          label-always
-          switch-label-side
-          dense
-          style="width: 80px"
-          @mousedown.stop
-        />
-        <q-btn
-          flat
-          round
-          dense
-          size="xs"
-          icon="add"
-          :disable="zoomSensitivity >= 2.5"
-          @click.stop="zoomSensitivity = Math.round((zoomSensitivity + 0.1) * 10) / 10"
-        />
-        <q-btn
-          flat
-          round
-          dense
-          size="xs"
           :icon="isMaximized ? 'filter_none' : 'crop_square'"
           @click.stop="isMaximized = !isMaximized"
         >
@@ -113,8 +82,8 @@ function bringToFront() {
 
       <!-- 이미지 영역 -->
       <div class="col" style="min-height: 0; position: relative">
-        <OsdViewer v-if="dziUrl" :dzi-url="dziUrl" :zoom-per-scroll="zoomSensitivity" class="fit" @zoom="zoomLevel = $event" />
-        <OsdViewer v-else-if="src" :src="src" :zoom-per-scroll="zoomSensitivity" class="fit" @zoom="zoomLevel = $event" />
+        <OsdViewer v-if="dziUrl" :dzi-url="dziUrl" :zoom-per-scroll="settingsStore.defaultZoomPerScroll" class="fit" @zoom="zoomLevel = $event" />
+        <OsdViewer v-else-if="src" :src="src" :zoom-per-scroll="settingsStore.defaultZoomPerScroll" class="fit" @zoom="zoomLevel = $event" />
         <div v-else class="fit column items-center justify-center text-grey-5">
           이미지가 없습니다
         </div>
