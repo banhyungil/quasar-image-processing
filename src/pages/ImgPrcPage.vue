@@ -13,6 +13,7 @@ import * as processApi from 'src/apis/processApi';
 import type { ProcessResponse } from 'src/apis/processApi';
 import * as imgPrcApi from 'src/apis/imgPrcApi';
 import type { TreeBatchStep } from 'src/types/imgPrcType';
+import axios from 'axios';
 import { API_HOST } from 'src/boot/axios';
 
 import FilterNode from 'src/components/flow/FilterNode.vue';
@@ -22,6 +23,7 @@ import ImageZoomPopup from 'src/components/flow/ImageZoomPopup.vue';
 import PresetSaveDialog from 'src/components/dialog/PresetSaveDialog.vue';
 import ProcessSaveDialog from 'src/components/dialog/ProcessSaveDialog.vue';
 import CustomFilterEditorDialog from 'src/components/dialog/CustomFilterEditorDialog.vue';
+import ImageGalleryDialog from 'src/components/dialog/ImageGalleryDialog.vue';
 import FilterListPanel from 'src/components/sidebar/FilterListPanel.vue';
 import PresetListPanel from 'src/components/sidebar/PresetListPanel.vue';
 import ProcessListPanel from 'src/components/sidebar/ProcessListPanel.vue';
@@ -83,6 +85,7 @@ const originalFile = ref<File | null>(null);
 const originalFileId = ref<string | null>(null);
 const originalPreviewUrl = ref<string | null>(null);
 const originalInputRef = ref<HTMLInputElement | null>(null);
+const showImageGallery = ref(false);
 
 /** 원본 이미지 설정 + 서버 업로드 (fileId 획득) */
 async function setOriginalFile(file: File | null) {
@@ -139,6 +142,26 @@ function openOriginalPicker() {
 function onOriginalInputChange(event: Event) {
   const input = event.target as HTMLInputElement;
   void setOriginalFile(input.files?.[0] ?? null);
+}
+
+async function onSelectExistingImage(tFile: { id: string; originNm: string; path: string; mimeType: string }) {
+  try {
+    const res = await axios.get(`${API_HOST}/${tFile.path}`, { responseType: 'blob' });
+    const blob: Blob = res.data;
+    const file = new File([blob], tFile.originNm, { type: tFile.mimeType });
+    originalFileId.value = tFile.id;
+    originalFile.value = file;
+    if (originalPreviewUrl.value) URL.revokeObjectURL(originalPreviewUrl.value);
+    originalPreviewUrl.value = URL.createObjectURL(file);
+
+    const sourceNode = nodes.value.find((n) => n.id === SOURCE_NODE_ID);
+    if (sourceNode) {
+      (sourceNode.data as SourceNodeData).previewUrl = originalPreviewUrl.value;
+    }
+    processAllLeaves();
+  } catch (err) {
+    console.error('기존 이미지 로드 실패:', err);
+  }
 }
 
 // ── 초기 데이터 로드 ───────────────────────────────────────────────────────
@@ -1062,6 +1085,7 @@ async function onCopyChain(nodeId: string) {
                     v-bind="nodeProps"
                     :zoomed="cZoomedNodeIds.has(nodeProps.id)"
                     @pick-image="openOriginalPicker"
+                    @pick-existing="showImageGallery = true"
                     @clear-image="setOriginalFile(null)"
                     @zoom="onNodeZoom"
                   />
@@ -1113,6 +1137,11 @@ async function onCopyChain(nodeId: string) {
       v-model="showCustomFilterEditor"
       :custom-filter="editingCustomFilter"
       @saved="onCustomFilterSaved"
+    />
+
+    <ImageGalleryDialog
+      v-model="showImageGallery"
+      @select="onSelectExistingImage"
     />
 
     <!-- 이미지 확대 팝업 (복수 모달리스) -->

@@ -18,6 +18,7 @@ declare module 'vue' {
     FilterListPanel: typeof import('./components/sidebar/FilterListPanel.vue')['default']
     FilterNode: typeof import('./components/flow/FilterNode.vue')['default']
     FilterTreeSelect: typeof import('./components/flow/FilterTreeSelect.vue')['default']
+    ImageGalleryDialog: typeof import('./components/dialog/ImageGalleryDialog.vue')['default']
     ImageZoomPopup: typeof import('./components/flow/ImageZoomPopup.vue')['default']
     OsdViewer: typeof import('./components/flow/OsdViewer.vue')['default']
     ParamPanel: typeof import('./components/flow/ParamPanel.vue')['default']

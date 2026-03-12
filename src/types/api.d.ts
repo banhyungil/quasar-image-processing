@@ -137,6 +137,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/image-processing/thumbnail/{file_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Thumbnail
+         * @description 파일 ID에 해당하는 이미지를 지정 크기로 축소하여 반환한다.
+         */
+        get: operations["get_thumbnail_api_image_processing_thumbnail__file_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/image-processing/params/{prc_type}": {
         parameters: {
             query?: never;
@@ -280,6 +300,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/image-processing/download/{file_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Download Node
+         * @description 원본 이미지에 steps 체인을 적용하고, 타겟 노드의 처리 결과를 PNG로 다운로드한다.
+         */
+        post: operations["download_node_api_image_processing_download__file_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/presets": {
         parameters: {
             query?: never;
@@ -401,6 +441,19 @@ export interface components {
              */
             nodeId: string;
         };
+        /** Body_download_node_api_image_processing_download__file_id__post */
+        Body_download_node_api_image_processing_download__file_id__post: {
+            /**
+             * Steps
+             * @description 타겟 노드까지의 처리 단계 JSON 배열
+             */
+            steps: string;
+            /**
+             * Nodeid
+             * @description 다운로드할 타겟 노드 ID
+             */
+            nodeId: string;
+        };
         /** Body_img_processing_api_image_processing_post */
         Body_img_processing_api_image_processing_post: {
             /**
@@ -445,6 +498,11 @@ export interface components {
              * @description 트리 형태 처리 단계 JSON 배열. 예: [{"nodeId":"n1","prcType":"gaussianBlur","parameters":{},"parentId":null}]
              */
             steps: string;
+            /**
+             * Thumbnailsize
+             * @description 썸네일 해상도 (px)
+             */
+            thumbnailSize?: number | null;
         };
         /** Body_img_processing_save_api_image_processing_save_post */
         Body_img_processing_save_api_image_processing_save_post: {
@@ -694,9 +752,8 @@ export interface components {
             /**
              * Prctype
              * @description 저장 시 적용된 이미지 처리 종류
-             * @enum {string}
              */
-            prcType: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing" | "custom";
+            prcType?: ("sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing" | "custom") | null;
         } & {
             [key: string]: unknown;
         };
@@ -1221,6 +1278,11 @@ export interface components {
             uploadedAt: string;
             /** @description 처리 시 적용된 옵션 */
             options: components["schemas"]["FileSaveOptions"];
+            /**
+             * Thumbnailurl
+             * @description 썸네일 base64 data URL
+             */
+            thumbnailUrl?: string | null;
         };
         /** TreeBatchResponse */
         TreeBatchResponse: {
@@ -1884,6 +1946,40 @@ export interface operations {
             };
         };
     };
+    get_thumbnail_api_image_processing_thumbnail__file_id__get: {
+        parameters: {
+            query?: {
+                /** @description 썸네일 최대 변 크기 (px) */
+                size?: number;
+            };
+            header?: never;
+            path: {
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_filter_params_api_image_processing_params__prc_type__get: {
         parameters: {
             query?: never;
@@ -2093,6 +2189,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DziResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_node_api_image_processing_download__file_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_download_node_api_image_processing_download__file_id__post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

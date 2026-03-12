@@ -20,12 +20,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
 
 const linksList: EssentialLinkProps[] = [
   {
-    title: '영상처리 기본',
-    caption: '영상처리 연습',
-    icon: 'photo_filter',
-    to: { name: 'img-prc-basic' },
-  },
-  {
     title: '영상처리',
     caption: '영상처리',
     icon: 'photo_filter',

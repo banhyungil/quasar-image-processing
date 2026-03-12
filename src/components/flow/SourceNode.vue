@@ -13,6 +13,7 @@ defineProps<{
 
 const emit = defineEmits<{
   (e: 'pick-image'): void;
+  (e: 'pick-existing'): void;
   (e: 'clear-image'): void;
   (e: 'zoom', nodeId: string): void;
 }>();
@@ -55,9 +56,27 @@ const emit = defineEmits<{
     <div v-if="data.previewUrl" class="source-node__body" :style="{ height: `${settings.nodeSize.thumbHeight}px` }">
       <img :src="data.previewUrl" class="source-node__preview" />
     </div>
-    <div v-else class="source-node__body source-node__body--empty" :style="{ height: `${settings.nodeSize.thumbHeight}px` }" @click="emit('pick-image')">
-      <q-icon name="add_photo_alternate" size="md" color="grey-4" />
-      <span class="text-caption text-grey-5">클릭하여 업로드</span>
+    <div v-else class="source-node__body source-node__body--empty" :style="{ height: `${settings.nodeSize.thumbHeight}px` }">
+      <q-btn
+        flat
+        no-caps
+        dense
+        icon="add_photo_alternate"
+        label="파일 업로드"
+        color="grey-7"
+        size="sm"
+        @click="emit('pick-image')"
+      />
+      <q-btn
+        flat
+        no-caps
+        dense
+        icon="photo_library"
+        label="기존 이미지"
+        color="grey-7"
+        size="sm"
+        @click="emit('pick-existing')"
+      />
     </div>
 
     <!-- Output Handle -->
