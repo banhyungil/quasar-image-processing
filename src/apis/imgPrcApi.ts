@@ -58,9 +58,18 @@ export async function saveProcessingImage(options: SavePrcImageOptions) {
   return res.data;
 }
 
-export async function getProcessingImage(options: GetProcessingImageOptions = {}) {
+export async function getProcessingImage(
+  options: GetProcessingImageOptions & {
+    search?: string;
+    minSize?: number;
+    maxSize?: number;
+  } = {},
+) {
   const params = {
     limit: options.limit ?? 20,
+    search: options.search ?? undefined,
+    minSize: options.minSize ?? undefined,
+    maxSize: options.maxSize ?? undefined,
     cursorUploadedAt: options.cursorUploadedAt ?? undefined,
     cursorId: options.cursorId ?? undefined,
   };
@@ -70,6 +79,16 @@ export async function getProcessingImage(options: GetProcessingImageOptions = {}
   });
 
   return res.data;
+}
+
+
+export async function deleteFile(fileId: string): Promise<void> {
+  await api.delete(`/image-processing/${fileId}`);
+}
+
+
+export async function renameFile(fileId: string, originNm: string): Promise<void> {
+  await api.patch(`/image-processing/${fileId}`, { originNm });
 }
 
 // ── Tree Batch Processing ───────────────────────────────────────────────────

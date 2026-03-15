@@ -137,6 +137,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/image-processing/{file_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Image
+         * @description 이미지 파일 삭제 (DB 메타데이터 + 디스크 파일)
+         */
+        delete: operations["delete_image_api_image_processing__file_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename Image
+         * @description 이미지 파일명(originNm) 수정
+         */
+        patch: operations["rename_image_api_image_processing__file_id__patch"];
+        trace?: never;
+    };
     "/api/image-processing/thumbnail/{file_id}": {
         parameters: {
             query?: never;
@@ -746,6 +770,14 @@ export interface components {
              * @description 다음 커서 파일 ID
              */
             nextCursorId?: string | null;
+        };
+        /** FileRenameRequest */
+        FileRenameRequest: {
+            /**
+             * Originnm
+             * @description 변경할 파일명
+             */
+            originNm: string;
         };
         /** FileSaveOptions */
         FileSaveOptions: {
@@ -1882,6 +1914,12 @@ export interface operations {
             query?: {
                 /** @description 반환할 최대 항목 수 */
                 limit?: number;
+                /** @description 파일명 검색 (부분 일치) */
+                search?: string | null;
+                /** @description 최소 파일 크기 (bytes) */
+                minSize?: number | null;
+                /** @description 최대 파일 크기 (bytes) */
+                maxSize?: number | null;
                 /** @description 커서 기준 업로드 시각 (cursorId와 함께 제공) */
                 cursorUploadedAt?: string | null;
                 /** @description 커서 기준 파일 ID (cursorUploadedAt와 함께 제공) */
@@ -1933,6 +1971,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_image_api_image_processing__file_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rename_image_api_image_processing__file_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FileRenameRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TFile"];
                 };
             };
             /** @description Validation Error */
