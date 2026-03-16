@@ -357,63 +357,64 @@ watch(show, (val) => {
         </div>
 
         <!-- 기존 이미지 그리드 -->
-        <div v-if="items.length === 0 && !loading" class="text-center text-grey-5 q-pa-lg">
-          {{ searchQuery ? '검색 결과가 없습니다' : '업로드된 이미지가 없습니다' }}
-        </div>
+        <q-linear-progress v-if="loading" indeterminate color="primary" class="q-mb-sm" />
 
-        <div class="gallery-grid">
-          <div v-for="file in items" :key="file.id" class="gallery-item" @click="onSelect(file)">
-            <div class="gallery-item__img-wrap">
-              <img :src="file.thumbnailUrl ?? ''" class="gallery-item__img" />
-              <div class="gallery-item__actions">
-                <q-btn
-                  flat
-                  round
-                  dense
-                  size="xs"
-                  icon="edit"
-                  color="white"
-                  @click="startEdit(file, $event)"
-                >
-                  <q-tooltip>파일명 수정</q-tooltip>
-                </q-btn>
-                <q-btn
-                  flat
-                  round
-                  dense
-                  size="xs"
-                  icon="delete"
-                  color="white"
-                  @click="onDelete(file, $event)"
-                >
-                  <q-tooltip>삭제</q-tooltip>
-                </q-btn>
-              </div>
-            </div>
-
-            <!-- 파일명 표시 / 수정 -->
-            <div v-if="editingId === file.id" class="gallery-item__edit" @click.stop>
-              <q-input
-                v-model="editingName"
-                dense
-                outlined
-                autofocus
-                size="sm"
-                @keyup.enter="submitEdit(file)"
-                @keyup.escape="cancelEdit"
-                @blur="submitEdit(file)"
-              />
-            </div>
-            <div v-else class="gallery-item__name ellipsis">{{ file.originNm }}</div>
+        <div style="position: relative; min-height: 100px">
+          <div v-if="items.length === 0 && !loading" class="text-center text-grey-5 q-pa-lg">
+            {{ searchQuery ? '검색 결과가 없습니다' : '업로드된 이미지가 없습니다' }}
           </div>
-        </div>
 
-        <div v-if="hasMore" class="text-center q-mt-md">
-          <q-btn flat no-caps label="더 보기" color="primary" :loading="loading" @click="load()" />
-        </div>
+          <div class="gallery-grid">
+            <div v-for="file in items" :key="file.id" class="gallery-item" @click="onSelect(file)">
+              <div class="gallery-item__img-wrap">
+                <img :src="file.thumbnailUrl ?? ''" class="gallery-item__img" />
+                <div class="gallery-item__actions">
+                  <q-btn
+                    flat
+                    round
+                    dense
+                    size="xs"
+                    icon="edit"
+                    color="white"
+                    @click="startEdit(file, $event)"
+                  >
+                    <q-tooltip>파일명 수정</q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    flat
+                    round
+                    dense
+                    size="xs"
+                    icon="delete"
+                    color="white"
+                    @click="onDelete(file, $event)"
+                  >
+                    <q-tooltip>삭제</q-tooltip>
+                  </q-btn>
+                </div>
+              </div>
 
-        <div v-if="loading && items.length === 0" class="text-center q-pa-lg">
-          <q-spinner size="md" color="primary" />
+              <!-- 파일명 표시 / 수정 -->
+              <div v-if="editingId === file.id" class="gallery-item__edit" @click.stop>
+                <q-input
+                  v-model="editingName"
+                  dense
+                  outlined
+                  autofocus
+                  size="sm"
+                  @keyup.enter="submitEdit(file)"
+                  @keyup.escape="cancelEdit"
+                  @blur="submitEdit(file)"
+                />
+              </div>
+              <div v-else class="gallery-item__name ellipsis">{{ file.originNm }}</div>
+            </div>
+          </div>
+
+          <div v-if="hasMore" class="text-center q-mt-md">
+            <q-btn flat no-caps label="더 보기" color="primary" :loading="loading" @click="load()" />
+          </div>
+
         </div>
       </q-card-section>
     </q-card>
