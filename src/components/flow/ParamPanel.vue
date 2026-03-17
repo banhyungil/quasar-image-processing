@@ -101,10 +101,6 @@ function checkUseSlider(field: ParamFieldDef): boolean {
   const range = (field.max - field.min) / (field.step ?? 1);
   return range >= 4;
 }
-
-function apply() {
-  emit('apply', { ...props.nodeData, parameters: { ...localParams.value } });
-}
 </script>
 
 <template>
