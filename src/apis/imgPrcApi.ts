@@ -101,12 +101,12 @@ export async function renameFile(fileId: string, originNm: string): Promise<void
  * @returns
  */
 export async function batchTreeProcessing(
-  file: File | Blob,
+  fileId: string,
   steps: TreeBatchStep[],
   options?: { thumbnailSize?: number },
 ): Promise<TreeBatchResult> {
   const form = new FormData();
-  form.append('file', file);
+  form.append('fileId', fileId);
   form.append('steps', JSON.stringify(steps));
   if (options?.thumbnailSize) {
     form.append('thumbnailSize', options.thumbnailSize.toString());

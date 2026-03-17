@@ -9,3 +9,9 @@
 아래 파일에서 프로젝트 구조 확인할 것
 
 - [docs/architecture.md] - 프로젝트 구조
+
+# 참고사항
+
+아래 항목을 참고할 것
+
+- vue template에서 ref는 자동 unwrap 된다.

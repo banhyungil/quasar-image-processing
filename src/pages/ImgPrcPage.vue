@@ -13,7 +13,6 @@ import * as processApi from 'src/apis/processApi';
 import type { ProcessResponse } from 'src/apis/processApi';
 import * as imgPrcApi from 'src/apis/imgPrcApi';
 import type { TreeBatchStep } from 'src/types/imgPrcType';
-import axios from 'axios';
 import { API_HOST } from 'src/boot/axios';
 
 import FilterNode from 'src/components/flow/FilterNode.vue';
@@ -50,7 +49,7 @@ const nodes = ref<AppNode[]>([
     id: SOURCE_NODE_ID,
     type: 'source',
     position: { x: 0, y: 0 },
-    data: { previewUrl: null },
+    data: { previewUrl: null, thumbnailUrl: null },
   },
 ]);
 const edges = ref<Edge[]>([]);
@@ -88,59 +87,50 @@ const processList = ref<ProcessResponse[]>([]);
 const activeProcessId = ref<string | null>(null);
 
 // ── 원본 이미지 ────────────────────────────────────────────────────────────
-const originalFile = ref<File | null>(null);
-const originalFileId = ref<string | null>(null);
-const originalPreviewUrl = ref<string | null>(null);
+const oOrigin = ref<{ fileId: string | null; imageUrl: string | null }>({
+  fileId: null,
+  imageUrl: null,
+});
 const originalInputRef = ref<HTMLInputElement | null>(null);
 const showImageGallery = ref(false);
 
 /** 원본 이미지 설정 + 서버 업로드 (fileId 획득) */
 async function setOriginalFile(file: File | null) {
   if (file == null) {
-    originalFile.value = null;
-    originalFileId.value = null;
-    if (originalPreviewUrl.value) {
-      URL.revokeObjectURL(originalPreviewUrl.value);
-      originalPreviewUrl.value = null;
+    if (oOrigin.value.imageUrl) {
+      URL.revokeObjectURL(oOrigin.value.imageUrl);
     }
+    oOrigin.value = { fileId: null, imageUrl: null };
     if (originalInputRef.value) {
       originalInputRef.value.value = '';
     }
   } else {
     if (!file.type.startsWith('image/')) return;
 
-    // 동일 파일 선택 시 업로드 스킵 (이름·크기·수정시각 비교)
-    const prev = originalFile.value;
-    const isSameFile =
-      prev != null &&
-      prev.name === file.name &&
-      prev.size === file.size &&
-      prev.lastModified === file.lastModified;
-
-    originalFile.value = file;
-    if (originalPreviewUrl.value) {
-      URL.revokeObjectURL(originalPreviewUrl.value);
+    if (oOrigin.value.imageUrl) {
+      URL.revokeObjectURL(oOrigin.value.imageUrl);
     }
-    originalPreviewUrl.value = URL.createObjectURL(file);
+    oOrigin.value.imageUrl = URL.createObjectURL(file);
 
-    // 동일 파일이고 fileId가 이미 있으면 업로드 스킵
-    if (!(isSameFile && originalFileId.value)) {
-      document.body.style.cursor = 'wait';
-      try {
-        const uploaded = await imgPrcApi.uploadFile(file);
-        originalFileId.value = uploaded.id;
-      } catch (err) {
-        console.error('원본 이미지 업로드 실패:', err);
-      } finally {
-        document.body.style.cursor = 'default';
-      }
+    // content hash 기반 중복 방지는 서버에서 처리
+    document.body.style.cursor = 'wait';
+    try {
+      const uploaded = await imgPrcApi.uploadFile(file);
+      oOrigin.value.fileId = uploaded.id;
+    } catch (err) {
+      console.error('원본 이미지 업로드 실패:', err);
+    } finally {
+      document.body.style.cursor = 'default';
     }
   }
   // 소스 노드 previewUrl 동기화
   // type predicate로 반환노드타입 확정
   const sourceNode = nodes.value.find((n): n is SourceNodeType => n.type === 'source');
   if (sourceNode) {
-    sourceNode.data.previewUrl = originalPreviewUrl.value;
+    sourceNode.data.previewUrl = oOrigin.value.imageUrl;
+    sourceNode.data.thumbnailUrl = oOrigin.value.fileId
+      ? `${API_HOST}/api/image-processing/thumbnail/${oOrigin.value.fileId}`
+      : null;
   }
 
   processAllLeaves();
@@ -155,23 +145,20 @@ function onOriginalInputChange(event: Event) {
   void setOriginalFile(input.files?.[0] ?? null);
 }
 
-async function onSelectExistingImage(tFile: {
+function onSelectExistingImage(tFile: {
   id: string;
   originNm: string;
   path: string;
   mimeType: string;
 }) {
-  const res = await axios.get(`${API_HOST}/${tFile.path}`, { responseType: 'blob' });
-  const blob: Blob = res.data;
-  const file = new File([blob], tFile.originNm, { type: tFile.mimeType });
-  originalFileId.value = tFile.id;
-  originalFile.value = file;
-  if (originalPreviewUrl.value) URL.revokeObjectURL(originalPreviewUrl.value);
-  originalPreviewUrl.value = URL.createObjectURL(file);
+  oOrigin.value.fileId = tFile.id;
+  if (oOrigin.value.imageUrl) URL.revokeObjectURL(oOrigin.value.imageUrl);
+  oOrigin.value.imageUrl = `${API_HOST}/${tFile.path}`;
 
   const sourceNode = nodes.value.find((n): n is SourceNodeType => n.type === 'source');
   if (sourceNode) {
-    sourceNode.data.previewUrl = originalPreviewUrl.value;
+    sourceNode.data.previewUrl = oOrigin.value.imageUrl;
+    sourceNode.data.thumbnailUrl = `${API_HOST}/api/image-processing/thumbnail/${tFile.id}`;
   }
   processAllLeaves();
 }
@@ -216,7 +203,7 @@ const cSelNodeData = computed<ProcessNodeData | null>(() => {
 });
 
 function onParamApply() {
-  if (!originalFile.value || !optionPanelTarget.value) return;
+  if (!oOrigin.value.fileId || !optionPanelTarget.value) return;
   const descendants = collectDescendantLeaves(optionPanelTarget.value);
   for (const leafId of descendants) {
     void processNodeThumbnail(leafId);
@@ -255,7 +242,7 @@ function addFilterNode(prcType: PrcType, label: string) {
   void nextTick(() => {
     relayout();
     // 원본 이미지가 있으면 썸네일 연산 (nextTick 이후 edges.value 동기화 완료)
-    if (originalFile.value) {
+    if (oOrigin.value.fileId) {
       void processNodeThumbnail(id);
     }
   });
@@ -312,7 +299,7 @@ function addCustomFilterNode(cf: CustomFilter) {
 
   void nextTick(() => {
     relayout();
-    if (originalFile.value) {
+    if (oOrigin.value.fileId) {
       void processNodeThumbnail(id);
     }
   });
@@ -332,7 +319,7 @@ function findLastLeaf(): string {
 
 /** 특정 노드까지의 경로(source→…→nodeId)에 대해 batch-tree API를 호출하여 썸네일을 갱신 */
 async function processNodeThumbnail(targetNodeId: string) {
-  if (!originalFile.value || !originalFileId.value) return;
+  if (!oOrigin.value.fileId) return;
 
   // source → targetNodeId 경로에 있는 노드 수집
   const pathNodeIds = collectPathToNode(targetNodeId);
@@ -371,7 +358,7 @@ async function processNodeThumbnail(targetNodeId: string) {
   }
   if (steps.length === 0) return;
 
-  const result = await imgPrcApi.batchTreeProcessing(originalFile.value, steps, {
+  const result = await imgPrcApi.batchTreeProcessing(oOrigin.value.fileId, steps, {
     thumbnailSize: settingsStore.nodeSize.thumbResolution,
   });
   // 결과를 각 노드에 매핑
@@ -428,7 +415,7 @@ function toggleEnabled(nodeId: string) {
   const node = nodes.value.find((n) => n.id === nodeId);
   if (node && node.type === 'filter') {
     node.data.enabled = !node.data.enabled;
-    if (originalFile.value) {
+    if (oOrigin.value.fileId) {
       // 해당 노드 + 하위 모든 리프 노드 재연산
       const descendants = collectDescendantLeaves(nodeId);
       for (const leafId of descendants) {
@@ -451,7 +438,7 @@ function onChangeFilter(nodeId: string, prcType: PrcType, label: string, filterI
   data.imageUrl = null;
   data.executionMs = null;
 
-  if (originalFile.value) {
+  if (oOrigin.value.fileId) {
     const descendants = collectDescendantLeaves(nodeId);
     for (const leafId of descendants) {
       void processNodeThumbnail(leafId);
@@ -563,7 +550,7 @@ function resetCanvas() {
       id: SOURCE_NODE_ID,
       type: 'source',
       position: { x: 0, y: 0 },
-      data: { previewUrl: originalPreviewUrl.value },
+      data: { previewUrl: oOrigin.value.imageUrl, thumbnailUrl: oOrigin.value.fileId ? `${API_HOST}/api/image-processing/thumbnail/${oOrigin.value.fileId}` : null },
     },
   ];
   edges.value = [];
@@ -634,7 +621,7 @@ function loadPreset(preset: PresetResponse) {
     parameters: { ...getDefaultParams(s.algorithmNm), ...(s.parameters ?? {}) },
     isEnabled: true,
   }));
-  const flow = stepsToFlow(flatSteps, originalPreviewUrl.value);
+  const flow = stepsToFlow(flatSteps, oOrigin.value.imageUrl);
   nodes.value = flow.nodes;
   edges.value = flow.edges;
   void nextTick(() => {
@@ -676,7 +663,7 @@ async function onProcessDblClick(process: ProcessResponse) {
     executionMs: s.executionMs ?? null,
   }));
 
-  const flow = stepsToFlow(flatSteps, originalPreviewUrl.value);
+  const flow = stepsToFlow(flatSteps, oOrigin.value.imageUrl);
   nodes.value = flow.nodes;
   edges.value = flow.edges;
   void nextTick(() => {
@@ -687,7 +674,7 @@ async function onProcessDblClick(process: ProcessResponse) {
 
 /** 모든 리프 노드에 대해 썸네일 연산 실행 */
 function processAllLeaves() {
-  if (!originalFile.value || !originalFileId.value) return;
+  if (!oOrigin.value.fileId) return;
   const leaves = collectDescendantLeaves(SOURCE_NODE_ID);
   for (const leafId of leaves) {
     void processNodeThumbnail(leafId);
@@ -715,7 +702,7 @@ function openUpdateProcessDialog() {
 }
 
 async function onConfirmProcess(name: string) {
-  if (!originalFile.value) return;
+  if (!oOrigin.value.fileId) return;
 
   const steps = flowToSteps(nodes.value, edges.value);
   const stepPayload = steps.map((s, i) => ({
@@ -733,7 +720,7 @@ async function onConfirmProcess(name: string) {
       steps: stepPayload,
     });
   } else {
-    const fileId = originalFileId.value ?? (await imgPrcApi.uploadFile(originalFile.value)).id;
+    const fileId = oOrigin.value.fileId;
     const created = await processApi.createProcess({
       nm: name,
       fileId,
@@ -812,7 +799,7 @@ function buildStepsToNode(nodeId: string): TreeBatchStep[] {
 async function onNodeZoom(nodeId: string) {
   if (zoomPopups.value.some((p) => p.nodeId === nodeId)) return;
 
-  if (!originalFileId.value) return;
+  if (!oOrigin.value.fileId) return;
 
   const isSource = nodeId === SOURCE_NODE_ID;
   const steps = isSource ? [] : buildStepsToNode(nodeId);
@@ -820,7 +807,7 @@ async function onNodeZoom(nodeId: string) {
 
   $q.loading.show({ message: '처리 중...' });
   const result = await imgPrcApi
-    .getOriginSizeUrl(originalFileId.value, steps, nodeId)
+    .getOriginSizeUrl(oOrigin.value.fileId, steps, nodeId)
     .finally(() => $q.loading.hide())
     .catch(() => null);
   if (!result) return;
@@ -843,15 +830,15 @@ async function onNodeZoom(nodeId: string) {
 }
 
 async function onNodeDownload(nodeId: string) {
-  if (!originalFileId.value) return;
+  if (!oOrigin.value.fileId) return;
 
   const steps = buildStepsToNode(nodeId);
   if (steps.length === 0) return;
 
-  const blob = await imgPrcApi.downloadNodeImage(originalFileId.value, steps, nodeId);
+  const blob = await imgPrcApi.downloadNodeImage(oOrigin.value.fileId, steps, nodeId);
   const prcTypes = steps.map((s) => s.prcType);
   const chainSuffix = buildChainFilename(prcTypes);
-  const baseName = originalFile.value?.name.replace(/\.[^.]+$/, '') ?? 'image';
+  const baseName = 'image';
 
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -955,11 +942,11 @@ async function onCopyChain(nodeId: string) {
               dense
               size="sm"
               icon="image"
-              :label="originalFile ? originalFile.name : '원본 이미지 선택'"
+              :label="oOrigin.fileId ? '원본 이미지 선택됨' : '원본 이미지 선택'"
               @click="openOriginalPicker"
             />
             <q-btn
-              v-if="originalFile"
+              v-if="oOrigin.fileId"
               flat
               dense
               round
@@ -996,7 +983,7 @@ async function onCopyChain(nodeId: string) {
               icon="edit_note"
               label="처리 수정"
               color="primary"
-              :disabled="!cHasFilterNodes || !originalFile"
+              :disabled="!cHasFilterNodes || !oOrigin.fileId"
               @click="openUpdateProcessDialog"
             >
               <q-tooltip>처리 데이터 수정</q-tooltip>
@@ -1008,7 +995,7 @@ async function onCopyChain(nodeId: string) {
               icon="save_alt"
               label="처리 저장"
               color="primary"
-              :disabled="!cHasFilterNodes || !originalFile"
+              :disabled="!cHasFilterNodes || !oOrigin.fileId"
               @click="openSaveProcessDialog"
             >
               <q-tooltip>처리 데이터 저장</q-tooltip>

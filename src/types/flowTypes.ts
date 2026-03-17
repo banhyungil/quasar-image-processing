@@ -14,6 +14,7 @@ export interface ProcessNodeData {
 /** vue-flow 소스(원본 이미지) 노드 데이터 */
 export interface SourceNodeData {
   previewUrl: string | null;
+  thumbnailUrl: string | null;
 }
 
 /** vue-flow 노드 타입 (source | filter) — data를 필수로 오버라이드 */

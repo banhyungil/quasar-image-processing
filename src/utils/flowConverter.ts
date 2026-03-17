@@ -17,7 +17,7 @@ export function stepsToFlow(
     id: SOURCE_NODE_ID,
     type: 'source',
     position: { x: 0, y: 0 },
-    data: { previewUrl: sourcePreviewUrl },
+    data: { previewUrl: sourcePreviewUrl, thumbnailUrl: null },
   };
 
   const filterNodes: FilterNode[] = steps.map((step) => ({

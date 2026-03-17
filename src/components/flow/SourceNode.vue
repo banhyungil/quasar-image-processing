@@ -54,7 +54,7 @@ const emit = defineEmits<{
 
     <!-- 이미지 영역 -->
     <div v-if="data.previewUrl" class="source-node__body" :style="{ height: `${settings.nodeSize.thumbHeight}px` }">
-      <img :src="data.previewUrl" class="source-node__preview" />
+      <img :src="data.thumbnailUrl ?? data.previewUrl" class="source-node__preview" />
     </div>
     <div v-else class="source-node__body source-node__body--empty" :style="{ height: `${settings.nodeSize.thumbHeight}px` }">
       <q-btn

@@ -513,10 +513,10 @@ export interface components {
         /** Body_img_processing_batch_tree_api_image_processing_batch_tree_post */
         Body_img_processing_batch_tree_api_image_processing_batch_tree_post: {
             /**
-             * File
-             * @description 연산처리를 위한 입력 이미지
+             * Fileid
+             * @description 처리할 원본 이미지 파일 ID
              */
-            file: string;
+            fileId: string;
             /**
              * Steps
              * @description 트리 형태 처리 단계 JSON 배열. 예: [{"nodeId":"n1","prcType":"gaussianBlur","parameters":{},"parentId":null}]
@@ -2289,7 +2289,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_img_processing_batch_tree_api_image_processing_batch_tree_post"];
+                "application/x-www-form-urlencoded": components["schemas"]["Body_img_processing_batch_tree_api_image_processing_batch_tree_post"];
             };
         };
         responses: {
