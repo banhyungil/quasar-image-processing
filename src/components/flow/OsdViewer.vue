@@ -58,6 +58,17 @@ onMounted(() => {
     prefixUrl: '/node_modules/openseadragon/build/openseadragon/images/',
   });
 
+  // 네비게이션 버튼 툴팁 한글화
+  const tooltipLabels = ['확대', '축소', '줌 초기화(Esc)', '전체화면'];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const buttons: OpenSeadragon.Button[] | undefined = (viewer as any).buttonGroup?.buttons;
+  buttons?.forEach((btn, i) => {
+    if (tooltipLabels[i]) {
+      btn.tooltip = tooltipLabels[i];
+      btn.element.title = tooltipLabels[i];
+    }
+  });
+
   viewer.addHandler('zoom', (e) => {
     emit('zoom', e.zoom);
   });
