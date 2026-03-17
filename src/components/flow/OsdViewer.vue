@@ -47,6 +47,7 @@ onMounted(() => {
   viewer = OpenSeadragon({
     element: container.value!,
     tileSources: buildTileSource(),
+    crossOriginPolicy: 'Anonymous',
     showNavigator: true,
     navigatorPosition: 'BOTTOM_RIGHT',
     showNavigationControl: true,
