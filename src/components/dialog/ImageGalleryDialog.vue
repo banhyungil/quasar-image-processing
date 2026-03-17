@@ -224,6 +224,13 @@ function cancelEdit() {
   editingId.value = null;
 }
 
+function formatSize(bytes: number): string {
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)}GB`;
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${bytes}B`;
+}
+
 watch(show, (val) => {
   if (val) {
     searchQuery.value = '';
@@ -368,6 +375,7 @@ watch(show, (val) => {
             <div v-for="file in items" :key="file.id" class="gallery-item" @click="onSelect(file)">
               <div class="gallery-item__img-wrap">
                 <img :src="file.thumbnailUrl ?? ''" class="gallery-item__img" />
+                <div class="gallery-item__size">{{ formatSize(file.sizeBytes) }}</div>
                 <div class="gallery-item__actions">
                   <q-btn
                     flat
@@ -493,6 +501,19 @@ watch(show, (val) => {
     background: #f5f5f5;
   }
 
+  &__size {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    padding: 2px 6px;
+    font-size: 10px;
+    color: white;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 0 6px 0 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
   &__actions {
     position: absolute;
     top: 0;
@@ -506,6 +527,7 @@ watch(show, (val) => {
     border-radius: 0 0 0 6px;
   }
 
+  &:hover &__size,
   &:hover &__actions {
     opacity: 1;
   }

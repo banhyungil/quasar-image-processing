@@ -118,11 +118,14 @@ async function setOriginalFile(file: File | null) {
 
     // 동일 파일이고 fileId가 이미 있으면 업로드 스킵
     if (!(isSameFile && originalFileId.value)) {
+      document.body.style.cursor = 'wait';
       try {
         const uploaded = await imgPrcApi.uploadFile(file);
         originalFileId.value = uploaded.id;
       } catch (err) {
         console.error('원본 이미지 업로드 실패:', err);
+      } finally {
+        document.body.style.cursor = 'default';
       }
     }
   }
