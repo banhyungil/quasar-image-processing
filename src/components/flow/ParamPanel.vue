@@ -14,6 +14,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'apply', nodeData: ProcessNodeData): void;
+  (e: 'change', parameters: Record<string, unknown>): void;
   (e: 'change-filter', prcType: PrcType, label: string, filterId?: string): void;
 }>();
 
@@ -25,6 +26,15 @@ watch(
   (nd) => {
     localParams.value = { ...nd.parameters };
   },
+);
+
+// 파라미터 변경 시 실시간 emit
+watch(
+  localParams,
+  (params) => {
+    emit('change', { ...params });
+  },
+  { deep: true },
 );
 
 const cFields = computed<ParamFieldDef[]>(() => {
@@ -43,7 +53,9 @@ const cFields = computed<ParamFieldDef[]>(() => {
 });
 
 function getDefaultParams(): Record<string, unknown> {
-  const defaults: Record<string, unknown> = Object.fromEntries(cFields.value.map((f) => [f.key, f.default]));
+  const defaults: Record<string, unknown> = Object.fromEntries(
+    cFields.value.map((f) => [f.key, f.default]),
+  );
   // 커스텀 필터: filterId 유지
   if (props.nodeData.algorithmNm === 'custom' && props.nodeData.parameters?.filterId) {
     defaults.filterId = props.nodeData.parameters.filterId as string;
@@ -53,6 +65,41 @@ function getDefaultParams(): Record<string, unknown> {
 
 function resetParams() {
   localParams.value = getDefaultParams();
+}
+
+/** 6개 이내의 깔끔한 숫자로 떨어지는 마커 간격을 계산 */
+function niceInterval(min: number, max: number): number {
+  const range = max - min;
+  const rough = range / 6;
+  const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+  const residual = rough / mag;
+  // 1, 2, 5, 10 중 가장 가까운 nice number 선택
+  const nice = residual <= 1.5 ? 1 : residual <= 3.5 ? 2 : residual <= 7.5 ? 5 : 10;
+  return nice * mag;
+}
+
+function markerInterval(field: ParamFieldDef): number {
+  if (['beta', 'delta'].includes(field.key)) return 85;
+  else if ((field.max ?? 0) - (field.min ?? 0) == 255) return 51;
+
+  const nice = niceInterval(field.min ?? 0, field.max ?? 100);
+  const step = field.step ?? 1;
+  // step의 배수로 맞춤
+  return Math.max(step, Math.round(nice / step) * step);
+}
+
+function markerLabelsFn(field: ParamFieldDef) {
+  const interval = markerInterval(field);
+
+  return (val: number) => {
+    return val % interval === 0 ? String(val) : '';
+  };
+}
+
+function checkUseSlider(field: ParamFieldDef): boolean {
+  if (field.min == null || field.max == null) return false;
+  const range = (field.max - field.min) / (field.step ?? 1);
+  return range >= 4;
 }
 
 function apply() {
@@ -86,8 +133,30 @@ function apply() {
         </template>
 
         <template v-for="field in cFields" :key="field.key">
+          <!-- 슬라이더: number 타입이면서 범위가 4 이상 -->
+          <div v-if="field.type === 'number' && checkUseSlider(field)" class="q-px-xs">
+            <div class="row items-center justify-between q-mb-none">
+              <span class="text-caption text-grey-7">{{ field.label }}</span>
+              <span class="text-caption text-weight-medium">{{ localParams[field.key] }}</span>
+            </div>
+            <q-slider
+              :model-value="(localParams[field.key] as number) ?? field.default"
+              @update:model-value="localParams[field.key] = $event"
+              :min="field.min"
+              :max="field.max"
+              :step="field.step"
+              :marker-labels="markerLabelsFn(field)"
+              :markers="markerInterval(field)"
+              :label-value="`${localParams[field.key]}`"
+              label
+              dense
+              color="primary"
+              class="q-mb-xs"
+            />
+          </div>
+          <!-- 숫자 입력: 범위가 좁은 number -->
           <q-input
-            v-if="field.type === 'number'"
+            v-else-if="field.type === 'number'"
             :model-value="localParams[field.key] as number"
             @update:model-value="localParams[field.key] = Number($event)"
             :label="field.label"
@@ -113,24 +182,14 @@ function apply() {
 
         <div class="row q-gutter-xs q-mt-sm">
           <q-btn
-            flat
+            outline
             dense
             size="sm"
             label="초기화"
             icon="restart_alt"
-            color="grey-7"
+            color="orange-7"
             class="col"
             @click="resetParams"
-          />
-          <q-btn
-            unelevated
-            dense
-            size="sm"
-            label="적용"
-            icon="check"
-            color="primary"
-            class="col"
-            @click="apply"
           />
         </div>
       </div>

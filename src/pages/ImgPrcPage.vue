@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useDebounceFn } from '@vueuse/core';
 import { VueFlow, useVueFlow } from '@vue-flow/core';
 import type { Node, Edge, Connection } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
@@ -60,7 +61,15 @@ const { addNodes, addEdges, removeNodes } = useVueFlow();
 const selectedNodeId = ref<string | null>(null);
 
 function onNodeClick({ node }: { node: Node }) {
-  selectedNodeId.value = selectedNodeId.value === node.id ? null : node.id;
+  if (selectedNodeId.value === node.id) {
+    selectedNodeId.value = null;
+    toggleParamPanel(node.id, false);
+  } else {
+    selectedNodeId.value = node.id;
+    if (node.type === 'filter') {
+      toggleParamPanel(node.id);
+    }
+  }
 }
 
 function onPaneClick() {
@@ -185,13 +194,13 @@ function getDefaultParams(prcType: string): Record<string, unknown> {
   return Object.fromEntries(fields.map((f) => [f.key, f.default]));
 }
 
-function openParamPanel(nodeId: string) {
-  if (optionPanelTarget.value === nodeId && showOptionPanel.value) {
-    showOptionPanel.value = false;
-    optionPanelTarget.value = null;
-  } else {
+function toggleParamPanel(nodeId: string, isOpen: boolean = true) {
+  if (isOpen) {
     optionPanelTarget.value = nodeId;
     showOptionPanel.value = true;
+  } else {
+    showOptionPanel.value = false;
+    optionPanelTarget.value = null;
   }
 }
 
@@ -216,6 +225,29 @@ function onParamApply(updated: ProcessNodeData) {
     void processNodeThumbnail(leafId);
   }
 }
+
+// 파라미터 실시간 변경: debounce + abort
+let paramAbortController: AbortController | null = null;
+
+const onParamChange = useDebounceFn((parameters: Record<string, unknown>) => {
+  if (!oOrigin.value.fileId || !optionPanelTarget.value) return;
+
+  // 이전 요청 취소
+  paramAbortController?.abort();
+  paramAbortController = new AbortController();
+
+  // 파라미터를 노드에 반영
+  const node = nodes.value.find((n) => n.id === optionPanelTarget.value);
+  if (node && node.type === 'filter') {
+    node.data.parameters = { ...parameters };
+  }
+
+  const signal = paramAbortController.signal;
+  const descendants = collectDescendantLeaves(optionPanelTarget.value);
+  for (const leafId of descendants) {
+    void processNodeThumbnail(leafId, { signal });
+  }
+}, 200);
 
 // ── 노드 추가 (사이드바 클릭) ──────────────────────────────────────────────
 function addFilterNode(prcType: PrcType, label: string) {
@@ -245,10 +277,10 @@ function addFilterNode(prcType: PrcType, label: string) {
 
   addNodes([newNode]);
   addEdges([newEdge]);
+  toggleParamPanel(id);
 
   void nextTick(() => {
     relayout();
-    // 원본 이미지가 있으면 썸네일 연산 (nextTick 이후 edges.value 동기화 완료)
     if (oOrigin.value.fileId) {
       void processNodeThumbnail(id);
     }
@@ -303,6 +335,7 @@ function addCustomFilterNode(cf: CustomFilter) {
 
   addNodes([newNode]);
   addEdges([newEdge]);
+  toggleParamPanel(id);
 
   void nextTick(() => {
     relayout();
@@ -325,7 +358,7 @@ function findLastLeaf(): string {
 // ── 썸네일 연산 ────────────────────────────────────────────────────────────
 
 /** 특정 노드까지의 경로(source→…→nodeId)에 대해 batch-tree API를 호출하여 썸네일을 갱신 */
-async function processNodeThumbnail(targetNodeId: string) {
+async function processNodeThumbnail(targetNodeId: string, options?: { signal?: AbortSignal }) {
   if (!oOrigin.value.fileId) return;
 
   // source → targetNodeId 경로에 있는 노드 수집
@@ -367,6 +400,7 @@ async function processNodeThumbnail(targetNodeId: string) {
 
   const result = await imgPrcApi.batchTreeProcessing(oOrigin.value.fileId, steps, {
     thumbnailSize: settingsStore.nodeSize.thumbResolution,
+    signal: options?.signal,
   });
   // 결과를 각 노드에 매핑
   for (const nr of result.results) {
@@ -557,7 +591,12 @@ function resetCanvas() {
       id: SOURCE_NODE_ID,
       type: 'source',
       position: { x: 0, y: 0 },
-      data: { previewUrl: oOrigin.value.imageUrl, thumbnailUrl: oOrigin.value.fileId ? `${API_HOST}/api/image-processing/thumbnail/${oOrigin.value.fileId}` : null },
+      data: {
+        previewUrl: oOrigin.value.imageUrl,
+        thumbnailUrl: oOrigin.value.fileId
+          ? `${API_HOST}/api/image-processing/thumbnail/${oOrigin.value.fileId}`
+          : null,
+      },
     },
   ];
   edges.value = [];
@@ -1059,7 +1098,6 @@ async function onCopyChain(nodeId: string) {
                     v-bind="nodeProps"
                     :selected="selectedNodeId === nodeProps.id"
                     :zoomed="cZoomedNodeIds.has(nodeProps.id)"
-                    @open-params="openParamPanel"
                     @remove="removeFilterNode"
                     @toggle-enabled="toggleEnabled"
                     @change-filter="onChangeFilter"
@@ -1091,6 +1129,7 @@ async function onCopyChain(nodeId: string) {
                 :custom-filters="(filterListPanelRef as any)?.customFilters"
                 @close="showOptionPanel = false"
                 @apply="onParamApply"
+                @change="onParamChange"
                 @change-filter="
                   (prcType, label, filterId) =>
                     optionPanelTarget && onChangeFilter(optionPanelTarget, prcType, label, filterId)

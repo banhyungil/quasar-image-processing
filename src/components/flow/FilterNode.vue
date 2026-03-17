@@ -17,7 +17,6 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'open-params', nodeId: string): void;
   (e: 'remove', nodeId: string): void;
   (e: 'toggle-enabled', nodeId: string): void;
   (e: 'zoom', nodeId: string): void;
@@ -59,24 +58,14 @@ const cParamSummary = computed(() => {
         @select="onSelectFilter"
       />
       <div class="filter-node__actions">
-        <q-btn
-          flat
-          round
-          dense
-          size="xs"
-          icon="tune"
-          color="grey-7"
-          @click="emit('open-params', id)"
-        >
-          <q-tooltip>파라미터</q-tooltip>
-        </q-btn>
         <q-toggle
           :model-value="data.enabled"
           dense
           size="xs"
           @update:model-value="emit('toggle-enabled', id)"
+          @click.stop
         />
-        <q-btn flat round dense size="xs" icon="more_vert" color="grey-7">
+        <q-btn flat round dense size="xs" icon="more_vert" color="grey-7" @click.stop>
           <q-menu auto-close>
             <q-list dense style="min-width: 140px">
               <q-item v-if="data.imageUrl" clickable @click="emit('zoom', id)">

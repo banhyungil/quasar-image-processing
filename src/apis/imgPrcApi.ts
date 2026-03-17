@@ -103,7 +103,7 @@ export async function renameFile(fileId: string, originNm: string): Promise<void
 export async function batchTreeProcessing(
   fileId: string,
   steps: TreeBatchStep[],
-  options?: { thumbnailSize?: number },
+  options?: { thumbnailSize?: number; signal?: AbortSignal },
 ): Promise<TreeBatchResult> {
   const form = new FormData();
   form.append('fileId', fileId);
@@ -114,6 +114,7 @@ export async function batchTreeProcessing(
 
   const res = await api.post<TreeBatchResult>('/image-processing/batch-tree', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    signal: options?.signal,
   });
 
   return res.data;
