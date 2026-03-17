@@ -202,8 +202,15 @@ const cSelNodeData = computed<ProcessNodeData | null>(() => {
   return n.data;
 });
 
-function onParamApply() {
+function onParamApply(updated: ProcessNodeData) {
   if (!oOrigin.value.fileId || !optionPanelTarget.value) return;
+
+  // 파라미터를 노드에 반영
+  const node = nodes.value.find((n) => n.id === optionPanelTarget.value);
+  if (node && node.type === 'filter') {
+    node.data.parameters = { ...updated.parameters };
+  }
+
   const descendants = collectDescendantLeaves(optionPanelTarget.value);
   for (const leafId of descendants) {
     void processNodeThumbnail(leafId);
