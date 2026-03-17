@@ -724,6 +724,16 @@ export interface components {
             options?: {
                 [key: string]: unknown;
             };
+            /**
+             * Width
+             * @description 이미지 가로 해상도 (px)
+             */
+            width?: number | null;
+            /**
+             * Height
+             * @description 이미지 세로 해상도 (px)
+             */
+            height?: number | null;
         };
         /** FileItemListResponse */
         FileItemListResponse: {
@@ -829,6 +839,16 @@ export interface components {
             uploadedAt: string;
             /** @description 처리 시 적용된 옵션 */
             options: components["schemas"]["FileSaveOptions"];
+            /**
+             * Width
+             * @description 이미지 가로 해상도 (px)
+             */
+            width?: number | null;
+            /**
+             * Height
+             * @description 이미지 세로 해상도 (px)
+             */
+            height?: number | null;
         };
         /** FileUploadResponse */
         FileUploadResponse: {
@@ -868,6 +888,16 @@ export interface components {
              * @description 업로드 완료 시각 (UTC)
              */
             uploadedAt: string;
+            /**
+             * Width
+             * @description 이미지 가로 해상도 (px)
+             */
+            width?: number | null;
+            /**
+             * Height
+             * @description 이미지 세로 해상도 (px)
+             */
+            height?: number | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1315,6 +1345,16 @@ export interface components {
              * @description 썸네일 base64 data URL
              */
             thumbnailUrl?: string | null;
+            /**
+             * Width
+             * @description 이미지 가로 해상도 (px)
+             */
+            width?: number | null;
+            /**
+             * Height
+             * @description 이미지 세로 해상도 (px)
+             */
+            height?: number | null;
         };
         /** TreeBatchResponse */
         TreeBatchResponse: {

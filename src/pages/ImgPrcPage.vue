@@ -28,27 +28,34 @@ import FilterListPanel from 'src/components/sidebar/FilterListPanel.vue';
 import PresetListPanel from 'src/components/sidebar/PresetListPanel.vue';
 import ProcessListPanel from 'src/components/sidebar/ProcessListPanel.vue';
 import type { CustomFilter } from 'src/apis/customFilterApi';
-import type { ProcessNodeData, SourceNodeData, FlatStep } from 'src/types/flowTypes';
+import type {
+  ProcessNodeData,
+  FlatStep,
+  AppNode,
+  SourceNode as SourceNodeType,
+} from 'src/types/flowTypes';
 import { stepsToFlow, flowToSteps } from 'src/utils/flowConverter';
 import { applyDagreLayout } from 'src/utils/flowLayout';
 import { useSettingsStore } from 'src/stores/settings-store';
+import { useQuasar } from 'quasar';
 
 const settingsStore = useSettingsStore();
+const $q = useQuasar();
 
 const SOURCE_NODE_ID = 'source';
 
 // ── vue-flow ───────────────────────────────────────────────────────────────
-const nodes = ref<Node[]>([
+const nodes = ref<AppNode[]>([
   {
     id: SOURCE_NODE_ID,
     type: 'source',
     position: { x: 0, y: 0 },
-    data: { previewUrl: null } as SourceNodeData,
+    data: { previewUrl: null },
   },
 ]);
 const edges = ref<Edge[]>([]);
 
-const { addNodes, addEdges, removeNodes, getNodes, getEdges } = useVueFlow();
+const { addNodes, addEdges, removeNodes } = useVueFlow();
 
 // ── 노드 선택 ────────────────────────────────────────────────────────────
 const selectedNodeId = ref<string | null>(null);
@@ -130,9 +137,10 @@ async function setOriginalFile(file: File | null) {
     }
   }
   // 소스 노드 previewUrl 동기화
-  const sourceNode = nodes.value.find((n) => n.id === SOURCE_NODE_ID);
+  // type predicate로 반환노드타입 확정
+  const sourceNode = nodes.value.find((n): n is SourceNodeType => n.type === 'source');
   if (sourceNode) {
-    (sourceNode.data as SourceNodeData).previewUrl = originalPreviewUrl.value;
+    sourceNode.data.previewUrl = originalPreviewUrl.value;
   }
 
   processAllLeaves();
@@ -147,24 +155,25 @@ function onOriginalInputChange(event: Event) {
   void setOriginalFile(input.files?.[0] ?? null);
 }
 
-async function onSelectExistingImage(tFile: { id: string; originNm: string; path: string; mimeType: string }) {
-  try {
-    const res = await axios.get(`${API_HOST}/${tFile.path}`, { responseType: 'blob' });
-    const blob: Blob = res.data;
-    const file = new File([blob], tFile.originNm, { type: tFile.mimeType });
-    originalFileId.value = tFile.id;
-    originalFile.value = file;
-    if (originalPreviewUrl.value) URL.revokeObjectURL(originalPreviewUrl.value);
-    originalPreviewUrl.value = URL.createObjectURL(file);
+async function onSelectExistingImage(tFile: {
+  id: string;
+  originNm: string;
+  path: string;
+  mimeType: string;
+}) {
+  const res = await axios.get(`${API_HOST}/${tFile.path}`, { responseType: 'blob' });
+  const blob: Blob = res.data;
+  const file = new File([blob], tFile.originNm, { type: tFile.mimeType });
+  originalFileId.value = tFile.id;
+  originalFile.value = file;
+  if (originalPreviewUrl.value) URL.revokeObjectURL(originalPreviewUrl.value);
+  originalPreviewUrl.value = URL.createObjectURL(file);
 
-    const sourceNode = nodes.value.find((n) => n.id === SOURCE_NODE_ID);
-    if (sourceNode) {
-      (sourceNode.data as SourceNodeData).previewUrl = originalPreviewUrl.value;
-    }
-    processAllLeaves();
-  } catch (err) {
-    console.error('기존 이미지 로드 실패:', err);
+  const sourceNode = nodes.value.find((n): n is SourceNodeType => n.type === 'source');
+  if (sourceNode) {
+    sourceNode.data.previewUrl = originalPreviewUrl.value;
   }
+  processAllLeaves();
 }
 
 // ── 초기 데이터 로드 ───────────────────────────────────────────────────────
@@ -203,7 +212,7 @@ const cSelNodeData = computed<ProcessNodeData | null>(() => {
   if (!optionPanelTarget.value) return null;
   const n = nodes.value.find((n) => n.id === optionPanelTarget.value);
   if (!n || n.type !== 'filter') return null;
-  return n.data as ProcessNodeData;
+  return n.data;
 });
 
 function onParamApply() {
@@ -333,7 +342,7 @@ async function processNodeThumbnail(targetNodeId: string) {
   for (const nodeId of pathNodeIds) {
     const node = nodes.value.find((n) => n.id === nodeId);
     if (!node || node.type !== 'filter') continue;
-    const data = node.data as ProcessNodeData;
+    const data = node.data;
 
     if (!data.enabled) {
       continue;
@@ -362,21 +371,16 @@ async function processNodeThumbnail(targetNodeId: string) {
   }
   if (steps.length === 0) return;
 
-  try {
-    const result = await imgPrcApi.batchTreeProcessing(originalFile.value, steps, {
-      thumbnailSize: settingsStore.nodeSize.thumbResolution,
-    });
-    // 결과를 각 노드에 매핑
-    for (const nr of result.results) {
-      const node = nodes.value.find((n) => n.id === nr.nodeId);
-      if (node && node.type === 'filter') {
-        const data = node.data as ProcessNodeData;
-        data.imageUrl = nr.imageUrl.startsWith('data:') ? nr.imageUrl : API_HOST + nr.imageUrl;
-        data.executionMs = nr.executionMs;
-      }
+  const result = await imgPrcApi.batchTreeProcessing(originalFile.value, steps, {
+    thumbnailSize: settingsStore.nodeSize.thumbResolution,
+  });
+  // 결과를 각 노드에 매핑
+  for (const nr of result.results) {
+    const node = nodes.value.find((n) => n.id === nr.nodeId);
+    if (node && node.type === 'filter') {
+      node.data.imageUrl = nr.imageUrl.startsWith('data:') ? nr.imageUrl : API_HOST + nr.imageUrl;
+      node.data.executionMs = nr.executionMs;
     }
-  } catch (err) {
-    console.error('썸네일 연산 실패:', err);
   }
 }
 
@@ -423,7 +427,7 @@ function removeFilterNode(nodeId: string) {
 function toggleEnabled(nodeId: string) {
   const node = nodes.value.find((n) => n.id === nodeId);
   if (node && node.type === 'filter') {
-    (node.data as ProcessNodeData).enabled = !(node.data as ProcessNodeData).enabled;
+    node.data.enabled = !node.data.enabled;
     if (originalFile.value) {
       // 해당 노드 + 하위 모든 리프 노드 재연산
       const descendants = collectDescendantLeaves(nodeId);
@@ -437,7 +441,7 @@ function toggleEnabled(nodeId: string) {
 function onChangeFilter(nodeId: string, prcType: PrcType, label: string, filterId?: string) {
   const node = nodes.value.find((n) => n.id === nodeId);
   if (!node || node.type !== 'filter') return;
-  const data = node.data as ProcessNodeData;
+  const data = node.data;
   data.algorithmNm = prcType;
   data.label = label;
   data.parameters = getDefaultParams(prcType);
@@ -506,7 +510,7 @@ function hasCycle(source: string, target: string): boolean {
 
 // ── 자동 레이아웃 ──────────────────────────────────────────────────────────
 function relayout() {
-  const layouted = applyDagreLayout(getNodes.value, getEdges.value);
+  const layouted = applyDagreLayout(nodes.value, edges.value);
   for (const ln of layouted) {
     const node = nodes.value.find((n) => n.id === ln.id);
     if (node) {
@@ -559,7 +563,7 @@ function resetCanvas() {
       id: SOURCE_NODE_ID,
       type: 'source',
       position: { x: 0, y: 0 },
-      data: { previewUrl: originalPreviewUrl.value } as SourceNodeData,
+      data: { previewUrl: originalPreviewUrl.value },
     },
   ];
   edges.value = [];
@@ -593,7 +597,7 @@ function openUpdatePresetDialog() {
 }
 
 async function onConfirmPreset(name: string, description: string) {
-  const steps = flowToSteps(getNodes.value, getEdges.value);
+  const steps = flowToSteps(nodes.value, edges.value);
   const stepPayload = steps.map((s, i) => ({
     algorithmNm: s.algorithmNm,
     stepOrder: i,
@@ -713,7 +717,7 @@ function openUpdateProcessDialog() {
 async function onConfirmProcess(name: string) {
   if (!originalFile.value) return;
 
-  const steps = flowToSteps(getNodes.value, getEdges.value);
+  const steps = flowToSteps(nodes.value, edges.value);
   const stepPayload = steps.map((s, i) => ({
     algorithmNm: s.algorithmNm,
     stepOrder: i,
@@ -756,6 +760,7 @@ interface ZoomPopup {
   src: string;
   dziUrl?: string;
   title: string;
+  loading?: boolean;
 }
 const zoomPopups = ref<ZoomPopup[]>([]);
 const cZoomedNodeIds = computed(() => new Set(zoomPopups.value.map((p) => p.nodeId)));
@@ -779,8 +784,7 @@ function buildStepsToNode(nodeId: string): TreeBatchStep[] {
   for (const nid of pathNodeIds) {
     const node = nodes.value.find((n) => n.id === nid);
     if (!node || node.type !== 'filter') continue;
-    const data = node.data as ProcessNodeData;
-    if (!data.enabled) continue;
+    if (!node.data.enabled) continue;
 
     let parentId: string | null = null;
     const parentEdge = edges.value.find((e) => e.target === nid);
@@ -797,8 +801,8 @@ function buildStepsToNode(nodeId: string): TreeBatchStep[] {
     enabledIds.add(nid);
     steps.push({
       nodeId: nid,
-      prcType: data.algorithmNm,
-      parameters: { ...data.parameters },
+      prcType: node.data.algorithmNm,
+      parameters: { ...node.data.parameters },
       parentId,
     });
   }
@@ -808,39 +812,34 @@ function buildStepsToNode(nodeId: string): TreeBatchStep[] {
 async function onNodeZoom(nodeId: string) {
   if (zoomPopups.value.some((p) => p.nodeId === nodeId)) return;
 
-  if (nodeId === SOURCE_NODE_ID) {
-    if (!originalPreviewUrl.value) return;
-    zoomPopups.value.push({
-      id: crypto.randomUUID(),
-      nodeId,
-      src: originalPreviewUrl.value,
-      title: '원본 이미지',
-    });
-    return;
-  }
-
   if (!originalFileId.value) return;
 
-  const steps = buildStepsToNode(nodeId);
-  if (steps.length === 0) return;
+  const isSource = nodeId === SOURCE_NODE_ID;
+  const steps = isSource ? [] : buildStepsToNode(nodeId);
+  if (!isSource && steps.length === 0) return;
 
-  try {
-    const result = await imgPrcApi.generateDzi(originalFileId.value, steps, nodeId);
-    const node = nodes.value.find((n) => n.id === nodeId);
-    const src = result.imageUrl
-      ? API_HOST + result.imageUrl
-      : ((node?.data as ProcessNodeData)?.imageUrl ?? '');
+  $q.loading.show({ message: '처리 중...' });
+  const result = await imgPrcApi
+    .getOriginSizeUrl(originalFileId.value, steps, nodeId)
+    .finally(() => $q.loading.hide())
+    .catch(() => null);
+  if (!result) return;
 
-    zoomPopups.value.push({
-      id: crypto.randomUUID(),
-      nodeId,
-      src,
-      dziUrl: result.dziUrl ? API_HOST + result.dziUrl : undefined,
-      title: (node?.data as ProcessNodeData)?.label ?? '처리 결과',
-    });
-  } catch (err) {
-    console.error('확대 이미지 연산 실패:', err);
-  }
+  const node = nodes.value.find((n) => n.id === nodeId);
+  const filterData = node?.type === 'filter' ? node.data : null;
+  const oUrl = (() => {
+    const obj: { src: string; dziUrl?: string } = { src: '', dziUrl: undefined };
+    if (result.imageUrl) obj.src = API_HOST + result.imageUrl;
+    else if (result.dziUrl) obj.dziUrl = API_HOST + result.dziUrl;
+    return obj;
+  })();
+
+  zoomPopups.value.push({
+    id: crypto.randomUUID(),
+    nodeId,
+    title: isSource ? '원본 이미지' : (filterData?.label ?? '처리 결과'),
+    ...oUrl,
+  });
 }
 
 async function onNodeDownload(nodeId: string) {
@@ -849,21 +848,17 @@ async function onNodeDownload(nodeId: string) {
   const steps = buildStepsToNode(nodeId);
   if (steps.length === 0) return;
 
-  try {
-    const blob = await imgPrcApi.downloadNodeImage(originalFileId.value, steps, nodeId);
-    const prcTypes = steps.map((s) => s.prcType);
-    const chainSuffix = buildChainFilename(prcTypes);
-    const baseName = originalFile.value?.name.replace(/\.[^.]+$/, '') ?? 'image';
+  const blob = await imgPrcApi.downloadNodeImage(originalFileId.value, steps, nodeId);
+  const prcTypes = steps.map((s) => s.prcType);
+  const chainSuffix = buildChainFilename(prcTypes);
+  const baseName = originalFile.value?.name.replace(/\.[^.]+$/, '') ?? 'image';
 
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${baseName}_${chainSuffix}.png`;
-    a.click();
-    URL.revokeObjectURL(url);
-  } catch (err) {
-    console.error('이미지 다운로드 실패:', err);
-  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${baseName}_${chainSuffix}.png`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 async function onCopyChain(nodeId: string) {
@@ -881,11 +876,7 @@ async function onCopyChain(nodeId: string) {
     return `${i + 1}. ${s.prcType}${paramStr ? ` (${paramStr})` : ''}`;
   });
 
-  try {
-    await navigator.clipboard.writeText(lines.join('\n'));
-  } catch {
-    console.error('클립보드 복사 실패');
-  }
+  await navigator.clipboard.writeText(lines.join('\n'));
 }
 </script>
 
@@ -1142,10 +1133,7 @@ async function onCopyChain(nodeId: string) {
       @saved="onCustomFilterSaved"
     />
 
-    <ImageGalleryDialog
-      v-model="showImageGallery"
-      @select="onSelectExistingImage"
-    />
+    <ImageGalleryDialog v-model="showImageGallery" @select="onSelectExistingImage" />
 
     <!-- 이미지 확대 팝업 (복수 모달리스) -->
     <ImageZoomPopup

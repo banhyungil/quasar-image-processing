@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useEventListener } from '@vueuse/core';
 import OsdViewer from './OsdViewer.vue';
 
 const settingsStore = useSettingsStore();
@@ -60,8 +61,7 @@ function onKeyDown(e: KeyboardEvent) {
   }
 }
 
-onMounted(() => window.addEventListener('keydown', onKeyDown));
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown));
+useEventListener(window, 'keydown', onKeyDown);
 </script>
 
 <template>

@@ -170,15 +170,10 @@ function onDelete(file: TFile, e: Event) {
     persistent: true,
   }).onOk(() => {
     void (async () => {
-      try {
-        await imgPrcApi.deleteFile(file.id);
-        items.value = items.value.filter((f) => f.id !== file.id);
+      await imgPrcApi.deleteFile(file.id);
+      items.value = items.value.filter((f) => f.id !== file.id);
 
-        void $q.notify({ type: 'positive', message: `"${file.originNm}" 삭제 완료` });
-      } catch (err) {
-        console.error('이미지 삭제 실패:', err);
-        $q.notify({ type: 'negative', message: '이미지 삭제 실패' });
-      }
+      void $q.notify({ type: 'positive', message: `"${file.originNm}" 삭제 완료` });
     })();
   });
 }
@@ -420,9 +415,15 @@ watch(show, (val) => {
           </div>
 
           <div v-if="hasMore" class="text-center q-mt-md">
-            <q-btn flat no-caps label="더 보기" color="primary" :loading="loading" @click="load()" />
+            <q-btn
+              flat
+              no-caps
+              label="더 보기"
+              color="primary"
+              :loading="loading"
+              @click="load()"
+            />
           </div>
-
         </div>
       </q-card-section>
     </q-card>

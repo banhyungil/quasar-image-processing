@@ -9,11 +9,11 @@ const SOURCE_NODE_HEIGHT = 180;
  * dagre를 사용하여 노드 위치를 자동 계산한다.
  * 기존 노드/엣지 배열을 받아 position이 업데이트된 새 배열을 반환한다.
  */
-export function applyDagreLayout(
-  nodes: Node[],
+export function applyDagreLayout<T extends Node>(
+  nodes: T[],
   edges: Edge[],
   direction: 'TB' | 'LR' = 'TB',
-): Node[] {
+): T[] {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
   g.setGraph({ rankdir: direction, nodesep: 40, ranksep: 60 });
@@ -38,6 +38,6 @@ export function applyDagreLayout(
         x: pos.x - NODE_WIDTH / 2,
         y: pos.y - height / 2,
       },
-    };
+    } as T;
   });
 }

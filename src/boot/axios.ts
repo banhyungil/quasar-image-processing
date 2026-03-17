@@ -1,5 +1,6 @@
 import { defineBoot } from '#q-app/wrappers';
-import axios, { type AxiosInstance } from 'axios';
+import axios, { type AxiosInstance, type AxiosError } from 'axios';
+import { Notify } from 'quasar';
 
 declare module 'vue' {
   interface ComponentCustomProperties {
@@ -16,6 +17,39 @@ declare module 'vue' {
 // for each client)
 export const API_HOST = 'http://127.0.0.1:8000';
 const api = axios.create({ baseURL: `${API_HOST}/api` });
+
+// 백엔드 에러 응답 타입
+interface AppErrorResponse {
+  code?: string;
+  message?: string;
+  detail?: string | Record<string, unknown>;
+}
+
+// 응답 에러 공통 처리
+api.interceptors.response.use(
+  (res) => res,
+  (err: AxiosError<AppErrorResponse>) => {
+    const status = err.response?.status;
+    const data = err.response?.data;
+
+    // AppError 응답: { code, message, detail? }
+    // HTTPException 응답: { detail }
+    const message = data?.message
+      ?? (typeof data?.detail === 'string' ? data.detail : null)
+      ?? err.message
+      ?? '요청 실패';
+
+    const code = data?.code;
+
+    Notify.create({
+      type: 'negative',
+      message: code ? `[${code}] ${message}` : status ? `[${status}] ${message}` : message,
+      timeout: 3000,
+    });
+
+    return Promise.reject(err);
+  },
+);
 
 export default defineBoot(({ app }) => {
   // for use inside Vue files (Options API) through this.$axios and this.$api

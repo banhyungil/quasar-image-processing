@@ -81,11 +81,9 @@ export async function getProcessingImage(
   return res.data;
 }
 
-
 export async function deleteFile(fileId: string): Promise<void> {
   await api.delete(`/image-processing/${fileId}`);
 }
-
 
 export async function renameFile(fileId: string, originNm: string): Promise<void> {
   await api.patch(`/image-processing/${fileId}`, { originNm });
@@ -122,9 +120,17 @@ export async function batchTreeProcessing(
 }
 
 /**
- * DZI 생성 — 원본 이미지에 steps 체인을 적용하고, 타겟 노드의 DZI(또는 원본 이미지)를 생성한다.
+ * 타겟 노드의 원본 해상도와 동일한 이미지 url을 반환한다.
+ * * DZI 생성 or 이미지 url을 반환한다.
+ *
+ * 고해상도인 경우
+ * * dzi 타일이 생성
+ * * dziUrl 반환
+ *
+ * 고해상도 아닌 경우
+ * * imageUrl 반환
  */
-export async function generateDzi(
+export async function getOriginSizeUrl(
   fileId: string,
   steps: TreeBatchStep[],
   nodeId: string,
@@ -153,14 +159,10 @@ export async function downloadNodeImage(
   form.append('steps', JSON.stringify(steps));
   form.append('nodeId', nodeId);
 
-  const res = await api.post<Blob>(
-    `/image-processing/download/${fileId}`,
-    form,
-    {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      responseType: 'blob',
-    },
-  );
+  const res = await api.post<Blob>(`/image-processing/download/${fileId}`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    responseType: 'blob',
+  });
   return res.data;
 }
 

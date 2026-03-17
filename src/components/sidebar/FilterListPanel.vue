@@ -25,21 +25,13 @@ const emit = defineEmits<{
 const customFilters = ref<CustomFilter[]>([]);
 
 async function loadCustomFilters() {
-  try {
-    const res = await customFilterApi.getCustomFilters();
-    customFilters.value = res.items;
-  } catch (err) {
-    console.error('커스텀 필터 목록 조회 실패:', err);
-  }
+  const res = await customFilterApi.getCustomFilters();
+  customFilters.value = res.items;
 }
 
 async function onDeleteCustomFilter(id: string) {
-  try {
-    await customFilterApi.deleteCustomFilter(id);
-    customFilters.value = customFilters.value.filter((cf) => cf.id !== id);
-  } catch (err) {
-    console.error('커스텀 필터 삭제 실패:', err);
-  }
+  await customFilterApi.deleteCustomFilter(id);
+  customFilters.value = customFilters.value.filter((cf) => cf.id !== id);
 }
 
 function onCustomFilterDragStart(event: DragEvent, cf: CustomFilter) {
@@ -75,12 +67,7 @@ defineExpose({ loadCustomFilters });
         >
           <q-card flat bordered class="filter-card">
             <q-card-section class="q-pa-xs row items-center no-wrap q-gutter-x-xs">
-              <q-icon
-                :name="CATEGORY_ICONS[fn.value]"
-                size="xs"
-                color="primary"
-                class="q-ml-xs"
-              />
+              <q-icon :name="CATEGORY_ICONS[fn.value]" size="xs" color="primary" class="q-ml-xs" />
               <div class="col text-caption ellipsis">{{ option.label }}</div>
               <q-btn
                 flat
@@ -123,14 +110,7 @@ defineExpose({ loadCustomFilters });
             <q-card-section class="q-pa-xs row items-center no-wrap q-gutter-x-xs">
               <q-icon name="code" size="xs" color="orange" class="q-ml-xs" />
               <div class="col text-caption ellipsis">{{ cf.nm }}</div>
-              <q-btn
-                flat
-                round
-                dense
-                size="xs"
-                icon="edit"
-                @click.stop="emit('open-editor', cf)"
-              >
+              <q-btn flat round dense size="xs" icon="edit" @click.stop="emit('open-editor', cf)">
                 <q-tooltip>수정</q-tooltip>
               </q-btn>
               <q-btn

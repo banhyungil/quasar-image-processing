@@ -1,5 +1,5 @@
-import type { Node, Edge } from '@vue-flow/core';
-import type { ProcessNodeData, SourceNodeData, FlatStep } from 'src/types/flowTypes';
+import type { Edge } from '@vue-flow/core';
+import type { AppNode, SourceNode, FilterNode, FlatStep } from 'src/types/flowTypes';
 import type { PrcType } from 'src/types/imgPrcType';
 import { applyDagreLayout } from './flowLayout';
 
@@ -12,17 +12,17 @@ const SOURCE_NODE_ID = 'source';
 export function stepsToFlow(
   steps: FlatStep[],
   sourcePreviewUrl: string | null = null,
-): { nodes: Node[]; edges: Edge[] } {
-  const sourceNode: Node<SourceNodeData> = {
+): { nodes: AppNode[]; edges: Edge[] } {
+  const sourceNode: SourceNode = {
     id: SOURCE_NODE_ID,
     type: 'source',
     position: { x: 0, y: 0 },
     data: { previewUrl: sourcePreviewUrl },
   };
 
-  const filterNodes: Node<ProcessNodeData>[] = steps.map((step) => ({
+  const filterNodes: FilterNode[] = steps.map((step) => ({
     id: step.id,
-    type: 'filter',
+    type: 'filter' as const,
     position: { x: 0, y: 0 },
     data: {
       algorithmNm: step.algorithmNm as PrcType,
@@ -41,7 +41,7 @@ export function stepsToFlow(
     animated: true,
   }));
 
-  const allNodes = [sourceNode, ...filterNodes];
+  const allNodes: AppNode[] = [sourceNode, ...filterNodes];
   const layoutNodes = applyDagreLayout(allNodes, edges);
 
   return { nodes: layoutNodes, edges };
@@ -52,7 +52,7 @@ export function stepsToFlow(
  * 소스 노드는 제외, parentId=source → null로 매핑한다.
  */
 export function flowToSteps(
-  nodes: Node[],
+  nodes: AppNode[],
   edges: Edge[],
 ): FlatStep[] {
   const parentMap = new Map<string, string | null>();
@@ -62,16 +62,13 @@ export function flowToSteps(
   }
 
   return nodes
-    .filter((n) => n.type === 'filter')
-    .map((node, index) => {
-      const data = node.data as ProcessNodeData;
-      return {
-        id: node.id,
-        parentId: parentMap.get(node.id) ?? null,
-        algorithmNm: data.algorithmNm,
-        stepOrder: index,
-        parameters: { ...data.parameters },
-        isEnabled: data.enabled,
-      };
-    });
+    .filter((n): n is FilterNode => n.type === 'filter')
+    .map((node, index) => ({
+      id: node.id,
+      parentId: parentMap.get(node.id) ?? null,
+      algorithmNm: node.data.algorithmNm,
+      stepOrder: index,
+      parameters: { ...node.data.parameters },
+      isEnabled: node.data.enabled,
+    }));
 }

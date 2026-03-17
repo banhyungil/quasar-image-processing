@@ -1,3 +1,4 @@
+import type { Node } from '@vue-flow/core';
 import type { PrcType } from './imgPrcType';
 
 /** vue-flow 캔버스에서 사용하는 처리 노드 데이터 */
@@ -14,6 +15,13 @@ export interface ProcessNodeData {
 export interface SourceNodeData {
   previewUrl: string | null;
 }
+
+/** vue-flow 노드 타입 (source | filter) — data를 필수로 오버라이드 */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type SourceNode = Node<SourceNodeData, any, 'source'> & { data: SourceNodeData };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type FilterNode = Node<ProcessNodeData, any, 'filter'> & { data: ProcessNodeData };
+export type AppNode = SourceNode | FilterNode;
 
 /** API flat list step (preset/process 공용) */
 export interface FlatStep {

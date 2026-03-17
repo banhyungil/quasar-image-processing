@@ -97,3 +97,9 @@ const dPlace = _.keyBy(places, 'placeId');_
 
 - sass를 이용
 - nested 문법 사용
+
+## quaser
+
+### 로딩표시
+
+- 비동기 로직 시 오래 걸리는 작업은 q-innter_loading 컴포넌트를 사용한다
