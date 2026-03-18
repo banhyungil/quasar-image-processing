@@ -34,5 +34,6 @@ declare module 'vue' {
     SourceNode: typeof import('./components/flow/SourceNode.vue')['default']
     TimelineViewer: typeof import('./components/flow/TimelineViewer.vue')['default']
     ZoomableImage: typeof import('./components/flow/ZoomableImage.vue')['default']
+    ZoomSidePanel: typeof import('./components/flow/ZoomSidePanel.vue')['default']
   }
 }
