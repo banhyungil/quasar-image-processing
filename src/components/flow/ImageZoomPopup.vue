@@ -127,7 +127,6 @@ function onSelectFilter(prcType: PrcType, label: string) {
   if (!activeCrop.value && props.fileId) {
     void createCrop();
   } else {
-    mode.value = 'compare';
     void applyFilters();
   }
 }
@@ -187,28 +186,22 @@ async function createCrop() {
   const viewport = osdViewerComp.value?.getViewportPx();
   if (!viewport || !validateViewport(viewport)) return;
 
-  try {
-    const result = await imgPrcApi.previewCrop(
-      props.fileId,
-      props.nodeSteps ?? [],
-      props.nodeId ?? 'source',
-      viewport,
-    );
-    const newCrop: CropItem = {
-      cropId: result.cropId,
-      nodeImageUrl: API_HOST + result.nodeImageUrl,
-      processedImageUrl: null,
-      viewport,
-      label: `Crop ${cropList.value.length + 1}`,
-    };
-    cropList.value.push(newCrop);
-    activeCropId.value = result.cropId;
-    mode.value = 'crop';
-
-    void applyFilters();
-  } catch {
-    // interceptor가 에러 알림 처리
-  }
+  const result = await imgPrcApi.previewCrop(
+    props.fileId,
+    props.nodeSteps ?? [],
+    props.nodeId ?? 'source',
+    viewport,
+  );
+  const newCrop: CropItem = {
+    cropId: result.cropId,
+    nodeImageUrl: API_HOST + result.nodeImageUrl,
+    processedImageUrl: null,
+    viewport,
+    label: `Crop ${cropList.value.length + 1}`,
+  };
+  cropList.value.push(newCrop);
+  activeCropId.value = result.cropId;
+  mode.value = 'crop';
 }
 
 // Shift+드래그 영역 선택으로 crop 생성
@@ -243,6 +236,9 @@ async function onRegionSelect(viewport: { x: number; y: number; w: number; h: nu
 
 // 필터 적용
 async function applyFilters() {
+  // filter 적용될때는 즉시 확인 할 수 있는 모드로 변경
+  if (mode.value === 'explore' || mode.value === 'crop') mode.value = 'compare';
+
   const crop = activeCrop.value;
   if (!props.fileId || !crop || tempSteps.value.length === 0) return;
 
@@ -254,16 +250,12 @@ async function applyFilters() {
     parameters: { ...s.parameters },
   }));
 
-  try {
-    const blob = await imgPrcApi.previewApply(props.fileId, crop.cropId, steps, crop.viewport, {
-      signal: previewAbortController.signal,
-    });
+  const blob = await imgPrcApi.previewApply(props.fileId, crop.cropId, steps, crop.viewport, {
+    signal: previewAbortController.signal,
+  });
 
-    if (crop.processedImageUrl) URL.revokeObjectURL(crop.processedImageUrl);
-    crop.processedImageUrl = URL.createObjectURL(blob);
-  } catch {
-    // abort 또는 에러 — interceptor 처리
-  }
+  if (crop.processedImageUrl) URL.revokeObjectURL(crop.processedImageUrl);
+  crop.processedImageUrl = URL.createObjectURL(blob);
 }
 
 // timeline 데이터
