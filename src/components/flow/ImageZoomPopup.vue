@@ -129,6 +129,7 @@ function onSelectFilter(prcType: PrcType, label: string) {
   } else {
     void applyFilters();
   }
+  if (mode.value === 'explore' || mode.value === 'crop') mode.value = 'compare';
 }
 
 // step 삭제
@@ -236,9 +237,6 @@ async function onRegionSelect(viewport: { x: number; y: number; w: number; h: nu
 
 // 필터 적용
 async function applyFilters() {
-  // filter 적용될때는 즉시 확인 할 수 있는 모드로 변경
-  if (mode.value === 'explore' || mode.value === 'crop') mode.value = 'compare';
-
   const crop = activeCrop.value;
   if (!props.fileId || !crop || tempSteps.value.length === 0) return;
 
@@ -292,7 +290,7 @@ async function loadTimeline() {
 }
 
 // 모드 변경 시 필요한 데이터 로드
-watch(mode, (newMode) => {
+watch(mode, (newMode, oldMode) => {
   if (newMode === 'timeline') {
     void loadTimeline();
   } else if (
@@ -306,6 +304,8 @@ watch(mode, (newMode) => {
 
 // crop 선택 변경 시 현재 모드에 맞게 갱신
 watch(activeCropId, () => {
+  if (tempSteps.value.length === 0) return;
+
   if (mode.value === 'crop' || mode.value === 'compare') {
     void applyFilters();
   } else if (mode.value === 'timeline') {
