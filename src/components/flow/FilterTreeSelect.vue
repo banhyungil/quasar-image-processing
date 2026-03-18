@@ -14,7 +14,7 @@ interface FnTreeNode {
 
 const props = defineProps<{
   /** 현재 선택된 알고리즘 */
-  modelValue: PrcType;
+  modelValue?: PrcType;
   /** 버튼에 표시할 라벨 */
   label: string;
   /** 커스텀 필터 목록 */

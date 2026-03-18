@@ -102,7 +102,9 @@ interface CropItem {
 }
 const cropList = ref<CropItem[]>([]);
 const activeCropId = ref<string | null>(null);
-const activeCrop = computed(() => cropList.value.find((c) => c.cropId === activeCropId.value) ?? null);
+const activeCrop = computed(
+  () => cropList.value.find((c) => c.cropId === activeCropId.value) ?? null,
+);
 
 // 하위 호환 (기존 코드에서 사용)
 const cropId = computed(() => activeCrop.value?.cropId ?? null);
@@ -233,10 +235,9 @@ async function applyFilters() {
   }));
 
   try {
-    const blob = await imgPrcApi.previewApply(
-      props.fileId, crop.cropId, steps, crop.viewport,
-      { signal: previewAbortController.signal },
-    );
+    const blob = await imgPrcApi.previewApply(props.fileId, crop.cropId, steps, crop.viewport, {
+      signal: previewAbortController.signal,
+    });
 
     if (crop.processedImageUrl) URL.revokeObjectURL(crop.processedImageUrl);
     crop.processedImageUrl = URL.createObjectURL(blob);
@@ -263,7 +264,10 @@ async function loadTimeline() {
 
   try {
     const results = await imgPrcApi.previewApplyAll(
-      props.fileId, crop.cropId, steps, crop.viewport,
+      props.fileId,
+      crop.cropId,
+      steps,
+      crop.viewport,
       { signal: timelineAbortController.signal },
     );
     timelineSteps.value = results.map((r) => ({
@@ -388,48 +392,83 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
         <!-- 사이드 패널 -->
         <div v-if="showSidePanel" class="zoom-side column">
           <!-- 필터 선택 -->
-          <div class="q-pa-xs" style="border-bottom: 1px solid rgba(0, 0, 0, 0.08)">
-            <FilterTreeSelect
-              :model-value="undefined as any"
-              label="필터 추가"
-              @select="onSelectFilter"
-            />
+          <div style="border-bottom: 1px solid rgba(0, 0, 0, 0.08)">
+            <div class="q-pa-xs">
+              <FilterTreeSelect label="필터 추가" @select="onSelectFilter" />
+            </div>
           </div>
 
-          <!-- Crop 목록 -->
-          <div v-if="cropList.length > 0 || mode === 'explore'" class="zoom-side__crops" style="border-bottom: 1px solid rgba(0,0,0,0.08)">
-            <div class="row items-center q-px-xs q-py-xs">
-              <span class="text-caption text-grey-7 text-weight-medium">Crop</span>
-              <q-space />
-              <q-btn
-                v-if="mode === 'explore'"
-                flat
-                dense
-                size="xs"
-                icon="content_cut"
-                color="primary"
-                @click="createCrop"
-              >
-                <q-tooltip>현재 뷰포트 자르기</q-tooltip>
-              </q-btn>
+          <!-- Crop 목록 (아코디언) -->
+          <q-expansion-item default-opened dense header-class="zoom-side__section-header">
+            <template #header>
+              <q-item-section avatar style="min-width: auto; padding-right: 4px">
+                <q-icon name="crop" size="xs" color="grey-7" />
+              </q-item-section>
+              <q-item-section>
+                <span class="text-body2 text-grey-7 text-weight-medium"
+                  >Crop 목록 ({{ cropList.length }})</span
+                >
+              </q-item-section>
+              <q-item-section side>
+                <q-btn
+                  v-if="mode === 'explore'"
+                  flat
+                  dense
+                  size="xs"
+                  icon="content_cut"
+                  color="primary"
+                  @click.stop="createCrop"
+                >
+                  <q-tooltip>현재 뷰포트 자르기</q-tooltip>
+                </q-btn>
+              </q-item-section>
+            </template>
+
+            <div v-if="cropList.length === 0" class="text-caption text-grey-5 text-center q-py-sm">
+              Shift+드래그 또는 ✂ 버튼으로 영역 선택
             </div>
             <div v-for="crop in cropList" :key="crop.cropId" class="zoom-side__crop-item">
+              <div class="row items-center q-px-xs q-pt-xs">
+                <span
+                  class="text-caption ellipsis col cursor-pointer"
+                  :class="{ 'text-primary text-weight-bold': activeCropId === crop.cropId }"
+                  @click="activeCropId = crop.cropId"
+                >
+                  {{ crop.label }}
+                </span>
+                <q-btn
+                  flat
+                  round
+                  dense
+                  size="xs"
+                  icon="close"
+                  color="grey-6"
+                  @click="removeCrop(crop.cropId)"
+                />
+              </div>
               <div
                 class="zoom-side__crop-thumb cursor-pointer"
                 :class="{ 'zoom-side__crop-thumb--active': activeCropId === crop.cropId }"
                 @click="activeCropId = crop.cropId"
               >
-                <img :src="crop.processedImageUrl ?? crop.nodeImageUrl" class="zoom-side__crop-img" />
-              </div>
-              <div class="row items-center q-px-xs">
-                <span class="text-caption ellipsis col">{{ crop.label }}</span>
-                <q-btn flat round dense size="xs" icon="close" color="grey-6" @click="removeCrop(crop.cropId)" />
+                <img :src="crop.nodeImageUrl" class="zoom-side__crop-img" />
               </div>
             </div>
-          </div>
+          </q-expansion-item>
 
-          <!-- 적용 Steps 아코디언 -->
-          <q-scroll-area class="col">
+          <!-- 적용 필터 (아코디언) -->
+          <q-expansion-item default-opened dense header-class="zoom-side__section-header">
+            <template #header>
+              <q-item-section avatar style="min-width: auto; padding-right: 4px">
+                <q-icon name="layers" size="xs" color="grey-7" />
+              </q-item-section>
+              <q-item-section>
+                <span class="text-body2 text-grey-7 text-weight-medium"
+                  >적용 필터 ({{ tempSteps.length }})</span
+                >
+              </q-item-section>
+            </template>
+
             <q-list dense separator>
               <q-expansion-item
                 v-for="step in tempSteps"
@@ -492,12 +531,12 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
                 </div>
               </q-expansion-item>
             </q-list>
-          </q-scroll-area>
+          </q-expansion-item>
 
           <!-- 하단 버튼 -->
           <div
             v-if="tempSteps.length > 0"
-            class="row q-pa-xs q-gutter-xs"
+            class="row col q-pa-xs q-gutter-xs items-end"
             style="border-top: 1px solid rgba(0, 0, 0, 0.08)"
           >
             <q-btn
@@ -562,8 +601,20 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
 
             <!-- 모드 1: Crop 이미지 표시 -->
             <template v-else-if="mode === 'crop'">
-              <div v-if="nodeImageUrl" class="fit" style="display: flex; align-items: center; justify-content: center; background: #f5f5f5">
-                <img :src="processedImageUrl ?? nodeImageUrl" style="max-width: 100%; max-height: 100%; object-fit: contain" />
+              <div
+                v-if="nodeImageUrl"
+                class="fit"
+                style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  background: #f5f5f5;
+                "
+              >
+                <img
+                  :src="nodeImageUrl"
+                  style="max-width: 100%; max-height: 100%; object-fit: contain"
+                />
               </div>
               <div v-else class="fit column items-center justify-center text-grey-5">
                 <q-spinner color="primary" size="32px" />
@@ -632,9 +683,10 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
 
 .zoom-header {
   cursor: move;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 2px solid #1976d2;
   flex-shrink: 0;
-  background: #fafafa;
+  background: #e3f2fd;
+  color: #1565c0;
   user-select: none;
 }
 
@@ -644,6 +696,15 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
   border-right: 1px solid rgba(0, 0, 0, 0.1);
   background: #fafafa;
   overflow: hidden;
+
+  // deep은 전체 클래스명 전달
+  :deep(.zoom-side__section-header) {
+    padding: 4px 8px;
+    min-height: 28px;
+    border-bottom: 1px solid rgba(25, 118, 210, 0.2);
+    background: #e8f0fe;
+    color: #1565c0;
+  }
 
   &__crops {
     flex-shrink: 0;
