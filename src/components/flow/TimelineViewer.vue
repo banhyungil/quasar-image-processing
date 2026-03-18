@@ -5,7 +5,7 @@ const props = defineProps<{
   /** 노드 이미지 URL (첫 번째 항목) */
   nodeImageUrl: string;
   /** 각 step별 중간 결과 */
-  steps: { prcType: string; imageSrc: string }[];
+  steps: { prcType: string; imageSrc: string; executionMs?: number }[];
 }>();
 
 const emit = defineEmits<{
@@ -26,7 +26,9 @@ const selectedSrc = computed(() => {
 const selectedLabel = computed(() => {
   if (selectedIndex.value < 0) return '노드 이미지';
   const step = props.steps[selectedIndex.value];
-  return step ? `${selectedIndex.value + 1}. ${step.prcType}` : '';
+  if (!step) return '';
+  const ms = step.executionMs != null ? ` (${step.executionMs.toFixed(1)}ms)` : '';
+  return `${selectedIndex.value + 1}. ${step.prcType}${ms}`;
 });
 </script>
 

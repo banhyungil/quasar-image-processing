@@ -112,6 +112,7 @@ const activeCrop = computed(
 
 let previewAbortController: AbortController | null = null;
 const applying = ref(false);
+const lastExecutionMs = ref<number | null>(null);
 
 // 필터 추가
 async function onSelectFilter(prcType: PrcType, label: string) {
@@ -256,13 +257,14 @@ async function applyFilters() {
       parameters: { ...s.parameters },
     }));
 
-    const blob = await imgPrcApi.previewApply(props.fileId, crop.cropId, steps, crop.viewport, {
+    const result = await imgPrcApi.previewApply(props.fileId, crop.cropId, steps, crop.viewport, {
       signal: previewAbortController.signal,
     });
 
-    if (!blob) return; // abort
+    if (!result) return; // abort
     if (crop.processedImageUrl) URL.revokeObjectURL(crop.processedImageUrl);
-    crop.processedImageUrl = URL.createObjectURL(blob);
+    crop.processedImageUrl = URL.createObjectURL(result.blob);
+    lastExecutionMs.value = result.executionMs;
   } finally {
     applying.value = false;
   }
@@ -295,6 +297,7 @@ async function loadTimeline() {
     timelineSteps.value = results.map((r) => ({
       prcType: r.prcType,
       imageSrc: `data:image/png;base64,${r.imageBase64}`,
+      executionMs: r.executionMs,
     }));
   } catch {
     // abort 또는 에러
@@ -667,7 +670,10 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
                     :zoom-per-scroll="settingsStore.defaultZoomPerScroll"
                     class="fit"
                   />
-                  <span class="compare-label">처리 결과</span>
+                  <span class="compare-label">
+                    처리 결과
+                    <span v-if="lastExecutionMs != null" class="q-ml-xs">{{ lastExecutionMs.toFixed(1) }}ms</span>
+                  </span>
                   <q-inner-loading :showing="applying" style="z-index: 10">
                     <q-spinner color="primary" size="24px" />
                   </q-inner-loading>
