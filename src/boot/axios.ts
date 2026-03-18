@@ -29,15 +29,21 @@ interface AppErrorResponse {
 api.interceptors.response.use(
   (res) => res,
   (err: AxiosError<AppErrorResponse>) => {
+    // abort된 요청은 알림 없이 무시
+    if (axios.isCancel(err)) {
+      return Promise.reject(err);
+    }
+
     const status = err.response?.status;
     const data = err.response?.data;
 
     // AppError 응답: { code, message, detail? }
     // HTTPException 응답: { detail }
-    const message = data?.message
-      ?? (typeof data?.detail === 'string' ? data.detail : null)
-      ?? err.message
-      ?? '요청 실패';
+    const message =
+      data?.message ??
+      (typeof data?.detail === 'string' ? data.detail : null) ??
+      err.message ??
+      '요청 실패';
 
     const code = data?.code;
 
