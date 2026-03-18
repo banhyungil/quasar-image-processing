@@ -126,9 +126,8 @@ function onSelectFilter(prcType: PrcType, label: string) {
 
   if (!showSidePanel.value) showSidePanel.value = true;
 
-  // crop이 없으면 자동 생성, 있으면 compare로 전환
   if (!activeCrop.value && props.fileId) {
-    void startCompareMode();
+    void createCrop();
   } else {
     mode.value = 'compare';
     void applyFilters();
@@ -143,7 +142,6 @@ function removeStep(stepId: string) {
 
   if (tempSteps.value.length === 0) {
     mode.value = 'explore';
-    cleanupAllCrops();
   } else {
     void applyFilters();
   }
@@ -184,11 +182,6 @@ async function createCrop() {
   } catch {
     // interceptor가 에러 알림 처리
   }
-}
-
-// 하위 호환: 필터 추가 시 crop 없으면 자동 생성
-async function startCompareMode() {
-  await createCrop();
 }
 
 // Shift+드래그 영역 선택으로 crop 생성
@@ -557,7 +550,6 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
         <div class="col column" style="min-width: 0">
           <!-- 모드 토글 -->
           <div
-            v-if="cropId"
             class="row items-center justify-center q-py-xs"
             style="border-bottom: 1px solid rgba(0, 0, 0, 0.08); flex-shrink: 0"
           >
@@ -569,15 +561,25 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
               toggle-color="primary"
               :options="[
                 { value: 'explore', icon: 'search', slot: 'explore' },
-                { value: 'crop', icon: 'crop', slot: 'crop' },
-                { value: 'compare', icon: 'compare', slot: 'compare' },
-                { value: 'timeline', icon: 'view_column', slot: 'timeline' },
+                { value: 'crop', icon: 'crop', slot: 'crop', disable: !cropId },
+                {
+                  value: 'compare',
+                  icon: 'compare',
+                  slot: 'compare',
+                  disable: !cropId || !processedImageUrl,
+                },
+                {
+                  value: 'timeline',
+                  icon: 'view_column',
+                  slot: 'timeline',
+                  disable: !cropId || tempSteps.length === 0,
+                },
               ]"
             >
               <template #explore><q-tooltip>탐색</q-tooltip></template>
               <template #crop><q-tooltip>Crop</q-tooltip></template>
-              <template #compare><q-tooltip>비교</q-tooltip></template>
               <template #timeline><q-tooltip>타임라인</q-tooltip></template>
+              <template #compare><q-tooltip>비교</q-tooltip></template>
             </q-btn-toggle>
           </div>
 

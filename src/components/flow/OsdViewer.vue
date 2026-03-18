@@ -181,7 +181,7 @@ onMounted(() => {
   });
 
   // 네비게이션 버튼 툴팁 한글화
-  const tooltipLabels = ['확대', '축소', '줌 초기화(Esc)', '전체화면'];
+  const tooltipLabels = ['확대', '축소', '홈(Esc)', '전체화면'];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const buttons: OpenSeadragon.Button[] | undefined = (viewer as any).buttonGroup?.buttons;
   buttons?.forEach((btn, i) => {
