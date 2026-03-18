@@ -262,8 +262,7 @@ async function applyFilters() {
     });
 
     if (!result) return; // abort
-    if (crop.processedImageUrl) URL.revokeObjectURL(crop.processedImageUrl);
-    crop.processedImageUrl = URL.createObjectURL(result.blob);
+    crop.processedImageUrl = `data:image/png;base64,${result.imageBase64}`;
     lastExecutionMs.value = result.executionMs;
   } finally {
     applying.value = false;
@@ -343,9 +342,6 @@ function cleanupAllCrops() {
     if (props.fileId) {
       void imgPrcApi.previewDelete(props.fileId, crop.cropId);
     }
-    if (crop.processedImageUrl) {
-      URL.revokeObjectURL(crop.processedImageUrl);
-    }
   }
   cropList.value = [];
   activeCropId.value = null;
@@ -356,9 +352,6 @@ function removeCrop(cropIdToRemove: string) {
   if (!crop) return;
   if (props.fileId) {
     void imgPrcApi.previewDelete(props.fileId, cropIdToRemove);
-  }
-  if (crop.processedImageUrl) {
-    URL.revokeObjectURL(crop.processedImageUrl);
   }
   cropList.value = cropList.value.filter((c) => c.cropId !== cropIdToRemove);
   if (activeCropId.value === cropIdToRemove) {

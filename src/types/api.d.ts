@@ -384,6 +384,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/image-processing/preview/apply-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Apply All
+         * @description 캐시된 crop 이미지에 tempSteps를 적용하고 각 step별 중간 결과를 반환한다.
+         */
+        post: operations["preview_apply_all_api_image_processing_preview_apply_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/image-processing/preview/crop/{file_id}/{crop_id}": {
         parameters: {
             query?: never;
@@ -614,6 +634,35 @@ export interface components {
              * @description 업로드할 원본 이미지 파일
              */
             file: string;
+        };
+        /** Body_preview_apply_all_api_image_processing_preview_apply_all_post */
+        Body_preview_apply_all_api_image_processing_preview_apply_all_post: {
+            /**
+             * Fileid
+             * @description 원본 파일 ID
+             */
+            fileId: string;
+            /**
+             * Cropid
+             * @description crop 캐시 ID
+             */
+            cropId: string;
+            /**
+             * Tempsteps
+             * @description 임시 필터 steps JSON 배열
+             */
+            tempSteps: string;
+            /**
+             * Viewport
+             * @description crop 시 사용한 viewport JSON
+             */
+            viewport: string;
+            /**
+             * Padding
+             * @description crop 시 사용한 padding
+             * @default 50
+             */
+            padding: number;
         };
         /** Body_preview_apply_api_image_processing_preview_apply_post */
         Body_preview_apply_api_image_processing_preview_apply_post: {
@@ -2576,7 +2625,44 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_apply_all_api_image_processing_preview_apply_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_preview_apply_all_api_image_processing_preview_apply_all_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
                 };
             };
             /** @description Validation Error */

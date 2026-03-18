@@ -230,7 +230,7 @@ export async function previewApply(
   tempSteps: PreviewTempStep[],
   viewport: Viewport,
   options?: { padding?: number; signal?: AbortSignal },
-): Promise<{ blob: Blob; executionMs: number } | null> {
+): Promise<{ imageBase64: string; executionMs: number } | null> {
   const form = new FormData();
   form.append('fileId', fileId);
   form.append('cropId', cropId);
@@ -240,14 +240,16 @@ export async function previewApply(
     form.append('padding', options.padding.toString());
   }
 
-  const res = await api.post<Blob>('/image-processing/preview/apply', form, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-    responseType: 'blob',
-    signal: options?.signal,
-  });
+  const res = await api.post<{ imageBase64: string; executionMs: number }>(
+    '/image-processing/preview/apply',
+    form,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      signal: options?.signal,
+    },
+  );
   if (!res) return null; // abort
-  const executionMs = Number(res.headers['x-process-time-ms'] ?? 0);
-  return { blob: res.data, executionMs };
+  return res.data;
 }
 
 /** 캐시된 crop 이미지에 tempSteps를 적용하고 각 step별 중간 결과를 반환한다. */
