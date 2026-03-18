@@ -12,15 +12,47 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'pick-image'): void;
   (e: 'pick-existing'): void;
+  (e: 'drop-file', file: File): void;
   (e: 'clear-image'): void;
   (e: 'zoom', nodeId: string): void;
 }>();
+
+const dragging = ref(false);
+
+/**
+ * DragOver 이벤트
+ * * 파일이나 요소를 드래그 한채로 요소위에 올리면 발생하는 이벤트
+ *
+ **/
+function onDragOver(e: DragEvent) {
+  e.preventDefault();
+  dragging.value = true;
+}
+
+function onDragLeave() {
+  dragging.value = false;
+}
+
+function onDrop(e: DragEvent) {
+  e.preventDefault();
+  dragging.value = false;
+  const file = e.dataTransfer?.files[0];
+  if (file && file.type.startsWith('image/')) {
+    emit('drop-file', file);
+  }
+}
 </script>
 
 <template>
-  <div class="source-node cursor-pointer" :style="{ width: `${settings.nodeSize.width}px` }">
+  <div
+    class="source-node cursor-pointer"
+    :class="{ 'source-node--dragover': dragging }"
+    :style="{ width: `${settings.nodeSize.width}px` }"
+    @dragover="onDragOver"
+    @dragleave="onDragLeave"
+    @drop="onDrop"
+  >
     <!-- 헤더 -->
     <div class="source-node__header">
       <q-icon name="image" size="xs" color="primary" />
@@ -53,30 +85,21 @@ const emit = defineEmits<{
     </div>
 
     <!-- 이미지 영역 -->
-    <div v-if="data.previewUrl" class="source-node__body" :style="{ height: `${settings.nodeSize.thumbHeight}px` }">
+    <div
+      v-if="data.previewUrl"
+      class="source-node__body"
+      :style="{ height: `${settings.nodeSize.thumbHeight}px` }"
+    >
       <img :src="data.thumbnailUrl ?? data.previewUrl" class="source-node__preview" />
     </div>
-    <div v-else class="source-node__body source-node__body--empty" :style="{ height: `${settings.nodeSize.thumbHeight}px` }">
-      <q-btn
-        flat
-        no-caps
-        dense
-        icon="add_photo_alternate"
-        label="파일 업로드"
-        color="grey-7"
-        size="sm"
-        @click="emit('pick-image')"
-      />
-      <q-btn
-        flat
-        no-caps
-        dense
-        icon="photo_library"
-        label="기존 이미지"
-        color="grey-7"
-        size="sm"
-        @click="emit('pick-existing')"
-      />
+    <div
+      v-else
+      class="source-node__body source-node__body--empty"
+      :style="{ height: `${settings.nodeSize.thumbHeight}px` }"
+      @click="emit('pick-existing')"
+    >
+      <q-icon name="add_photo_alternate" size="sm" color="grey-5" />
+      <span class="text-caption text-grey-5">클릭 또는 파일 드래그</span>
     </div>
 
     <!-- Output Handle -->
@@ -91,6 +114,12 @@ const emit = defineEmits<{
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 1px 4px rgba(25, 118, 210, 0.15);
+
+  &--dragover {
+    border-color: #4caf50;
+    background: rgba(76, 175, 80, 0.05);
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
+  }
 
   &__header {
     display: flex;

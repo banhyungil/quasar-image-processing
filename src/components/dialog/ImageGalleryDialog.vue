@@ -6,6 +6,10 @@ import type { FileListResponse } from 'src/types/imgPrcType';
 type TFile = FileListResponse['items'][number];
 
 const $q = useQuasar();
+const props = defineProps<{
+  initialFile?: File | null;
+}>();
+
 const show = defineModel<boolean>({ required: true });
 
 const emit = defineEmits<{
@@ -232,6 +236,13 @@ watch(show, (val) => {
     cancelUpload();
     cancelEdit();
     void load(true);
+
+    // 드롭된 파일이 있으면 업로드 대기 상태로 설정
+    if (props.initialFile) {
+      pendingFile.value = props.initialFile;
+      pendingName.value = props.initialFile.name.replace(/\.[^.]+$/, '');
+      pendingPreview.value = URL.createObjectURL(props.initialFile);
+    }
   }
 });
 </script>

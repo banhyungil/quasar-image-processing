@@ -102,6 +102,12 @@ const oOrigin = ref<{ fileId: string | null; imageUrl: string | null }>({
 });
 const originalInputRef = ref<HTMLInputElement | null>(null);
 const showImageGallery = ref(false);
+const droppedFile = ref<File | null>(null);
+
+function onDropFile(file: File) {
+  droppedFile.value = file;
+  showImageGallery.value = true;
+}
 
 /** 원본 이미지 설정 + 서버 업로드 (fileId 획득) */
 async function setOriginalFile(file: File | null) {
@@ -1110,8 +1116,8 @@ async function onCopyChain(nodeId: string) {
                   <SourceNode
                     v-bind="nodeProps"
                     :zoomed="cZoomedNodeIds.has(nodeProps.id)"
-                    @pick-image="openOriginalPicker"
                     @pick-existing="showImageGallery = true"
+                    @drop-file="onDropFile"
                     @clear-image="setOriginalFile(null)"
                     @zoom="onNodeZoom"
                   />
@@ -1166,7 +1172,12 @@ async function onCopyChain(nodeId: string) {
       @saved="onCustomFilterSaved"
     />
 
-    <ImageGalleryDialog v-model="showImageGallery" @select="onSelectExistingImage" />
+    <ImageGalleryDialog
+      v-model="showImageGallery"
+      :initial-file="droppedFile"
+      @select="onSelectExistingImage"
+      @update:model-value="!$event && (droppedFile = null)"
+    />
 
     <!-- 이미지 확대 팝업 (복수 모달리스) -->
     <ImageZoomPopup
