@@ -303,7 +303,11 @@ async function loadTimeline() {
 watch(mode, (newMode) => {
   if (newMode === 'timeline') {
     void loadTimeline();
-  } else if ((newMode === 'crop' || newMode === 'compare') && activeCrop.value && tempSteps.value.length > 0) {
+  } else if (
+    (newMode === 'crop' || newMode === 'compare') &&
+    activeCrop.value &&
+    tempSteps.value.length > 0
+  ) {
     void applyFilters();
   }
 });
@@ -626,7 +630,7 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
           <!-- 뷰어 콘텐츠 -->
           <div class="col" style="min-height: 0; position: relative">
             <!-- 모드 0: 전체 이미지 탐색 -->
-            <div v-show="mode === 'explore'" class="fit">
+            <div v-show="mode === 'explore'" class="viewer-pane">
               <OsdViewer
                 v-if="dziUrl || src"
                 ref="osdViewerComp"
@@ -643,7 +647,16 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
             </div>
 
             <!-- 모드 1: Crop 이미지 표시 -->
-            <div v-show="mode === 'crop'" class="fit" style="display: flex; align-items: center; justify-content: center; background: #f5f5f5">
+            <div
+              v-show="mode === 'crop'"
+              class="viewer-pane"
+              style="
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #f5f5f5;
+              "
+            >
               <img
                 v-if="activeCrop?.nodeImageUrl"
                 :src="activeCrop!.nodeImageUrl"
@@ -652,7 +665,7 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
             </div>
 
             <!-- 모드 2: 비교 모드 (원본 | 처리 결과) OsdViewer -->
-            <div v-show="mode === 'compare'" class="fit row">
+            <div v-show="mode === 'compare'" class="viewer-pane row">
               <template v-if="activeCrop?.nodeImageUrl && activeCrop?.processedImageUrl">
                 <div
                   class="col"
@@ -681,7 +694,7 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
             </div>
 
             <!-- 모드 3: Timeline -->
-            <div v-show="mode === 'timeline'" class="fit">
+            <div v-show="mode === 'timeline'" class="viewer-pane">
               <TimelineViewer
                 v-if="activeCrop?.nodeImageUrl && timelineSteps.length > 0"
                 :node-image-url="activeCrop!.nodeImageUrl"
@@ -723,6 +736,11 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
     border-radius: 0;
     resize: none;
   }
+}
+
+.viewer-pane {
+  position: absolute;
+  inset: 0;
 }
 
 .compare-label {

@@ -12,6 +12,9 @@ const emit = defineEmits<{
   (e: 'select', stepIndex: number): void;
 }>();
 
+type Layout = 'split' | 'scroll';
+const layout = ref<Layout>('split');
+
 // -1 = 노드 이미지, 0~ = step 인덱스
 const selectedIndex = ref(-1);
 
@@ -28,51 +31,124 @@ const selectedLabel = computed(() => {
 </script>
 
 <template>
-  <div class="timeline-layout">
-    <!-- 메인 이미지 영역 -->
-    <div class="timeline-main">
-      <OsdViewer :src="selectedSrc" class="fit" />
-      <span class="timeline-main__label">{{ selectedLabel }}</span>
-    </div>
+  <div class="timeline-layout" :class="{ 'timeline-layout--column': layout === 'scroll' }">
+    <!-- A. 메인 + 우측 썸네일 -->
+    <template v-if="layout === 'split'">
+      <div class="timeline-main">
+        <OsdViewer :src="selectedSrc" class="fit" />
+        <span class="timeline-main__label">{{ selectedLabel }}</span>
+      </div>
 
-    <!-- 우측 세로 썸네일 목록 -->
-    <div class="timeline-strip">
+      <div class="timeline-strip">
+        <!-- 토글 (패널 상단) -->
+        <div class="row" style="flex-shrink: 0; border-bottom: 1px solid rgba(0, 0, 0, 0.08)">
+          <q-btn
+            flat
+            no-caps
+            dense
+            class="col"
+            color="primary"
+            icon="view_sidebar"
+            label="포커스"
+            @click="layout = 'split'"
+          />
+          <q-separator vertical />
+          <q-btn
+            flat
+            no-caps
+            dense
+            class="col"
+            color="grey-7"
+            icon="view_day"
+            label="전체"
+            @click="layout = 'scroll'"
+          />
+        </div>
+        <div
+          class="timeline-strip__item"
+          :class="{ 'timeline-strip__item--active': selectedIndex === -1 }"
+          @click="selectedIndex = -1"
+        >
+          <img :src="nodeImageUrl" class="timeline-strip__img" />
+          <div class="timeline-strip__label">원본</div>
+        </div>
+
+        <q-icon
+          v-if="steps.length > 0"
+          name="arrow_downward"
+          size="xs"
+          color="grey-5"
+          class="timeline-strip__arrow"
+        />
+
+        <template v-for="(step, i) in steps" :key="i">
+          <div
+            class="timeline-strip__item cursor-pointer"
+            :class="{ 'timeline-strip__item--active': selectedIndex === i }"
+            @click="
+              selectedIndex = i;
+              emit('select', i);
+            "
+          >
+            <img :src="step.imageSrc" class="timeline-strip__img" />
+            <div class="timeline-strip__label">
+              <span class="text-weight-medium">{{ i + 1 }}.</span> {{ step.prcType }}
+            </div>
+          </div>
+          <q-icon
+            v-if="i < steps.length - 1"
+            name="arrow_downward"
+            size="xs"
+            color="grey-5"
+            class="timeline-strip__arrow"
+          />
+        </template>
+      </div>
+    </template>
+
+    <!-- B. 전체 세로 스크롤 -->
+    <div v-else class="timeline-scroll">
+      <!-- 토글 (우상단 absolute) -->
+      <q-btn-toggle
+        v-model="layout"
+        flat
+        dense
+        size="md"
+        toggle-color="primary"
+        class="timeline-scroll__toggle"
+        :options="[
+          { value: 'split', icon: 'view_sidebar' },
+          { value: 'scroll', icon: 'view_day' },
+        ]"
+      />
       <!-- 노드 이미지 -->
-      <div
-        class="timeline-strip__item"
-        :class="{ 'timeline-strip__item--active': selectedIndex === -1 }"
-        @click="selectedIndex = -1"
-      >
-        <img :src="nodeImageUrl" class="timeline-strip__img" />
-        <div class="timeline-strip__label">원본</div>
+      <div class="timeline-scroll__card">
+        <img :src="nodeImageUrl" class="timeline-scroll__img" />
+        <div class="timeline-scroll__label">노드 이미지</div>
       </div>
 
       <q-icon
         v-if="steps.length > 0"
         name="arrow_downward"
-        size="xs"
+        size="sm"
         color="grey-5"
-        class="timeline-strip__arrow"
+        class="q-my-xs"
       />
 
       <!-- step별 결과 -->
       <template v-for="(step, i) in steps" :key="i">
-        <div
-          class="timeline-strip__item cursor-pointer"
-          :class="{ 'timeline-strip__item--active': selectedIndex === i }"
-          @click="selectedIndex = i; emit('select', i)"
-        >
-          <img :src="step.imageSrc" class="timeline-strip__img" />
-          <div class="timeline-strip__label">
+        <div class="timeline-scroll__card">
+          <img :src="step.imageSrc" class="timeline-scroll__img" />
+          <div class="timeline-scroll__label">
             <span class="text-weight-medium">{{ i + 1 }}.</span> {{ step.prcType }}
           </div>
         </div>
         <q-icon
           v-if="i < steps.length - 1"
           name="arrow_downward"
-          size="xs"
+          size="sm"
           color="grey-5"
-          class="timeline-strip__arrow"
+          class="q-my-xs"
         />
       </template>
     </div>
@@ -84,8 +160,13 @@ const selectedLabel = computed(() => {
   display: flex;
   width: 100%;
   height: 100%;
+
+  &--column {
+    flex-direction: column;
+  }
 }
 
+// ── A. 메인 + 우측 썸네일 ──────────────────────────────
 .timeline-main {
   flex: 1;
   min-width: 0;
@@ -94,12 +175,6 @@ const selectedLabel = computed(() => {
   justify-content: center;
   position: relative;
   background: #f5f5f5;
-
-  &__img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-  }
 
   &__label {
     position: absolute;
@@ -175,6 +250,62 @@ const selectedLabel = computed(() => {
 
   &__arrow {
     flex-shrink: 0;
+  }
+}
+
+// ── B. 전체 세로 스크롤 ──────────────────────────────
+.timeline-scroll {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  overflow-y: auto;
+  background: #f5f5f5;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+  }
+
+  &__toggle {
+    position: sticky;
+    top: 0;
+    align-self: flex-end;
+    z-index: 5;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+
+  &__card {
+    width: 100%;
+    max-width: 1200px;
+    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+
+  &__img {
+    width: 100%;
+    object-fit: contain;
+    display: block;
+    background: #fafafa;
+  }
+
+  &__label {
+    padding: 6px 12px;
+    font-size: 13px;
+    color: #555;
+    text-align: center;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    background: white;
   }
 }
 </style>
