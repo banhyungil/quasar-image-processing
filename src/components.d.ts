@@ -22,6 +22,7 @@ declare module 'vue' {
     ImageGalleryDialog: typeof import('./components/dialog/ImageGalleryDialog.vue')['default']
     ImageZoomPopup: typeof import('./components/flow/ImageZoomPopup.vue')['default']
     OsdViewer: typeof import('./components/flow/OsdViewer.vue')['default']
+    ParamField: typeof import('./components/flow/ParamField.vue')['default']
     ParamPanel: typeof import('./components/flow/ParamPanel.vue')['default']
     PresetListPanel: typeof import('./components/sidebar/PresetListPanel.vue')['default']
     PresetSaveDialog: typeof import('./components/dialog/PresetSaveDialog.vue')['default']

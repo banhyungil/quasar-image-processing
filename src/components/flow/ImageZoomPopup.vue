@@ -10,6 +10,7 @@ import { API_HOST } from 'src/boot/axios';
 import OsdViewer from './OsdViewer.vue';
 import FilterTreeSelect from './FilterTreeSelect.vue';
 import TimelineViewer from './TimelineViewer.vue';
+import ParamField from './ParamField.vue';
 
 const settingsStore = useSettingsStore();
 const $q = useQuasar();
@@ -110,9 +111,10 @@ const activeCrop = computed(
 );
 
 let previewAbortController: AbortController | null = null;
+const applying = ref(false);
 
 // 필터 추가
-function onSelectFilter(prcType: PrcType, label: string) {
+async function onSelectFilter(prcType: PrcType, label: string) {
   const id = crypto.randomUUID();
   const fields = PARAM_FIELDS[prcType] ?? [];
   const parameters: Record<string, unknown> = Object.fromEntries(
@@ -125,11 +127,15 @@ function onSelectFilter(prcType: PrcType, label: string) {
   if (!showSidePanel.value) showSidePanel.value = true;
 
   if (!activeCrop.value && props.fileId) {
-    void createCrop();
+    await createCrop();
   } else {
-    void applyFilters();
+    await applyFilters();
   }
-  if (mode.value === 'explore' || mode.value === 'crop') mode.value = 'compare';
+
+  void nextTick(() => {
+    if (cropList.value.length == 0) return;
+    if (mode.value === 'explore' || mode.value === 'crop') mode.value = 'compare';
+  });
 }
 
 // step 삭제
@@ -202,7 +208,7 @@ async function createCrop() {
   };
   cropList.value.push(newCrop);
   activeCropId.value = result.cropId;
-  mode.value = 'crop';
+  if (mode.value === 'explore') mode.value = 'crop';
 }
 
 // Shift+드래그 영역 선택으로 crop 생성
@@ -242,18 +248,24 @@ async function applyFilters() {
 
   previewAbortController?.abort();
   previewAbortController = new AbortController();
+  applying.value = true;
 
-  const steps: PreviewTempStep[] = tempSteps.value.map((s) => ({
-    prcType: s.prcType,
-    parameters: { ...s.parameters },
-  }));
+  try {
+    const steps: PreviewTempStep[] = tempSteps.value.map((s) => ({
+      prcType: s.prcType,
+      parameters: { ...s.parameters },
+    }));
 
-  const blob = await imgPrcApi.previewApply(props.fileId, crop.cropId, steps, crop.viewport, {
-    signal: previewAbortController.signal,
-  });
+    const blob = await imgPrcApi.previewApply(props.fileId, crop.cropId, steps, crop.viewport, {
+      signal: previewAbortController.signal,
+    });
 
-  if (crop.processedImageUrl) URL.revokeObjectURL(crop.processedImageUrl);
-  crop.processedImageUrl = URL.createObjectURL(blob);
+    if (!blob) return; // abort
+    if (crop.processedImageUrl) URL.revokeObjectURL(crop.processedImageUrl);
+    crop.processedImageUrl = URL.createObjectURL(blob);
+  } finally {
+    applying.value = false;
+  }
 }
 
 // timeline 데이터
@@ -290,7 +302,7 @@ async function loadTimeline() {
 }
 
 // 모드 변경 시 필요한 데이터 로드
-watch(mode, (newMode, oldMode) => {
+watch(mode, (newMode) => {
   if (newMode === 'timeline') {
     void loadTimeline();
   } else if (
@@ -515,37 +527,16 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
                 </template>
 
                 <div class="q-px-sm q-pb-sm">
-                  <template v-for="field in getStepFields(step.prcType)" :key="field.key">
-                    <q-input
-                      v-if="field.type === 'number'"
-                      :model-value="(step.parameters?.[field.key] as number) ?? field.default"
-                      @update:model-value="
-                        step.parameters![field.key] = Number($event);
-                        onParamChange();
-                      "
-                      :label="field.label"
-                      type="number"
-                      :min="field.min"
-                      :max="field.max"
-                      :step="field.step"
-                      outlined
-                      dense
-                    />
-                    <q-select
-                      v-else-if="field.type === 'select'"
-                      :model-value="step.parameters?.[field.key]"
-                      @update:model-value="
-                        step.parameters![field.key] = $event;
-                        onParamChange();
-                      "
-                      :label="field.label"
-                      :options="field.options"
-                      emit-value
-                      map-options
-                      outlined
-                      dense
-                    />
-                  </template>
+                  <ParamField
+                    v-for="field in getStepFields(step.prcType)"
+                    :key="field.key"
+                    :field="field"
+                    :model-value="step.parameters?.[field.key]"
+                    @update:model-value="
+                      step.parameters![field.key] = $event;
+                      onParamChange();
+                    "
+                  />
                 </div>
               </q-expansion-item>
             </q-list>
@@ -677,6 +668,9 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
                     class="fit"
                   />
                   <span class="compare-label">처리 결과</span>
+                  <q-inner-loading :showing="applying" style="z-index: 10">
+                    <q-spinner color="primary" size="24px" />
+                  </q-inner-loading>
                 </div>
               </template>
               <div v-else class="fit column items-center justify-center text-grey-5">
