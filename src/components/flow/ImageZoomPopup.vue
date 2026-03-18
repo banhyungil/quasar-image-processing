@@ -145,9 +145,13 @@ function removeStep(stepId: string) {
   }
 }
 
-// 파라미터 변경 (debounce)
+// 파라미터 변경 (debounce) — 현재 모드에 필요한 API만 호출
 const onParamChange = useDebounceFn(() => {
-  void applyFilters();
+  if (mode.value === 'timeline') {
+    void loadTimeline();
+  } else if (mode.value === 'crop' || mode.value === 'compare') {
+    void applyFilters();
+  }
 }, 200);
 
 // crop 해상도 제한 (총 픽셀 수 기준)
@@ -295,10 +299,12 @@ async function loadTimeline() {
   }
 }
 
-// 모드 변경 시 timeline 데이터 로드
+// 모드 변경 시 필요한 데이터 로드
 watch(mode, (newMode) => {
   if (newMode === 'timeline') {
     void loadTimeline();
+  } else if ((newMode === 'crop' || newMode === 'compare') && activeCrop.value && tempSteps.value.length > 0) {
+    void applyFilters();
   }
 });
 
@@ -593,7 +599,7 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
                 },
                 {
                   value: 'timeline',
-                  icon: 'view_column',
+                  icon: 'view_timeline',
                   slot: 'timeline',
                   disable: !activeCrop || tempSteps.length === 0,
                 },
@@ -620,7 +626,7 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
           <!-- 뷰어 콘텐츠 -->
           <div class="col" style="min-height: 0; position: relative">
             <!-- 모드 0: 전체 이미지 탐색 -->
-            <template v-if="mode === 'explore'">
+            <div v-show="mode === 'explore'" class="fit">
               <OsdViewer
                 v-if="dziUrl || src"
                 ref="osdViewerComp"
@@ -634,34 +640,20 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
               <div v-else class="fit column items-center justify-center text-grey-5">
                 이미지가 없습니다
               </div>
-            </template>
+            </div>
 
             <!-- 모드 1: Crop 이미지 표시 -->
-            <template v-else-if="mode === 'crop'">
-              <div
+            <div v-show="mode === 'crop'" class="fit" style="display: flex; align-items: center; justify-content: center; background: #f5f5f5">
+              <img
                 v-if="activeCrop?.nodeImageUrl"
-                class="fit"
-                style="
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  background: #f5f5f5;
-                "
-              >
-                <img
-                  :src="activeCrop!.nodeImageUrl"
-                  style="max-width: 100%; max-height: 100%; object-fit: contain"
-                />
-              </div>
-              <div v-else class="fit column items-center justify-center text-grey-5">
-                <q-spinner color="primary" size="32px" />
-                <span class="q-mt-sm">처리 중...</span>
-              </div>
-            </template>
+                :src="activeCrop!.nodeImageUrl"
+                style="max-width: 100%; max-height: 100%; object-fit: contain"
+              />
+            </div>
 
             <!-- 모드 2: 비교 모드 (원본 | 처리 결과) OsdViewer -->
-            <template v-else-if="mode === 'compare'">
-              <div v-if="activeCrop?.nodeImageUrl && activeCrop?.processedImageUrl" class="fit row">
+            <div v-show="mode === 'compare'" class="fit row">
+              <template v-if="activeCrop?.nodeImageUrl && activeCrop?.processedImageUrl">
                 <div
                   class="col"
                   style="position: relative; border-right: 1px solid rgba(0, 0, 0, 0.1)"
@@ -681,15 +673,15 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
                   />
                   <span class="compare-label">처리 결과</span>
                 </div>
-              </div>
+              </template>
               <div v-else class="fit column items-center justify-center text-grey-5">
                 <q-spinner color="primary" size="32px" />
                 <span class="q-mt-sm">처리 중...</span>
               </div>
-            </template>
+            </div>
 
             <!-- 모드 3: Timeline -->
-            <template v-else-if="mode === 'timeline'">
+            <div v-show="mode === 'timeline'" class="fit">
               <TimelineViewer
                 v-if="activeCrop?.nodeImageUrl && timelineSteps.length > 0"
                 :node-image-url="activeCrop!.nodeImageUrl"
@@ -700,7 +692,7 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
                 <q-spinner color="primary" size="32px" />
                 <span class="q-mt-sm">처리 중...</span>
               </div>
-            </template>
+            </div>
           </div>
         </div>
       </div>
