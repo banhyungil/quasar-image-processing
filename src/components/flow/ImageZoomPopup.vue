@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useQuasar } from 'quasar';
 import { useDebounceFn, useEventListener } from '@vueuse/core';
 import { PARAM_FIELDS } from 'src/constants/imgPrc';
 import type { ParamFieldDef } from 'src/constants/imgPrc';
@@ -11,6 +12,7 @@ import FilterTreeSelect from './FilterTreeSelect.vue';
 import TimelineViewer from './TimelineViewer.vue';
 
 const settingsStore = useSettingsStore();
+const $q = useQuasar();
 
 const props = defineProps<{
   src: string | null;
@@ -28,6 +30,7 @@ const emit = defineEmits<{
 
 const isMaximized = ref(false);
 const zoomLevel = ref(1);
+const viewportSize = ref<{ w: number; h: number } | null>(null);
 const osdViewerComp = ref<InstanceType<typeof OsdViewer> | null>(null);
 
 // ── 드래그 이동 ──────────────────────────────────────────────────────────────
@@ -106,11 +109,6 @@ const activeCrop = computed(
   () => cropList.value.find((c) => c.cropId === activeCropId.value) ?? null,
 );
 
-// 하위 호환 (기존 코드에서 사용)
-const cropId = computed(() => activeCrop.value?.cropId ?? null);
-const nodeImageUrl = computed(() => activeCrop.value?.nodeImageUrl ?? null);
-const processedImageUrl = computed(() => activeCrop.value?.processedImageUrl ?? null);
-
 let previewAbortController: AbortController | null = null;
 
 // 필터 추가
@@ -152,13 +150,38 @@ const onParamChange = useDebounceFn(() => {
   void applyFilters();
 }, 200);
 
+// crop 해상도 제한 (총 픽셀 수 기준)
+const MIN_CROP_PIXELS = 2_500; // 50x50
+const MAX_CROP_PIXELS = 16_000_000; // 4000x4000
+
+const cViewportStatus = computed<'ok' | 'too-small' | 'too-large'>(() => {
+  if (!viewportSize.value) return 'ok';
+  const pixels = viewportSize.value.w * viewportSize.value.h;
+  if (pixels < MIN_CROP_PIXELS) return 'too-small';
+  if (pixels > MAX_CROP_PIXELS) return 'too-large';
+  return 'ok';
+});
+
+function validateViewport(viewport: { w: number; h: number }): boolean {
+  const pixels = viewport.w * viewport.h;
+  if (pixels < MIN_CROP_PIXELS) {
+    $q.notify({ type: 'warning', message: '선택 영역이 너무 작습니다.' });
+    return false;
+  }
+  if (pixels > MAX_CROP_PIXELS) {
+    $q.notify({ type: 'warning', message: '선택 영역이 너무 큽니다. 확대 후 다시 시도하세요.' });
+    return false;
+  }
+  return true;
+}
+
 // crop 생성 (자르기)
 async function createCrop() {
   if (!props.fileId) return;
 
   // OsdViewer에서 실제 뷰포트 좌표 추출
   const viewport = osdViewerComp.value?.getViewportPx();
-  if (!viewport) return;
+  if (!viewport || !validateViewport(viewport)) return;
 
   try {
     const result = await imgPrcApi.previewCrop(
@@ -186,7 +209,7 @@ async function createCrop() {
 
 // Shift+드래그 영역 선택으로 crop 생성
 async function onRegionSelect(viewport: { x: number; y: number; w: number; h: number }) {
-  if (!props.fileId) return;
+  if (!props.fileId || !validateViewport(viewport)) return;
 
   try {
     const result = await imgPrcApi.previewCrop(
@@ -561,18 +584,18 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
               toggle-color="primary"
               :options="[
                 { value: 'explore', icon: 'search', slot: 'explore' },
-                { value: 'crop', icon: 'crop', slot: 'crop', disable: !cropId },
+                { value: 'crop', icon: 'crop', slot: 'crop', disable: !activeCrop },
                 {
                   value: 'compare',
                   icon: 'compare',
                   slot: 'compare',
-                  disable: !cropId || !processedImageUrl,
+                  disable: !activeCrop || !activeCrop?.processedImageUrl,
                 },
                 {
                   value: 'timeline',
                   icon: 'view_column',
                   slot: 'timeline',
-                  disable: !cropId || tempSteps.length === 0,
+                  disable: !activeCrop || tempSteps.length === 0,
                 },
               ]"
             >
@@ -581,6 +604,17 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
               <template #timeline><q-tooltip>타임라인</q-tooltip></template>
               <template #compare><q-tooltip>비교</q-tooltip></template>
             </q-btn-toggle>
+            <span
+              v-if="viewportSize && mode === 'explore'"
+              class="text-caption q-ml-sm text-weight-medium"
+              :class="{
+                'text-positive': cViewportStatus === 'ok',
+                'text-warning': cViewportStatus === 'too-small',
+                'text-negative': cViewportStatus === 'too-large',
+              }"
+            >
+              {{ viewportSize.w }} x {{ viewportSize.h }}
+            </span>
           </div>
 
           <!-- 뷰어 콘텐츠 -->
@@ -594,6 +628,7 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
                 :zoom-per-scroll="settingsStore.defaultZoomPerScroll"
                 class="fit"
                 @zoom="zoomLevel = $event"
+                @viewport-change="viewportSize = { w: $event.w, h: $event.h }"
                 @region-select="onRegionSelect"
               />
               <div v-else class="fit column items-center justify-center text-grey-5">
@@ -604,7 +639,7 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
             <!-- 모드 1: Crop 이미지 표시 -->
             <template v-else-if="mode === 'crop'">
               <div
-                v-if="nodeImageUrl"
+                v-if="activeCrop?.nodeImageUrl"
                 class="fit"
                 style="
                   display: flex;
@@ -614,7 +649,7 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
                 "
               >
                 <img
-                  :src="nodeImageUrl"
+                  :src="activeCrop!.nodeImageUrl"
                   style="max-width: 100%; max-height: 100%; object-fit: contain"
                 />
               </div>
@@ -626,13 +661,13 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
 
             <!-- 모드 2: 비교 모드 (원본 | 처리 결과) OsdViewer -->
             <template v-else-if="mode === 'compare'">
-              <div v-if="nodeImageUrl && processedImageUrl" class="fit row">
+              <div v-if="activeCrop?.nodeImageUrl && activeCrop?.processedImageUrl" class="fit row">
                 <div
                   class="col"
                   style="position: relative; border-right: 1px solid rgba(0, 0, 0, 0.1)"
                 >
                   <OsdViewer
-                    :src="nodeImageUrl"
+                    :src="activeCrop!.nodeImageUrl"
                     :zoom-per-scroll="settingsStore.defaultZoomPerScroll"
                     class="fit"
                   />
@@ -640,7 +675,7 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
                 </div>
                 <div class="col" style="position: relative">
                   <OsdViewer
-                    :src="processedImageUrl"
+                    :src="activeCrop!.processedImageUrl!"
                     :zoom-per-scroll="settingsStore.defaultZoomPerScroll"
                     class="fit"
                   />
@@ -656,8 +691,8 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
             <!-- 모드 3: Timeline -->
             <template v-else-if="mode === 'timeline'">
               <TimelineViewer
-                v-if="nodeImageUrl && timelineSteps.length > 0"
-                :node-image-url="nodeImageUrl"
+                v-if="activeCrop?.nodeImageUrl && timelineSteps.length > 0"
+                :node-image-url="activeCrop!.nodeImageUrl"
                 :steps="timelineSteps"
                 class="fit"
               />

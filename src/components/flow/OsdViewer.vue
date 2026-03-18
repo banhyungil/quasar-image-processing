@@ -12,6 +12,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'zoom', level: number): void;
+  (e: 'viewport-change', viewport: { x: number; y: number; w: number; h: number }): void;
   (e: 'region-select', viewport: { x: number; y: number; w: number; h: number }): void;
 }>();
 
@@ -193,6 +194,13 @@ onMounted(() => {
 
   viewer.addHandler('zoom', (e) => {
     emit('zoom', e.zoom);
+    const vp = getViewportPx();
+    if (vp) emit('viewport-change', vp);
+  });
+
+  viewer.addHandler('pan', () => {
+    const vp = getViewportPx();
+    if (vp) emit('viewport-change', vp);
   });
 
   viewer.addHandler('canvas-click', (e) => {
