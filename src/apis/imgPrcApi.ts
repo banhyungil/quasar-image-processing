@@ -248,6 +248,34 @@ export async function previewApply(
   return res.data;
 }
 
+/** 캐시된 crop 이미지에 tempSteps를 적용하고 각 step별 중간 결과를 반환한다. */
+export async function previewApplyAll(
+  fileId: string,
+  cropId: string,
+  tempSteps: PreviewTempStep[],
+  viewport: Viewport,
+  options?: { padding?: number; signal?: AbortSignal },
+): Promise<{ prcType: string; imageBase64: string }[]> {
+  const form = new FormData();
+  form.append('fileId', fileId);
+  form.append('cropId', cropId);
+  form.append('tempSteps', JSON.stringify(tempSteps));
+  form.append('viewport', JSON.stringify(viewport));
+  if (options?.padding != null) {
+    form.append('padding', options.padding.toString());
+  }
+
+  const res = await api.post<{ prcType: string; imageBase64: string }[]>(
+    '/image-processing/preview/apply-all',
+    form,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      signal: options?.signal,
+    },
+  );
+  return res.data;
+}
+
 /** 캐시된 preview crop 파일을 삭제한다. */
 export async function previewDelete(fileId: string, cropId: string): Promise<void> {
   await api.delete(`/image-processing/preview/crop/${fileId}/${cropId}`);

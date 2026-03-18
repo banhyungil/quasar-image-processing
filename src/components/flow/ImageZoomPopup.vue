@@ -9,6 +9,7 @@ import { API_HOST } from 'src/boot/axios';
 import OsdViewer from './OsdViewer.vue';
 import FilterTreeSelect from './FilterTreeSelect.vue';
 import BeforeAfterSlider from './BeforeAfterSlider.vue';
+import TimelineViewer from './TimelineViewer.vue';
 
 const settingsStore = useSettingsStore();
 
@@ -78,9 +79,9 @@ function onKeyDown(e: KeyboardEvent) {
 useEventListener(window, 'keydown', onKeyDown);
 
 // ── 미니 에디터 ──────────────────────────────────────────────────────────────
-type Mode = 'explore' | 'compare';
+type Mode = 'explore' | 'crop' | 'compare' | 'timeline';
 const mode = ref<Mode>('explore');
-const showSidePanel = ref(false);
+const showSidePanel = ref(true);
 
 // 임시 steps
 interface TempStep extends PreviewTempStep {
@@ -91,10 +92,23 @@ const tempSteps = ref<TempStep[]>([]);
 const selectedStepId = ref<string | null>(null);
 const expandedStepId = ref<string | null>(null);
 
-// crop 캐시
-const cropId = ref<string | null>(null);
-const nodeImageUrl = ref<string | null>(null);
-const processedImageUrl = ref<string | null>(null);
+// crop 목록 관리
+interface CropItem {
+  cropId: string;
+  nodeImageUrl: string;
+  processedImageUrl: string | null;
+  viewport: Viewport;
+  label: string;
+}
+const cropList = ref<CropItem[]>([]);
+const activeCropId = ref<string | null>(null);
+const activeCrop = computed(() => cropList.value.find((c) => c.cropId === activeCropId.value) ?? null);
+
+// 하위 호환 (기존 코드에서 사용)
+const cropId = computed(() => activeCrop.value?.cropId ?? null);
+const nodeImageUrl = computed(() => activeCrop.value?.nodeImageUrl ?? null);
+const processedImageUrl = computed(() => activeCrop.value?.processedImageUrl ?? null);
+
 let previewAbortController: AbortController | null = null;
 
 // 필터 추가
@@ -110,10 +124,11 @@ function onSelectFilter(prcType: PrcType, label: string) {
 
   if (!showSidePanel.value) showSidePanel.value = true;
 
-  // 자동으로 crop 비교 모드 전환
-  if (mode.value === 'explore' && props.fileId) {
+  // crop이 없으면 자동 생성, 있으면 compare로 전환
+  if (!activeCrop.value && props.fileId) {
     void startCompareMode();
   } else {
+    mode.value = 'compare';
     void applyFilters();
   }
 }
@@ -126,7 +141,7 @@ function removeStep(stepId: string) {
 
   if (tempSteps.value.length === 0) {
     mode.value = 'explore';
-    cleanupCrop();
+    cleanupAllCrops();
   } else {
     void applyFilters();
   }
@@ -137,12 +152,13 @@ const onParamChange = useDebounceFn(() => {
   void applyFilters();
 }, 200);
 
-// crop 비교 모드 시작
-async function startCompareMode() {
+// crop 생성 (자르기)
+async function createCrop() {
   if (!props.fileId) return;
 
-  // OsdViewer에서 뷰포트 좌표 추출 (미구현 시 전체 이미지)
-  const viewport: Viewport = { x: 0, y: 0, w: 2000, h: 2000 };
+  // OsdViewer에서 실제 뷰포트 좌표 추출
+  const viewport = osdViewerRef.value?.getViewportPx();
+  if (!viewport) return;
 
   try {
     const result = await imgPrcApi.previewCrop(
@@ -151,9 +167,16 @@ async function startCompareMode() {
       props.nodeId ?? 'source',
       viewport,
     );
-    cropId.value = result.cropId;
-    nodeImageUrl.value = API_HOST + result.nodeImageUrl;
-    mode.value = 'compare';
+    const newCrop: CropItem = {
+      cropId: result.cropId,
+      nodeImageUrl: API_HOST + result.nodeImageUrl,
+      processedImageUrl: null,
+      viewport,
+      label: `Crop ${cropList.value.length + 1}`,
+    };
+    cropList.value.push(newCrop);
+    activeCropId.value = result.cropId;
+    mode.value = 'crop';
 
     void applyFilters();
   } catch {
@@ -161,14 +184,49 @@ async function startCompareMode() {
   }
 }
 
+// 하위 호환: 필터 추가 시 crop 없으면 자동 생성
+async function startCompareMode() {
+  await createCrop();
+}
+
+// Shift+드래그 영역 선택으로 crop 생성
+async function onRegionSelect(viewport: { x: number; y: number; w: number; h: number }) {
+  if (!props.fileId) return;
+
+  try {
+    const result = await imgPrcApi.previewCrop(
+      props.fileId,
+      props.nodeSteps ?? [],
+      props.nodeId ?? 'source',
+      viewport,
+    );
+    const newCrop: CropItem = {
+      cropId: result.cropId,
+      nodeImageUrl: API_HOST + result.nodeImageUrl,
+      processedImageUrl: null,
+      viewport,
+      label: `Crop ${cropList.value.length + 1}`,
+    };
+    cropList.value.push(newCrop);
+    activeCropId.value = result.cropId;
+    mode.value = 'crop';
+
+    if (tempSteps.value.length > 0) {
+      void applyFilters();
+    }
+  } catch {
+    // interceptor 처리
+  }
+}
+
 // 필터 적용
 async function applyFilters() {
-  if (!props.fileId || !cropId.value || tempSteps.value.length === 0) return;
+  const crop = activeCrop.value;
+  if (!props.fileId || !crop || tempSteps.value.length === 0) return;
 
   previewAbortController?.abort();
   previewAbortController = new AbortController();
 
-  const viewport: Viewport = { x: 0, y: 0, w: 2000, h: 2000 };
   const steps: PreviewTempStep[] = tempSteps.value.map((s) => ({
     prcType: s.prcType,
     parameters: { ...s.parameters },
@@ -176,19 +234,62 @@ async function applyFilters() {
 
   try {
     const blob = await imgPrcApi.previewApply(
-      props.fileId,
-      cropId.value,
-      steps,
-      viewport,
+      props.fileId, crop.cropId, steps, crop.viewport,
       { signal: previewAbortController.signal },
     );
 
-    if (processedImageUrl.value) URL.revokeObjectURL(processedImageUrl.value);
-    processedImageUrl.value = URL.createObjectURL(blob);
+    if (crop.processedImageUrl) URL.revokeObjectURL(crop.processedImageUrl);
+    crop.processedImageUrl = URL.createObjectURL(blob);
   } catch {
     // abort 또는 에러 — interceptor 처리
   }
 }
+
+// timeline 데이터
+const timelineSteps = ref<{ prcType: string; imageSrc: string }[]>([]);
+let timelineAbortController: AbortController | null = null;
+
+async function loadTimeline() {
+  const crop = activeCrop.value;
+  if (!props.fileId || !crop || tempSteps.value.length === 0) return;
+
+  timelineAbortController?.abort();
+  timelineAbortController = new AbortController();
+
+  const steps: PreviewTempStep[] = tempSteps.value.map((s) => ({
+    prcType: s.prcType,
+    parameters: { ...s.parameters },
+  }));
+
+  try {
+    const results = await imgPrcApi.previewApplyAll(
+      props.fileId, crop.cropId, steps, crop.viewport,
+      { signal: timelineAbortController.signal },
+    );
+    timelineSteps.value = results.map((r) => ({
+      prcType: r.prcType,
+      imageSrc: `data:image/png;base64,${r.imageBase64}`,
+    }));
+  } catch {
+    // abort 또는 에러
+  }
+}
+
+// 모드 변경 시 timeline 데이터 로드
+watch(mode, (newMode) => {
+  if (newMode === 'timeline') {
+    void loadTimeline();
+  }
+});
+
+// crop 선택 변경 시 현재 모드에 맞게 갱신
+watch(activeCropId, () => {
+  if (mode.value === 'crop' || mode.value === 'compare') {
+    void applyFilters();
+  } else if (mode.value === 'timeline') {
+    void loadTimeline();
+  }
+});
 
 // 캔버스에 반영
 function applyToCanvas() {
@@ -200,26 +301,40 @@ function applyToCanvas() {
 }
 
 // crop 캐시 정리
-function cleanupCrop() {
-  if (props.fileId && cropId.value) {
-    void imgPrcApi.previewDelete(props.fileId, cropId.value);
+function cleanupAllCrops() {
+  for (const crop of cropList.value) {
+    if (props.fileId) {
+      void imgPrcApi.previewDelete(props.fileId, crop.cropId);
+    }
+    if (crop.processedImageUrl) {
+      URL.revokeObjectURL(crop.processedImageUrl);
+    }
   }
-  cropId.value = null;
-  if (nodeImageUrl.value) nodeImageUrl.value = null;
-  if (processedImageUrl.value) {
-    URL.revokeObjectURL(processedImageUrl.value);
-    processedImageUrl.value = null;
-  }
+  cropList.value = [];
+  activeCropId.value = null;
 }
 
-// 전체보기로 복귀
-function backToExplore() {
-  mode.value = 'explore';
+function removeCrop(cropIdToRemove: string) {
+  const crop = cropList.value.find((c) => c.cropId === cropIdToRemove);
+  if (!crop) return;
+  if (props.fileId) {
+    void imgPrcApi.previewDelete(props.fileId, cropIdToRemove);
+  }
+  if (crop.processedImageUrl) {
+    URL.revokeObjectURL(crop.processedImageUrl);
+  }
+  cropList.value = cropList.value.filter((c) => c.cropId !== cropIdToRemove);
+  if (activeCropId.value === cropIdToRemove) {
+    activeCropId.value = cropList.value[0]?.cropId ?? null;
+  }
+  if (cropList.value.length === 0) {
+    mode.value = 'explore';
+  }
 }
 
 // 팝업 닫힘 시 정리
 onBeforeUnmount(() => {
-  cleanupCrop();
+  cleanupAllCrops();
   previewAbortController?.abort();
 });
 
@@ -239,22 +354,22 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
     >
       <!-- 헤더 (드래그 핸들) -->
       <div class="zoom-header row items-center q-py-xs q-px-sm" @mousedown="onHeaderMouseDown">
+        <q-btn
+          v-if="fileId"
+          flat
+          round
+          dense
+          size="xs"
+          :icon="showSidePanel ? 'chevron_left' : 'tune'"
+          @click.stop="showSidePanel = !showSidePanel"
+        >
+          <q-tooltip>{{ showSidePanel ? '패널 닫기' : '필터 패널' }}</q-tooltip>
+        </q-btn>
         <div class="text-subtitle2 text-weight-medium ellipsis">
           {{ title ?? '이미지 확대' }}
           <span class="text-caption text-grey-6 q-ml-xs">{{ zoomLevel.toFixed(1) }}x</span>
         </div>
         <q-space />
-        <q-btn
-          v-if="!showSidePanel && fileId"
-          flat
-          round
-          dense
-          size="xs"
-          icon="tune"
-          @click.stop="showSidePanel = true"
-        >
-          <q-tooltip>필터 패널</q-tooltip>
-        </q-btn>
         <q-btn
           flat
           round
@@ -273,23 +388,44 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
         <!-- 사이드 패널 -->
         <div v-if="showSidePanel" class="zoom-side column">
           <!-- 필터 선택 -->
-          <div class="q-pa-xs" style="border-bottom: 1px solid rgba(0,0,0,0.08)">
+          <div class="q-pa-xs" style="border-bottom: 1px solid rgba(0, 0, 0, 0.08)">
             <FilterTreeSelect
-              :model-value="(undefined as any)"
+              :model-value="undefined as any"
               label="필터 추가"
               @select="onSelectFilter"
             />
           </div>
 
-          <!-- crop 미리보기 -->
-          <div
-            v-if="nodeImageUrl"
-            class="zoom-side__crop"
-            :class="{ 'cursor-pointer': mode === 'explore' }"
-            @click="mode === 'explore' && cropId && processedImageUrl ? (mode = 'compare') : undefined"
-          >
-            <img :src="processedImageUrl ?? nodeImageUrl" class="zoom-side__crop-img" />
-            <q-badge v-if="mode === 'compare'" color="primary" floating label="비교 중" />
+          <!-- Crop 목록 -->
+          <div v-if="cropList.length > 0 || mode === 'explore'" class="zoom-side__crops" style="border-bottom: 1px solid rgba(0,0,0,0.08)">
+            <div class="row items-center q-px-xs q-py-xs">
+              <span class="text-caption text-grey-7 text-weight-medium">Crop</span>
+              <q-space />
+              <q-btn
+                v-if="mode === 'explore'"
+                flat
+                dense
+                size="xs"
+                icon="content_cut"
+                color="primary"
+                @click="createCrop"
+              >
+                <q-tooltip>현재 뷰포트 자르기</q-tooltip>
+              </q-btn>
+            </div>
+            <div v-for="crop in cropList" :key="crop.cropId" class="zoom-side__crop-item">
+              <div
+                class="zoom-side__crop-thumb cursor-pointer"
+                :class="{ 'zoom-side__crop-thumb--active': activeCropId === crop.cropId }"
+                @click="activeCropId = crop.cropId"
+              >
+                <img :src="crop.processedImageUrl ?? crop.nodeImageUrl" class="zoom-side__crop-img" />
+              </div>
+              <div class="row items-center q-px-xs">
+                <span class="text-caption ellipsis col">{{ crop.label }}</span>
+                <q-btn flat round dense size="xs" icon="close" color="grey-6" @click="removeCrop(crop.cropId)" />
+              </div>
+            </div>
           </div>
 
           <!-- 적용 Steps 아코디언 -->
@@ -326,7 +462,10 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
                     <q-input
                       v-if="field.type === 'number'"
                       :model-value="(step.parameters?.[field.key] as number) ?? field.default"
-                      @update:model-value="step.parameters![field.key] = Number($event); onParamChange()"
+                      @update:model-value="
+                        step.parameters![field.key] = Number($event);
+                        onParamChange();
+                      "
                       :label="field.label"
                       type="number"
                       :min="field.min"
@@ -338,7 +477,10 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
                     <q-select
                       v-else-if="field.type === 'select'"
                       :model-value="step.parameters?.[field.key]"
-                      @update:model-value="step.parameters![field.key] = $event; onParamChange()"
+                      @update:model-value="
+                        step.parameters![field.key] = $event;
+                        onParamChange();
+                      "
                       :label="field.label"
                       :options="field.options"
                       emit-value
@@ -356,7 +498,7 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
           <div
             v-if="tempSteps.length > 0"
             class="row q-pa-xs q-gutter-xs"
-            style="border-top: 1px solid rgba(0,0,0,0.08)"
+            style="border-top: 1px solid rgba(0, 0, 0, 0.08)"
           >
             <q-btn
               unelevated
@@ -373,60 +515,90 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
         </div>
 
         <!-- 뷰어 영역 -->
-        <div class="col" style="min-width: 0; position: relative">
-          <!-- 모드 1: 전체 이미지 탐색 -->
-          <template v-if="mode === 'explore'">
-            <OsdViewer
-              v-if="dziUrl || src"
-              ref="osdViewerRef"
-              v-bind="dziUrl ? { dziUrl } : { src: src! }"
-              :zoom-per-scroll="settingsStore.defaultZoomPerScroll"
-              class="fit"
-              @zoom="zoomLevel = $event"
-            />
-            <div v-else class="fit column items-center justify-center text-grey-5">
-              이미지가 없습니다
-            </div>
-
-            <!-- 기존 crop 비교로 복귀 -->
-            <q-btn
-              v-if="cropId && processedImageUrl"
-              fab-mini
-              color="primary"
-              icon="compare"
-              class="absolute-bottom-left q-ma-sm"
-              style="z-index: 5"
-              @click="mode = 'compare'"
+        <div class="col column" style="min-width: 0">
+          <!-- 모드 토글 -->
+          <div
+            v-if="cropId"
+            class="row items-center justify-center q-py-xs"
+            style="border-bottom: 1px solid rgba(0, 0, 0, 0.08); flex-shrink: 0"
+          >
+            <q-btn-toggle
+              v-model="mode"
+              flat
+              dense
+              size="sm"
+              toggle-color="primary"
+              :options="[
+                { value: 'explore', icon: 'search', slot: 'explore' },
+                { value: 'crop', icon: 'crop', slot: 'crop' },
+                { value: 'compare', icon: 'compare', slot: 'compare' },
+                { value: 'timeline', icon: 'view_column', slot: 'timeline' },
+              ]"
             >
-              <q-tooltip>비교 모드</q-tooltip>
-            </q-btn>
-          </template>
+              <template #explore><q-tooltip>탐색</q-tooltip></template>
+              <template #crop><q-tooltip>Crop</q-tooltip></template>
+              <template #compare><q-tooltip>비교</q-tooltip></template>
+              <template #timeline><q-tooltip>타임라인</q-tooltip></template>
+            </q-btn-toggle>
+          </div>
 
-          <!-- 모드 2: Crop 비교 모드 -->
-          <template v-else-if="mode === 'compare'">
-            <BeforeAfterSlider
-              v-if="nodeImageUrl && processedImageUrl"
-              :before-src="nodeImageUrl"
-              :after-src="processedImageUrl"
-              class="fit"
-            />
-            <div v-else class="fit column items-center justify-center text-grey-5">
-              <q-spinner color="primary" size="32px" />
-              <span class="q-mt-sm">처리 중...</span>
-            </div>
+          <!-- 뷰어 콘텐츠 -->
+          <div class="col" style="min-height: 0; position: relative">
+            <!-- 모드 0: 전체 이미지 탐색 -->
+            <template v-if="mode === 'explore'">
+              <OsdViewer
+                v-if="dziUrl || src"
+                ref="osdViewerRef"
+                v-bind="dziUrl ? { dziUrl } : { src: src! }"
+                :zoom-per-scroll="settingsStore.defaultZoomPerScroll"
+                class="fit"
+                @zoom="zoomLevel = $event"
+                @region-select="onRegionSelect"
+              />
+              <div v-else class="fit column items-center justify-center text-grey-5">
+                이미지가 없습니다
+              </div>
+            </template>
 
-            <!-- 전체보기 버튼 -->
-            <q-btn
-              fab-mini
-              color="dark"
-              icon="fullscreen_exit"
-              class="absolute-bottom-left q-ma-sm"
-              style="z-index: 5"
-              @click="backToExplore"
-            >
-              <q-tooltip>전체보기</q-tooltip>
-            </q-btn>
-          </template>
+            <!-- 모드 1: Crop 이미지 표시 -->
+            <template v-else-if="mode === 'crop'">
+              <div v-if="nodeImageUrl" class="fit" style="display: flex; align-items: center; justify-content: center; background: #f5f5f5">
+                <img :src="processedImageUrl ?? nodeImageUrl" style="max-width: 100%; max-height: 100%; object-fit: contain" />
+              </div>
+              <div v-else class="fit column items-center justify-center text-grey-5">
+                <q-spinner color="primary" size="32px" />
+                <span class="q-mt-sm">처리 중...</span>
+              </div>
+            </template>
+
+            <!-- 모드 2: Crop 비교 모드 -->
+            <template v-else-if="mode === 'compare'">
+              <BeforeAfterSlider
+                v-if="nodeImageUrl && processedImageUrl"
+                :before-src="nodeImageUrl"
+                :after-src="processedImageUrl"
+                class="fit"
+              />
+              <div v-else class="fit column items-center justify-center text-grey-5">
+                <q-spinner color="primary" size="32px" />
+                <span class="q-mt-sm">처리 중...</span>
+              </div>
+            </template>
+
+            <!-- 모드 3: Timeline -->
+            <template v-else-if="mode === 'timeline'">
+              <TimelineViewer
+                v-if="nodeImageUrl && timelineSteps.length > 0"
+                :node-image-url="nodeImageUrl"
+                :steps="timelineSteps"
+                class="fit"
+              />
+              <div v-else class="fit column items-center justify-center text-grey-5">
+                <q-spinner color="primary" size="32px" />
+                <span class="q-mt-sm">처리 중...</span>
+              </div>
+            </template>
+          </div>
         </div>
       </div>
     </div>
@@ -473,14 +645,28 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
   background: #fafafa;
   overflow: hidden;
 
-  &__crop {
-    position: relative;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-    background: #f0f0f0;
-    height: 120px;
+  &__crops {
+    flex-shrink: 0;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  &__crop-item {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
+  &__crop-thumb {
+    height: 60px;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: #f0f0f0;
+    border: 2px solid transparent;
+    transition: border-color 0.15s;
+
+    &--active {
+      border-color: #1976d2;
+    }
   }
 
   &__crop-img {

@@ -12,6 +12,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'zoom', level: number): void;
+  (e: 'region-select', viewport: { x: number; y: number; w: number; h: number }): void;
 }>();
 
 const container = ref<HTMLElement>();
@@ -20,7 +21,6 @@ let scrollZoomTimer: ReturnType<typeof setTimeout> | null = null;
 
 function isZoomAnimating(): boolean {
   if (!viewer) return false;
-  // 현재 줌과 목표 줌이 다르면 애니메이션 진행 중
   return viewer.viewport.getZoom(true) !== viewer.viewport.getZoom(false);
 }
 
@@ -28,7 +28,6 @@ function stopZoomAnimation() {
   if (!viewer) return;
   viewer.viewport.zoomTo(viewer.viewport.getZoom(true), undefined, true);
   viewer.viewport.panTo(viewer.viewport.getCenter(true), true);
-  // 브라우저 smooth scroll로 인한 후속 wheel 이벤트 차단
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (viewer as any).gestureSettingsMouse.scrollToZoom = false;
   if (scrollZoomTimer) clearTimeout(scrollZoomTimer);
@@ -43,6 +42,129 @@ function buildTileSource() {
   return { type: 'image', url: props.src! };
 }
 
+// ── Shift+드래그 영역 선택 ──────────────────────────────────────────────────
+const selecting = ref(false);
+const selectionRect = ref<{ left: string; top: string; width: string; height: string } | null>(
+  null,
+);
+let selStart: { x: number; y: number } | null = null;
+
+function clientToImagePx(clientX: number, clientY: number): { x: number; y: number } | null {
+  if (!viewer) return null;
+  const tiledImage = viewer.world.getItemAt(0);
+  if (!tiledImage) return null;
+
+  const containerRect = container.value!.getBoundingClientRect();
+  const webPoint = new OpenSeadragon.Point(
+    clientX - containerRect.left,
+    clientY - containerRect.top,
+  );
+  const viewportPoint = viewer.viewport.pointFromPixel(webPoint);
+  const imageSize = tiledImage.getContentSize();
+  const scale = imageSize.x;
+
+  return {
+    x: Math.round(viewportPoint.x * scale),
+    y: Math.round(viewportPoint.y * scale),
+  };
+}
+
+function onSelectionStart(e: MouseEvent) {
+  if (!viewer) return;
+
+  selecting.value = true;
+  selStart = { x: e.clientX, y: e.clientY };
+  const rect = container.value!.getBoundingClientRect();
+  selectionRect.value = {
+    left: `${e.clientX - rect.left}px`,
+    top: `${e.clientY - rect.top}px`,
+    width: '0px',
+    height: '0px',
+  };
+
+  viewer.addHandler('canvas-drag', onCanvasDrag);
+  viewer.addHandler('canvas-release', onCanvasRelease);
+  viewer.addHandler('canvas-key', onCanvasKey);
+}
+
+function cancelSelection() {
+  selecting.value = false;
+  selectionRect.value = null;
+  selStart = null;
+
+  if (viewer) {
+    viewer.removeHandler('canvas-drag', onCanvasDrag);
+    viewer.removeHandler('canvas-release', onCanvasRelease);
+    viewer.removeHandler('canvas-key', onCanvasKey);
+    viewer.setMouseNavEnabled(true);
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function onCanvasDrag(e: any) {
+  console.log('onCanvasDrag');
+  const orig: MouseEvent | undefined = e.originalEvent;
+  if (!orig || !selStart || !container.value) return;
+  e.preventDefaultAction = true;
+
+  const rect = container.value.getBoundingClientRect();
+  const x1 = Math.max(0, Math.min(selStart.x, orig.clientX) - rect.left);
+  const y1 = Math.max(0, Math.min(selStart.y, orig.clientY) - rect.top);
+  const x2 = Math.min(rect.width, Math.max(selStart.x, orig.clientX) - rect.left);
+  const y2 = Math.min(rect.height, Math.max(selStart.y, orig.clientY) - rect.top);
+
+  selectionRect.value = {
+    left: `${x1}px`,
+    top: `${y1}px`,
+    width: `${x2 - x1}px`,
+    height: `${y2 - y1}px`,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function onCanvasKey(e: any) {
+  console.log('onCanvasKey');
+  const orig: KeyboardEvent | undefined = e.originalEvent;
+  if (orig?.key === 'Escape') {
+    e.preventDefaultAction = true;
+    cancelSelection();
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function onCanvasRelease(e: any) {
+  console.log('onCanvasRelease');
+  const orig: MouseEvent | undefined = e.originalEvent;
+  if (!selStart || !viewer) {
+    cancelSelection();
+    return;
+  }
+
+  const p1 = clientToImagePx(selStart.x, selStart.y);
+  const p2 = orig ? clientToImagePx(orig.clientX, orig.clientY) : null;
+
+  cancelSelection();
+
+  if (!p1 || !p2) return;
+
+  const tiledImage = viewer.world.getItemAt(0);
+  if (!tiledImage) return;
+  const imageSize = tiledImage.getContentSize();
+  const imgW = imageSize.x;
+  const imgH = imageSize.y;
+
+  // clamp + 최소 크기 체크
+  const x = Math.max(0, Math.min(p1.x, p2.x));
+  const y = Math.max(0, Math.min(p1.y, p2.y));
+  const w = Math.min(imgW - x, Math.abs(p2.x - p1.x));
+  const h = Math.min(imgH - y, Math.abs(p2.y - p1.y));
+
+  if (w < 10 || h < 10) return; // 너무 작은 선택 무시
+
+  emit('region-select', { x, y, w, h });
+}
+
+// ── 마운트 ──────────────────────────────────────────────────────────────────
 onMounted(() => {
   viewer = OpenSeadragon({
     element: container.value!,
@@ -53,7 +175,6 @@ onMounted(() => {
     showNavigationControl: true,
     minZoomLevel: 0.5,
     maxZoomLevel: 20,
-    // 뷰포트 변경 시 애니메이션 시간
     animationTime: 0.3,
     zoomPerScroll: props.zoomPerScroll,
     prefixUrl: '/node_modules/openseadragon/build/openseadragon/images/',
@@ -74,10 +195,26 @@ onMounted(() => {
     emit('zoom', e.zoom);
   });
 
-  // 클릭 시 줌 애니메이션 진행 중이면 중단, 아니면 기본 클릭 줌 허용
   viewer.addHandler('canvas-click', (e) => {
     if (isZoomAnimating()) {
       stopZoomAnimation();
+      e.preventDefaultAction = true;
+    }
+  });
+
+  viewer.addHandler('canvas-press', (e) => {
+    const orig = e.originalEvent as PointerEvent;
+    if (orig?.shiftKey) {
+      console.log('Shift+드래그 시작');
+      onSelectionStart(orig);
+      return;
+    }
+  });
+
+  // Shift+드래그 시 OSD의 기본 드래그를 차단
+  viewer.addHandler('canvas-drag', (e) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((e as any).originalEvent?.shiftKey) {
       e.preventDefaultAction = true;
     }
   });
@@ -94,7 +231,31 @@ function goHome() {
   viewer.viewport.goHome();
 }
 
-defineExpose({ goHome });
+function getViewportPx(): { x: number; y: number; w: number; h: number } | null {
+  if (!viewer) return null;
+  const tiledImage = viewer.world.getItemAt(0);
+  if (!tiledImage) return null;
+
+  const bounds = viewer.viewport.getBounds();
+  const imageSize = tiledImage.getContentSize();
+  const imgW = imageSize.x;
+  const imgH = imageSize.y;
+  const scale = imgW;
+
+  const rawX = bounds.x * scale;
+  const rawY = bounds.y * scale;
+  const rawW = bounds.width * scale;
+  const rawH = bounds.height * scale;
+
+  const x = Math.max(0, Math.round(rawX));
+  const y = Math.max(0, Math.round(rawY));
+  const w = Math.min(imgW - x, Math.round(rawW));
+  const h = Math.min(imgH - y, Math.round(rawH));
+
+  return { x, y, w: Math.max(1, w), h: Math.max(1, h) };
+}
+
+defineExpose({ goHome, getViewportPx });
 
 watch(
   () => props.zoomPerScroll,
@@ -118,12 +279,38 @@ watch(
 </script>
 
 <template>
-  <div ref="container" class="osd-viewer" />
+  <div class="osd-wrapper">
+    <div ref="container" class="osd-viewer" />
+    <!-- Shift+드래그 선택 영역 (OSD canvas 위에 표시) -->
+    <div v-if="selecting" class="osd-overlay">
+      <div v-if="selectionRect" class="osd-selection" :style="selectionRect" />
+    </div>
+  </div>
 </template>
 
 <style scoped>
+.osd-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 .osd-viewer {
   width: 100%;
   height: 100%;
+}
+
+.osd-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  cursor: crosshair;
+}
+
+.osd-selection {
+  position: absolute;
+  border: 2px dashed #1976d2;
+  background: rgba(25, 118, 210, 0.15);
+  pointer-events: none;
 }
 </style>
