@@ -10,6 +10,9 @@ import type {
   BatchResult,
   TreeBatchStep,
   TreeBatchResult,
+  Viewport,
+  PreviewCropResponse,
+  PreviewTempStep,
 } from 'src/types/imgPrcType';
 
 export type {
@@ -190,6 +193,64 @@ export async function batchProcessing(file: File | Blob, steps: BatchStep[]): Pr
     });
 
   return { blob: res.data, totalExecutionMs: totalMs, stepTimes };
+}
+
+// ── File Upload ─────────────────────────────────────────────────────────────
+
+// ── Preview (crop 기반 미리보기) ──────────────────────────────────────────────
+
+/** 뷰포트 영역의 crop 이미지를 생성하고 캐시한다. */
+export async function previewCrop(
+  fileId: string,
+  nodeSteps: TreeBatchStep[],
+  nodeId: string,
+  viewport: Viewport,
+  options?: { padding?: number; signal?: AbortSignal },
+): Promise<PreviewCropResponse> {
+  const form = new FormData();
+  form.append('fileId', fileId);
+  form.append('nodeSteps', JSON.stringify(nodeSteps));
+  form.append('nodeId', nodeId);
+  form.append('viewport', JSON.stringify(viewport));
+  if (options?.padding != null) {
+    form.append('padding', options.padding.toString());
+  }
+
+  const res = await api.post<PreviewCropResponse>('/image-processing/preview/crop', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    signal: options?.signal,
+  });
+  return res.data;
+}
+
+/** 캐시된 crop 이미지에 tempSteps를 적용한 결과를 반환한다. */
+export async function previewApply(
+  fileId: string,
+  cropId: string,
+  tempSteps: PreviewTempStep[],
+  viewport: Viewport,
+  options?: { padding?: number; signal?: AbortSignal },
+): Promise<Blob> {
+  const form = new FormData();
+  form.append('fileId', fileId);
+  form.append('cropId', cropId);
+  form.append('tempSteps', JSON.stringify(tempSteps));
+  form.append('viewport', JSON.stringify(viewport));
+  if (options?.padding != null) {
+    form.append('padding', options.padding.toString());
+  }
+
+  const res = await api.post<Blob>('/image-processing/preview/apply', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    responseType: 'blob',
+    signal: options?.signal,
+  });
+  return res.data;
+}
+
+/** 캐시된 preview crop 파일을 삭제한다. */
+export async function previewDelete(fileId: string, cropId: string): Promise<void> {
+  await api.delete(`/image-processing/preview/crop/${fileId}/${cropId}`);
 }
 
 // ── File Upload ─────────────────────────────────────────────────────────────

@@ -344,6 +344,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/image-processing/preview/crop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Crop
+         * @description 뷰포트 영역의 crop 이미지를 생성하고 캐시한다.
+         */
+        post: operations["preview_crop_api_image_processing_preview_crop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/image-processing/preview/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Apply
+         * @description 캐시된 crop 이미지에 tempSteps를 적용한 결과를 반환한다.
+         */
+        post: operations["preview_apply_api_image_processing_preview_apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/image-processing/preview/crop/{file_id}/{crop_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Preview Delete
+         * @description 캐시된 preview crop 파일을 삭제한다.
+         */
+        delete: operations["preview_delete_api_image_processing_preview_crop__file_id___crop_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/presets": {
         parameters: {
             query?: never;
@@ -554,6 +614,64 @@ export interface components {
              * @description 업로드할 원본 이미지 파일
              */
             file: string;
+        };
+        /** Body_preview_apply_api_image_processing_preview_apply_post */
+        Body_preview_apply_api_image_processing_preview_apply_post: {
+            /**
+             * Fileid
+             * @description 원본 파일 ID
+             */
+            fileId: string;
+            /**
+             * Cropid
+             * @description crop 캐시 ID
+             */
+            cropId: string;
+            /**
+             * Tempsteps
+             * @description 임시 필터 steps JSON 배열
+             */
+            tempSteps: string;
+            /**
+             * Viewport
+             * @description crop 시 사용한 viewport JSON
+             */
+            viewport: string;
+            /**
+             * Padding
+             * @description crop 시 사용한 padding
+             * @default 50
+             */
+            padding: number;
+        };
+        /** Body_preview_crop_api_image_processing_preview_crop_post */
+        Body_preview_crop_api_image_processing_preview_crop_post: {
+            /**
+             * Fileid
+             * @description 원본 파일 ID
+             */
+            fileId: string;
+            /**
+             * Nodesteps
+             * @description 해당 노드까지의 기존 steps JSON 배열
+             */
+            nodeSteps: string;
+            /**
+             * Nodeid
+             * @description 대상 노드 ID
+             */
+            nodeId: string;
+            /**
+             * Viewport
+             * @description crop 영역 JSON { x, y, w, h } (px)
+             */
+            viewport: string;
+            /**
+             * Padding
+             * @description 경계 아티팩트 방지 여유 영역 (px)
+             * @default 50
+             */
+            padding: number;
         };
         /** Body_test_custom_filter_endpoint_api_custom_filters__filter_id__test_post */
         Body_test_custom_filter_endpoint_api_custom_filters__filter_id__test_post: {
@@ -1080,6 +1198,29 @@ export interface components {
              * @description 프리셋 단계 목록 (전체 교체)
              */
             steps?: components["schemas"]["PresetStepCreate"][] | null;
+        };
+        /** PreviewCropResponse */
+        PreviewCropResponse: {
+            /**
+             * Cropid
+             * @description 캐시된 crop 식별자
+             */
+            cropId: string;
+            /**
+             * Nodeimageurl
+             * @description 노드 이미지 crop URL
+             */
+            nodeImageUrl: string;
+            /**
+             * Width
+             * @description crop 이미지 가로 (px)
+             */
+            width: number;
+            /**
+             * Height
+             * @description crop 이미지 세로 (px)
+             */
+            height: number;
         };
         /** ProcessCreate */
         ProcessCreate: {
@@ -2370,6 +2511,106 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_crop_api_image_processing_preview_crop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_preview_crop_api_image_processing_preview_crop_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewCropResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_apply_api_image_processing_preview_apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_preview_apply_api_image_processing_preview_apply_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_delete_api_image_processing_preview_crop__file_id___crop_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                file_id: string;
+                crop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
                 };
             };
             /** @description Validation Error */

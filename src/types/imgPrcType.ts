@@ -66,3 +66,24 @@ export interface TreeBatchResult {
   totalExecutionMs: number;
   results: TreeNodeResult[];
 }
+
+// ── Preview (crop 기반 미리보기) ──────────────────────────────────────────────
+
+export interface Viewport {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export interface PreviewCropResponse {
+  cropId: string;
+  nodeImageUrl: string;
+  width: number;
+  height: number;
+}
+
+export interface PreviewTempStep {
+  prcType: PrcType;
+  parameters?: Record<string, unknown>;
+}

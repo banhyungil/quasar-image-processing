@@ -13,7 +13,7 @@ import type { PresetResponse } from 'src/apis/presetApi';
 import * as processApi from 'src/apis/processApi';
 import type { ProcessResponse } from 'src/apis/processApi';
 import * as imgPrcApi from 'src/apis/imgPrcApi';
-import type { TreeBatchStep } from 'src/types/imgPrcType';
+import type { TreeBatchStep, PreviewTempStep } from 'src/types/imgPrcType';
 import { API_HOST } from 'src/boot/axios';
 
 import FilterNode from 'src/components/flow/FilterNode.vue';
@@ -800,12 +800,46 @@ interface ZoomPopup {
   dziUrl?: string;
   title: string;
   loading?: boolean;
+  nodeSteps: TreeBatchStep[];
 }
 const zoomPopups = ref<ZoomPopup[]>([]);
 const cZoomedNodeIds = computed(() => new Set(zoomPopups.value.map((p) => p.nodeId)));
 
 function closeZoomPopup(popupId: string) {
   zoomPopups.value = zoomPopups.value.filter((p) => p.id !== popupId);
+}
+
+/** 확대 팝업에서 임시 필터를 캔버스 노드에 반영 */
+function onApplyPreviewToCanvas(parentNodeId: string, steps: PreviewTempStep[]) {
+  for (const step of steps) {
+    const id = crypto.randomUUID();
+    const newNode: Node<ProcessNodeData> = {
+      id,
+      type: 'filter',
+      position: { x: 0, y: 0 },
+      data: {
+        algorithmNm: step.prcType,
+        label: step.prcType,
+        enabled: true,
+        parameters: { ...(step.parameters ?? {}) },
+        imageUrl: null,
+        executionMs: null,
+      },
+    };
+    const newEdge: Edge = {
+      id: `e-${parentNodeId}-${id}`,
+      source: parentNodeId,
+      target: id,
+      animated: true,
+    };
+    addNodes([newNode]);
+    addEdges([newEdge]);
+    parentNodeId = id; // 다음 step은 이 노드의 하위에
+  }
+  void nextTick(() => {
+    relayout();
+    processAllLeaves();
+  });
 }
 
 /**
@@ -877,6 +911,7 @@ async function onNodeZoom(nodeId: string) {
     id: crypto.randomUUID(),
     nodeId,
     title: isSource ? '원본 이미지' : (filterData?.label ?? '처리 결과'),
+    nodeSteps: steps,
     ...oUrl,
   });
 }
@@ -1186,7 +1221,11 @@ async function onCopyChain(nodeId: string) {
       :src="popup.src"
       :dzi-url="popup.dziUrl"
       :title="popup.title"
+      :file-id="oOrigin.fileId"
+      :node-steps="popup.nodeSteps"
+      :node-id="popup.nodeId"
       @close="closeZoomPopup(popup.id)"
+      @apply-to-canvas="onApplyPreviewToCanvas(popup.nodeId, $event)"
     />
   </q-page>
 </template>

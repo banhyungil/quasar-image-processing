@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppSidebar: typeof import('./components/AppSidebar.vue')['default']
+    BeforeAfterSlider: typeof import('./components/flow/BeforeAfterSlider.vue')['default']
     CustomFilterEditorDialog: typeof import('./components/dialog/CustomFilterEditorDialog.vue')['default']
     EssentialLink: typeof import('./components/EssentialLink.vue')['default']
     ExampleComponent: typeof import('./components/ExampleComponent.vue')['default']
