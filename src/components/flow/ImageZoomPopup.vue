@@ -8,7 +8,6 @@ import * as imgPrcApi from 'src/apis/imgPrcApi';
 import { API_HOST } from 'src/boot/axios';
 import OsdViewer from './OsdViewer.vue';
 import FilterTreeSelect from './FilterTreeSelect.vue';
-import BeforeAfterSlider from './BeforeAfterSlider.vue';
 import TimelineViewer from './TimelineViewer.vue';
 
 const settingsStore = useSettingsStore();
@@ -29,7 +28,7 @@ const emit = defineEmits<{
 
 const isMaximized = ref(false);
 const zoomLevel = ref(1);
-const osdViewerRef = ref<InstanceType<typeof OsdViewer> | null>(null);
+const osdViewerComp = ref<InstanceType<typeof OsdViewer> | null>(null);
 
 // ── 드래그 이동 ──────────────────────────────────────────────────────────────
 const pos = ref({ x: 100 + Math.random() * 60, y: 80 + Math.random() * 60 });
@@ -63,15 +62,16 @@ function bringToFront() {
   setTimeout(() => (focused.value = false), 10);
 }
 
-// ESC 키
+// ESC 키 — 우선순위: OSD 줌 복귀 → 모드 복귀 → 최대화 해제
 function onKeyDown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
-    if (isMaximized.value) {
-      isMaximized.value = false;
-    } else if (mode.value === 'compare') {
+    debugger;
+    if (osdViewerComp.value && !osdViewerComp.value.isAtHome()) {
+      osdViewerComp.value.goHome();
+    } else if (mode.value !== 'explore') {
       mode.value = 'explore';
-    } else {
-      osdViewerRef.value?.goHome();
+    } else if (isMaximized.value) {
+      isMaximized.value = false;
     }
   }
 }
@@ -157,7 +157,7 @@ async function createCrop() {
   if (!props.fileId) return;
 
   // OsdViewer에서 실제 뷰포트 좌표 추출
-  const viewport = osdViewerRef.value?.getViewportPx();
+  const viewport = osdViewerComp.value?.getViewportPx();
   if (!viewport) return;
 
   try {
@@ -589,7 +589,7 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
             <template v-if="mode === 'explore'">
               <OsdViewer
                 v-if="dziUrl || src"
-                ref="osdViewerRef"
+                ref="osdViewerComp"
                 v-bind="dziUrl ? { dziUrl } : { src: src! }"
                 :zoom-per-scroll="settingsStore.defaultZoomPerScroll"
                 class="fit"
@@ -624,14 +624,29 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
               </div>
             </template>
 
-            <!-- 모드 2: Crop 비교 모드 -->
+            <!-- 모드 2: 비교 모드 (원본 | 처리 결과) OsdViewer -->
             <template v-else-if="mode === 'compare'">
-              <BeforeAfterSlider
-                v-if="nodeImageUrl && processedImageUrl"
-                :before-src="nodeImageUrl"
-                :after-src="processedImageUrl"
-                class="fit"
-              />
+              <div v-if="nodeImageUrl && processedImageUrl" class="fit row">
+                <div
+                  class="col"
+                  style="position: relative; border-right: 1px solid rgba(0, 0, 0, 0.1)"
+                >
+                  <OsdViewer
+                    :src="nodeImageUrl"
+                    :zoom-per-scroll="settingsStore.defaultZoomPerScroll"
+                    class="fit"
+                  />
+                  <span class="compare-label">노드 이미지</span>
+                </div>
+                <div class="col" style="position: relative">
+                  <OsdViewer
+                    :src="processedImageUrl"
+                    :zoom-per-scroll="settingsStore.defaultZoomPerScroll"
+                    class="fit"
+                  />
+                  <span class="compare-label">처리 결과</span>
+                </div>
+              </div>
               <div v-else class="fit column items-center justify-center text-grey-5">
                 <q-spinner color="primary" size="32px" />
                 <span class="q-mt-sm">처리 중...</span>
@@ -681,6 +696,20 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
     border-radius: 0;
     resize: none;
   }
+}
+
+.compare-label {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 10px;
+  font-size: 11px;
+  color: white;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  z-index: 1;
+  pointer-events: none;
 }
 
 .zoom-header {

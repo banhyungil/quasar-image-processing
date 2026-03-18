@@ -255,7 +255,12 @@ function getViewportPx(): { x: number; y: number; w: number; h: number } | null 
   return { x, y, w: Math.max(1, w), h: Math.max(1, h) };
 }
 
-defineExpose({ goHome, getViewportPx });
+function isAtHome(): boolean {
+  if (!viewer) return true;
+  return Math.abs(viewer.viewport.getZoom() - viewer.viewport.getHomeZoom()) < 0.01;
+}
+
+defineExpose({ goHome, getViewportPx, isAtHome });
 
 watch(
   () => props.zoomPerScroll,
