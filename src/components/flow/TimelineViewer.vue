@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import OsdViewer from './OsdViewer.vue';
+import ZoomableImage from './ZoomableImage.vue';
 
 const props = defineProps<{
   /** 노드 이미지 URL (첫 번째 항목) */
@@ -125,7 +126,7 @@ const selectedLabel = computed(() => {
       />
       <!-- 노드 이미지 -->
       <div class="timeline-scroll__card">
-        <img :src="nodeImageUrl" class="timeline-scroll__img" />
+        <ZoomableImage :src="nodeImageUrl" class="timeline-scroll__img" />
         <div class="timeline-scroll__label">노드 이미지</div>
       </div>
 
@@ -140,7 +141,7 @@ const selectedLabel = computed(() => {
       <!-- step별 결과 -->
       <template v-for="(step, i) in steps" :key="i">
         <div class="timeline-scroll__card">
-          <img :src="step.imageSrc" class="timeline-scroll__img" />
+          <ZoomableImage :src="step.imageSrc" class="timeline-scroll__img" />
           <div class="timeline-scroll__label">
             <span class="text-weight-medium">{{ i + 1 }}.</span> {{ step.prcType }}
           </div>
