@@ -148,7 +148,20 @@ function checkUseSlider(field: ParamFieldDef): boolean {
               dense
               color="primary"
               class="q-mb-xs"
-            />
+            >
+              <template #marker-label-group="{ markerList }">
+                <div
+                  v-for="marker in markerList"
+                  :key="marker.index"
+                  :class="marker.classes"
+                  :style="(marker.style as any)"
+                  class="cursor-pointer"
+                  @click="localParams[field.key] = marker.value"
+                >
+                  {{ marker.label }}
+                </div>
+              </template>
+            </q-slider>
           </div>
           <!-- 숫자 입력: 범위가 좁은 number -->
           <q-input
