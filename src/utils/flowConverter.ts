@@ -1,6 +1,6 @@
 import type { Edge } from '@vue-flow/core';
 import type { AppNode, SourceNode, FilterNode, FlatStep } from 'src/types/flowTypes';
-import type { PrcType } from 'src/types/imgPrcType';
+import type { FilterType } from 'src/types/imgPrcType';
 import { applyDagreLayout } from './flowLayout';
 
 const SOURCE_NODE_ID = 'source';
@@ -25,7 +25,7 @@ export function stepsToFlow(
     type: 'filter' as const,
     position: { x: 0, y: 0 },
     data: {
-      algorithmNm: step.algorithmNm as PrcType,
+      algorithmNm: step.algorithmNm as FilterType,
       label: step.algorithmNm,
       enabled: step.isEnabled ?? true,
       parameters: { ...step.parameters },
@@ -51,10 +51,7 @@ export function stepsToFlow(
  * vue-flow Node[] + Edge[] → API flat list (steps) 변환
  * 소스 노드는 제외, parentId=source → null로 매핑한다.
  */
-export function flowToSteps(
-  nodes: AppNode[],
-  edges: Edge[],
-): FlatStep[] {
+export function flowToSteps(nodes: AppNode[], edges: Edge[]): FlatStep[] {
   const parentMap = new Map<string, string | null>();
   for (const edge of edges) {
     const parentId = edge.source === SOURCE_NODE_ID ? null : edge.source;

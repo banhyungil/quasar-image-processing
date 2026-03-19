@@ -1,9 +1,9 @@
 import type { Node } from '@vue-flow/core';
-import type { PrcType } from './imgPrcType';
+import type { FilterType } from './imgPrcType';
 
 /** vue-flow 캔버스에서 사용하는 처리 노드 데이터 */
 export interface ProcessNodeData {
-  algorithmNm: PrcType;
+  algorithmNm: FilterType;
   label: string;
   enabled: boolean;
   parameters: Record<string, unknown>;
