@@ -60,7 +60,7 @@ export async function saveProcessingImage(options: SavePrcImageOptions) {
   const fileName = `${options.originFileNm}_${options.filterType}.png`;
 
   form.append('blob', options.blob, fileName);
-  form.append('prcType', options.filterType);
+  form.append('filterType', options.filterType);
   form.append('prcMs', options.prcMs.toString());
 
   const res = await api.post<FileSaveResponse>('/files/save', form, {
@@ -159,7 +159,7 @@ export async function applyCropAll(
     form.append('padding', options.padding.toString());
   }
 
-  const res = await api.post<{ prcType: string; imageBase64: string; executionMs: number }[]>(
+  const res = await api.post<{ filterType: string; imageBase64: string; executionMs: number }[]>(
     '/files/crop/apply-all',
     form,
     {
@@ -167,11 +167,7 @@ export async function applyCropAll(
       signal: options?.signal,
     },
   );
-  return res.data.map((r) => ({
-    filterType: r.prcType,
-    imageBase64: r.imageBase64,
-    executionMs: r.executionMs,
-  }));
+  return res.data;
 }
 
 export async function deleteCrop(fileId: string, cropId: string): Promise<void> {

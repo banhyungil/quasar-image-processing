@@ -357,7 +357,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/filters/params/{prc_type}": {
+    "/api/filters/params/{filter_type}": {
         parameters: {
             query?: never;
             header?: never;
@@ -368,7 +368,7 @@ export interface paths {
          * Get Filter Params
          * @description 필터별 파라미터 스키마 조회.
          */
-        get: operations["get_filter_params_api_filters_params__prc_type__get"];
+        get: operations["get_filter_params_api_filters_params__filter_type__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -539,11 +539,11 @@ export interface components {
              */
             file: string;
             /**
-             * Prctype
+             * Filtertype
              * @description 적용할 이미지 처리 종류
              * @enum {string}
              */
-            prcType: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing" | "custom";
+            filterType: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing" | "custom";
             /**
              * Parameters
              * @description 필터별 파라미터 JSON 문자열
@@ -576,11 +576,11 @@ export interface components {
              */
             blob: string;
             /**
-             * Prctype
+             * Filtertype
              * @description 이미지에 적용된 처리 종류
              * @enum {string}
              */
-            prcType: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing" | "custom";
+            filterType: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing" | "custom";
             /**
              * Prcms
              * @description 처리시간
@@ -840,10 +840,10 @@ export interface components {
         /** FileSaveOptions */
         FileSaveOptions: {
             /**
-             * Prctype
+             * Filtertype
              * @description 저장 시 적용된 이미지 처리 종류
              */
-            prcType?: ("sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing" | "custom") | null;
+            filterType?: ("sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing" | "custom") | null;
         } & {
             [key: string]: unknown;
         };
@@ -2465,12 +2465,12 @@ export interface operations {
             };
         };
     };
-    get_filter_params_api_filters_params__prc_type__get: {
+    get_filter_params_api_filters_params__filter_type__get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                prc_type: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing" | "custom";
+                filter_type: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing" | "custom";
             };
             cookie?: never;
         };
