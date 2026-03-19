@@ -12,7 +12,7 @@ import * as presetApi from 'src/apis/presetApi';
 import type { PresetResponse } from 'src/apis/presetApi';
 import * as processApi from 'src/apis/processApi';
 import type { ProcessResponse } from 'src/apis/processApi';
-import * as imgPrcApi from 'src/apis/imgPrcApi';
+import * as filesApi from 'src/apis/filesApi';
 import type { TreeBatchStep, PreviewTempStep } from 'src/types/imgPrcType';
 import { API_HOST } from 'src/boot/axios';
 
@@ -130,7 +130,7 @@ async function setOriginalFile(file: File | null) {
     // content hash 기반 중복 방지는 서버에서 처리
     document.body.style.cursor = 'wait';
     try {
-      const uploaded = await imgPrcApi.uploadFile(file);
+      const uploaded = await filesApi.uploadFile(file);
       oOrigin.value.fileId = uploaded.id;
     } catch (err) {
       console.error('원본 이미지 업로드 실패:', err);
@@ -404,7 +404,7 @@ async function processNodeThumbnail(targetNodeId: string, options?: { signal?: A
   }
   if (steps.length === 0) return;
 
-  const result = await imgPrcApi.batchTreeProcessing(oOrigin.value.fileId, steps, {
+  const result = await filesApi.batchTreeProcessing(oOrigin.value.fileId, steps, {
     thumbnailSize: settingsStore.nodeSize.thumbResolution,
     signal: options?.signal,
   });
@@ -892,7 +892,7 @@ async function onNodeZoom(nodeId: string) {
   if (!isSource && steps.length === 0) return;
 
   $q.loading.show({ message: '처리 중...' });
-  const result = await imgPrcApi
+  const result = await filesApi
     .getOriginSizeUrl(oOrigin.value.fileId, steps, nodeId)
     .finally(() => $q.loading.hide())
     .catch(() => null);
@@ -922,7 +922,7 @@ async function onNodeDownload(nodeId: string) {
   const steps = buildStepsToNode(nodeId);
   if (steps.length === 0) return;
 
-  const blob = await imgPrcApi.downloadNodeImage(oOrigin.value.fileId, steps, nodeId);
+  const blob = await filesApi.downloadNodeImage(oOrigin.value.fileId, steps, nodeId);
   const prcTypes = steps.map((s) => s.prcType);
   const chainSuffix = buildChainFilename(prcTypes);
   const baseName = 'image';

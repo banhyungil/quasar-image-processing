@@ -1,5 +1,5 @@
 // prettier-ignore
-import type { PrcType } from 'src/apis/imgPrcApi';
+import type { PrcType } from 'src/types/imgPrcType';
 
 export type FunctionKey = 'filtering' | 'blurring' | 'findContour' | 'brightness' | 'threshold';
 

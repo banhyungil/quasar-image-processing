@@ -101,10 +101,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Files
-         * @description 파일 목록 조회 (MIME 타입 필터 지원)
+         * Get Saved Images
+         * @description 처리 이미지 조회
          */
-        get: operations["get_files_api_files_get"];
+        get: operations["get_saved_images_api_files_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -113,31 +113,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/image-processing": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Saved Images
-         * @description 처리 이미지 조회
-         */
-        get: operations["get_saved_images_api_image_processing_get"];
-        put?: never;
-        /**
-         * Img Processing
-         * @description 이미지 처리
-         */
-        post: operations["img_processing_api_image_processing_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/image-processing/{file_id}": {
+    "/api/files/{file_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -151,17 +127,17 @@ export interface paths {
          * Delete Image
          * @description 이미지 파일 삭제 (DB 메타데이터 + 디스크 파일)
          */
-        delete: operations["delete_image_api_image_processing__file_id__delete"];
+        delete: operations["delete_image_api_files__file_id__delete"];
         options?: never;
         head?: never;
         /**
          * Rename Image
          * @description 이미지 파일명(originNm) 수정
          */
-        patch: operations["rename_image_api_image_processing__file_id__patch"];
+        patch: operations["rename_image_api_files__file_id__patch"];
         trace?: never;
     };
-    "/api/image-processing/thumbnail/{file_id}": {
+    "/api/files/thumbnail/{file_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -172,7 +148,7 @@ export interface paths {
          * Get Thumbnail
          * @description 파일 ID에 해당하는 이미지를 지정 크기로 축소하여 반환한다.
          */
-        get: operations["get_thumbnail_api_image_processing_thumbnail__file_id__get"];
+        get: operations["get_thumbnail_api_files_thumbnail__file_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -181,47 +157,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/image-processing/params/{prc_type}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Filter Params
-         * @description 필터별 파라미터 스키마 조회. parameters JSON 작성 시 참고.
-         */
-        get: operations["get_filter_params_api_image_processing_params__prc_type__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/image-processing/params": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get All Filter Params
-         * @description 전체 필터 파라미터 스키마 목록 조회.
-         */
-        get: operations["get_all_filter_params_api_image_processing_params_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/image-processing/save": {
+    "/api/files/save": {
         parameters: {
             query?: never;
             header?: never;
@@ -234,14 +170,14 @@ export interface paths {
          * Img Processing Save
          * @description 처리 이미지 저장
          */
-        post: operations["img_processing_save_api_image_processing_save_post"];
+        post: operations["img_processing_save_api_files_save_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/image-processing/upload": {
+    "/api/files/upload": {
         parameters: {
             query?: never;
             header?: never;
@@ -254,14 +190,14 @@ export interface paths {
          * Img Upload
          * @description 원본 이미지 파일 업로드 (동일 파일 중복 방지: content hash 기반)
          */
-        post: operations["img_upload_api_image_processing_upload_post"];
+        post: operations["img_upload_api_files_upload_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/image-processing/batch": {
+    "/api/files/process": {
         parameters: {
             query?: never;
             header?: never;
@@ -271,17 +207,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Img Processing Batch
-         * @description 노드리스트 기반 배치 이미지 처리. steps 순서대로 연쇄 적용한다.
+         * File Process
+         * @description 단일 필터 이미지 처리
          */
-        post: operations["img_processing_batch_api_image_processing_batch_post"];
+        post: operations["file_process_api_files_process_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/image-processing/batch-tree": {
+    "/api/files/process/batch-tree": {
         parameters: {
             query?: never;
             header?: never;
@@ -291,20 +227,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Img Processing Batch Tree
+         * File Process Batch Tree
          * @description 트리 구조 배치 이미지 처리.
-         *
-         *     parentId로 트리를 구성하며, 같은 parentId를 가진 노드들은 분기(비교) 처리된다.
-         *     결과는 썸네일(base64 data URL)로 반환한다.
          */
-        post: operations["img_processing_batch_tree_api_image_processing_batch_tree_post"];
+        post: operations["file_process_batch_tree_api_files_process_batch_tree_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/image-processing/dzi/{file_id}": {
+    "/api/files/dzi/{file_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -317,14 +250,14 @@ export interface paths {
          * Create Dzi
          * @description 원본 이미지에 steps 체인을 적용하고, 타겟 노드의 DZI 타일(또는 원본 이미지)을 생성한다.
          */
-        post: operations["create_dzi_api_image_processing_dzi__file_id__post"];
+        post: operations["create_dzi_api_files_dzi__file_id__post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/image-processing/download/{file_id}": {
+    "/api/files/download/{file_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -337,14 +270,14 @@ export interface paths {
          * Download Node
          * @description 원본 이미지에 steps 체인을 적용하고, 타겟 노드의 처리 결과를 PNG로 다운로드한다.
          */
-        post: operations["download_node_api_image_processing_download__file_id__post"];
+        post: operations["download_node_api_files_download__file_id__post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/image-processing/preview/crop": {
+    "/api/files/crop": {
         parameters: {
             query?: never;
             header?: never;
@@ -357,14 +290,14 @@ export interface paths {
          * Preview Crop
          * @description 뷰포트 영역의 crop 이미지를 생성하고 캐시한다.
          */
-        post: operations["preview_crop_api_image_processing_preview_crop_post"];
+        post: operations["preview_crop_api_files_crop_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/image-processing/preview/apply": {
+    "/api/files/crop/apply": {
         parameters: {
             query?: never;
             header?: never;
@@ -377,14 +310,14 @@ export interface paths {
          * Preview Apply
          * @description 캐시된 crop 이미지에 tempSteps를 적용한 결과를 반환한다.
          */
-        post: operations["preview_apply_api_image_processing_preview_apply_post"];
+        post: operations["preview_apply_api_files_crop_apply_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/image-processing/preview/apply-all": {
+    "/api/files/crop/apply-all": {
         parameters: {
             query?: never;
             header?: never;
@@ -397,14 +330,14 @@ export interface paths {
          * Preview Apply All
          * @description 캐시된 crop 이미지에 tempSteps를 적용하고 각 step별 중간 결과를 반환한다.
          */
-        post: operations["preview_apply_all_api_image_processing_preview_apply_all_post"];
+        post: operations["preview_apply_all_api_files_crop_apply_all_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/image-processing/preview/crop/{file_id}/{crop_id}": {
+    "/api/files/crop/{file_id}/{crop_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -418,7 +351,47 @@ export interface paths {
          * Preview Delete
          * @description 캐시된 preview crop 파일을 삭제한다.
          */
-        delete: operations["preview_delete_api_image_processing_preview_crop__file_id___crop_id__delete"];
+        delete: operations["preview_delete_api_files_crop__file_id___crop_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/filters/params/{prc_type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Filter Params
+         * @description 필터별 파라미터 스키마 조회.
+         */
+        get: operations["get_filter_params_api_filters_params__prc_type__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/filters/params": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get All Filter Params
+         * @description 전체 필터 파라미터 스키마 목록 조회.
+         */
+        get: operations["get_all_filter_params_api_filters_params_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -532,8 +505,8 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** Body_create_dzi_api_image_processing_dzi__file_id__post */
-        Body_create_dzi_api_image_processing_dzi__file_id__post: {
+        /** Body_create_dzi_api_files_dzi__file_id__post */
+        Body_create_dzi_api_files_dzi__file_id__post: {
             /**
              * Steps
              * @description 타겟 노드까지의 처리 단계 JSON 배열
@@ -545,8 +518,8 @@ export interface components {
              */
             nodeId: string;
         };
-        /** Body_download_node_api_image_processing_download__file_id__post */
-        Body_download_node_api_image_processing_download__file_id__post: {
+        /** Body_download_node_api_files_download__file_id__post */
+        Body_download_node_api_files_download__file_id__post: {
             /**
              * Steps
              * @description 타겟 노드까지의 처리 단계 JSON 배열
@@ -558,8 +531,8 @@ export interface components {
              */
             nodeId: string;
         };
-        /** Body_img_processing_api_image_processing_post */
-        Body_img_processing_api_image_processing_post: {
+        /** Body_file_process_api_files_process_post */
+        Body_file_process_api_files_process_post: {
             /**
              * File
              * @description 처리할 원본 이미지 파일
@@ -573,25 +546,12 @@ export interface components {
             prcType: "sobel" | "prewitt" | "laplacian" | "canny" | "roberts" | "gaussian" | "blur" | "gaussianBlur" | "medianBlur" | "bilateralFilter" | "boxFilter" | "findContour" | "convexHull" | "boundingBox" | "plus" | "minus" | "gamma" | "histogramEqualization" | "binary" | "inverse" | "tozero" | "tozeroInverse" | "truncate" | "otsu" | "adaptive" | "erosion" | "dilation" | "opening" | "closing" | "custom";
             /**
              * Parameters
-             * @description 필터별 파라미터 JSON 문자열. GET /image-processing/params/{prcType}에서 스키마 확인 가능
+             * @description 필터별 파라미터 JSON 문자열
              */
             parameters?: string | null;
         };
-        /** Body_img_processing_batch_api_image_processing_batch_post */
-        Body_img_processing_batch_api_image_processing_batch_post: {
-            /**
-             * File
-             * @description 처리할 원본 이미지 파일
-             */
-            file: string;
-            /**
-             * Steps
-             * @description 처리 단계 JSON 배열. 예: [{"prcType":"gaussianBlur","parameters":{"kernelSize":5}},{"prcType":"canny"}]
-             */
-            steps: string;
-        };
-        /** Body_img_processing_batch_tree_api_image_processing_batch_tree_post */
-        Body_img_processing_batch_tree_api_image_processing_batch_tree_post: {
+        /** Body_file_process_batch_tree_api_files_process_batch_tree_post */
+        Body_file_process_batch_tree_api_files_process_batch_tree_post: {
             /**
              * Fileid
              * @description 처리할 원본 이미지 파일 ID
@@ -599,7 +559,7 @@ export interface components {
             fileId: string;
             /**
              * Steps
-             * @description 트리 형태 처리 단계 JSON 배열. 예: [{"nodeId":"n1","prcType":"gaussianBlur","parameters":{},"parentId":null}]
+             * @description 트리 형태 처리 단계 JSON 배열
              */
             steps: string;
             /**
@@ -608,11 +568,11 @@ export interface components {
              */
             thumbnailSize?: number | null;
         };
-        /** Body_img_processing_save_api_image_processing_save_post */
-        Body_img_processing_save_api_image_processing_save_post: {
+        /** Body_img_processing_save_api_files_save_post */
+        Body_img_processing_save_api_files_save_post: {
             /**
              * Blob
-             * @description 저장할 처리 완료 이미지 (image/png 또는 image/jpeg)
+             * @description 저장할 처리 완료 이미지
              */
             blob: string;
             /**
@@ -627,16 +587,16 @@ export interface components {
              */
             prcMs: number;
         };
-        /** Body_img_upload_api_image_processing_upload_post */
-        Body_img_upload_api_image_processing_upload_post: {
+        /** Body_img_upload_api_files_upload_post */
+        Body_img_upload_api_files_upload_post: {
             /**
              * File
              * @description 업로드할 원본 이미지 파일
              */
             file: string;
         };
-        /** Body_preview_apply_all_api_image_processing_preview_apply_all_post */
-        Body_preview_apply_all_api_image_processing_preview_apply_all_post: {
+        /** Body_preview_apply_all_api_files_crop_apply_all_post */
+        Body_preview_apply_all_api_files_crop_apply_all_post: {
             /**
              * Fileid
              * @description 원본 파일 ID
@@ -664,8 +624,8 @@ export interface components {
              */
             padding: number;
         };
-        /** Body_preview_apply_api_image_processing_preview_apply_post */
-        Body_preview_apply_api_image_processing_preview_apply_post: {
+        /** Body_preview_apply_api_files_crop_apply_post */
+        Body_preview_apply_api_files_crop_apply_post: {
             /**
              * Fileid
              * @description 원본 파일 ID
@@ -693,8 +653,8 @@ export interface components {
              */
             padding: number;
         };
-        /** Body_preview_crop_api_image_processing_preview_crop_post */
-        Body_preview_crop_api_image_processing_preview_crop_post: {
+        /** Body_preview_crop_api_files_crop_post */
+        Body_preview_crop_api_files_crop_post: {
             /**
              * Fileid
              * @description 원본 파일 ID
@@ -845,85 +805,6 @@ export interface components {
              * @description 원본 이미지 URL (저해상도일 때)
              */
             imageUrl?: string | null;
-        };
-        /** FileItem */
-        FileItem: {
-            /**
-             * Id
-             * @description 파일 고유 식별자 (UUID)
-             */
-            id: string;
-            /**
-             * Originnm
-             * @description 업로드 원본 파일명
-             */
-            originNm: string;
-            /**
-             * Nm
-             * @description 서버 저장 파일명 (UUID 기반)
-             */
-            nm: string;
-            /**
-             * Path
-             * @description 서버 내 파일 경로 (uploads/ 기준)
-             */
-            path: string;
-            /**
-             * Mimetype
-             * @description 파일 MIME 타입
-             */
-            mimeType: string;
-            /**
-             * Sizebytes
-             * @description 파일 크기 (bytes)
-             */
-            sizeBytes: number;
-            /**
-             * Uploadedat
-             * Format: date-time
-             * @description 업로드 완료 시각 (UTC)
-             */
-            uploadedAt: string;
-            /**
-             * Options
-             * @description 파일 관련 추가 메타데이터
-             */
-            options?: {
-                [key: string]: unknown;
-            };
-            /**
-             * Width
-             * @description 이미지 가로 해상도 (px)
-             */
-            width?: number | null;
-            /**
-             * Height
-             * @description 이미지 세로 해상도 (px)
-             */
-            height?: number | null;
-        };
-        /** FileItemListResponse */
-        FileItemListResponse: {
-            /**
-             * Items
-             * @description 파일 목록
-             */
-            items: components["schemas"]["FileItem"][];
-            /**
-             * Hasmore
-             * @description 다음 페이지 존재 여부
-             */
-            hasMore: boolean;
-            /**
-             * Nextcursoruploadedat
-             * @description 다음 커서 기준 업로드 시각
-             */
-            nextCursorUploadedAt?: string | null;
-            /**
-             * Nextcursorid
-             * @description 다음 커서 파일 ID
-             */
-            nextCursorId?: string | null;
         };
         /** FileListResponse */
         FileListResponse: {
@@ -2101,45 +1982,7 @@ export interface operations {
             };
         };
     };
-    get_files_api_files_get: {
-        parameters: {
-            query?: {
-                /** @description 반환할 최대 항목 수 */
-                limit?: number;
-                /** @description MIME 타입 필터 (예: image/png, image/*) */
-                mimeType?: string | null;
-                /** @description 커서 기준 업로드 시각 */
-                cursorUploadedAt?: string | null;
-                /** @description 커서 기준 파일 ID */
-                cursorId?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FileItemListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_saved_images_api_image_processing_get: {
+    get_saved_images_api_files_get: {
         parameters: {
             query?: {
                 /** @description 반환할 최대 항목 수 */
@@ -2150,9 +1993,9 @@ export interface operations {
                 minSize?: number | null;
                 /** @description 최대 파일 크기 (bytes) */
                 maxSize?: number | null;
-                /** @description 커서 기준 업로드 시각 (cursorId와 함께 제공) */
+                /** @description 커서 기준 업로드 시각 */
                 cursorUploadedAt?: string | null;
-                /** @description 커서 기준 파일 ID (cursorUploadedAt와 함께 제공) */
+                /** @description 커서 기준 파일 ID */
                 cursorId?: string | null;
             };
             header?: never;
@@ -2181,40 +2024,7 @@ export interface operations {
             };
         };
     };
-    img_processing_api_image_processing_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_img_processing_api_image_processing_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_image_api_image_processing__file_id__delete: {
+    delete_image_api_files__file_id__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -2247,7 +2057,7 @@ export interface operations {
             };
         };
     };
-    rename_image_api_image_processing__file_id__patch: {
+    rename_image_api_files__file_id__patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -2282,7 +2092,7 @@ export interface operations {
             };
         };
     };
-    get_thumbnail_api_image_processing_thumbnail__file_id__get: {
+    get_thumbnail_api_files_thumbnail__file_id__get: {
         parameters: {
             query?: {
                 /** @description 썸네일 최대 변 크기 (px) */
@@ -2316,7 +2126,346 @@ export interface operations {
             };
         };
     };
-    get_filter_params_api_image_processing_params__prc_type__get: {
+    img_processing_save_api_files_save_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_img_processing_save_api_files_save_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileSaveResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    img_upload_api_files_upload_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_img_upload_api_files_upload_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileUploadResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    file_process_api_files_process_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_file_process_api_files_process_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    file_process_batch_tree_api_files_process_batch_tree_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_file_process_batch_tree_api_files_process_batch_tree_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TreeBatchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_dzi_api_files_dzi__file_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_create_dzi_api_files_dzi__file_id__post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DziResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_node_api_files_download__file_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_download_node_api_files_download__file_id__post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_crop_api_files_crop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_preview_crop_api_files_crop_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewCropResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_apply_api_files_crop_apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_preview_apply_api_files_crop_apply_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_apply_all_api_files_crop_apply_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_preview_apply_all_api_files_crop_apply_all_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_delete_api_files_crop__file_id___crop_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                file_id: string;
+                crop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_filter_params_api_filters_params__prc_type__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2349,7 +2498,7 @@ export interface operations {
             };
         };
     };
-    get_all_filter_params_api_image_processing_params_get: {
+    get_all_filter_params_api_filters_params_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2367,345 +2516,6 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
-                };
-            };
-        };
-    };
-    img_processing_save_api_image_processing_save_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_img_processing_save_api_image_processing_save_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FileSaveResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    img_upload_api_image_processing_upload_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_img_upload_api_image_processing_upload_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FileUploadResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    img_processing_batch_api_image_processing_batch_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_img_processing_batch_api_image_processing_batch_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    img_processing_batch_tree_api_image_processing_batch_tree_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/x-www-form-urlencoded": components["schemas"]["Body_img_processing_batch_tree_api_image_processing_batch_tree_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TreeBatchResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_dzi_api_image_processing_dzi__file_id__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                file_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/x-www-form-urlencoded": components["schemas"]["Body_create_dzi_api_image_processing_dzi__file_id__post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DziResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    download_node_api_image_processing_download__file_id__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                file_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/x-www-form-urlencoded": components["schemas"]["Body_download_node_api_image_processing_download__file_id__post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    preview_crop_api_image_processing_preview_crop_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/x-www-form-urlencoded": components["schemas"]["Body_preview_crop_api_image_processing_preview_crop_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PreviewCropResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    preview_apply_api_image_processing_preview_apply_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/x-www-form-urlencoded": components["schemas"]["Body_preview_apply_api_image_processing_preview_apply_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    preview_apply_all_api_image_processing_preview_apply_all_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/x-www-form-urlencoded": components["schemas"]["Body_preview_apply_all_api_image_processing_preview_apply_all_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    }[];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    preview_delete_api_image_processing_preview_crop__file_id___crop_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                file_id: string;
-                crop_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

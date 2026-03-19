@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useQuasar } from 'quasar';
-import * as imgPrcApi from 'src/apis/imgPrcApi';
+import * as filesApi from 'src/apis/filesApi';
 import type { FileListResponse } from 'src/types/imgPrcType';
 
 type TFile = FileListResponse['items'][number];
@@ -72,7 +72,7 @@ async function load(reset = false) {
 
   try {
     const { minSize, maxSize } = getSizeFilter();
-    const res = await imgPrcApi.getProcessingImage({
+    const res = await filesApi.getFiles({
       limit: 20,
       search: searchQuery.value.trim() || undefined,
       minSize,
@@ -153,7 +153,7 @@ async function submitUpload() {
     const renamed = new File([pendingFile.value], `${pendingName.value.trim()}${ext}`, {
       type: pendingFile.value.type,
     });
-    await imgPrcApi.uploadFile(renamed);
+    await filesApi.uploadFile(renamed);
     cancelUpload();
     await load(true);
   } catch (err) {
@@ -174,7 +174,7 @@ function onDelete(file: TFile, e: Event) {
     persistent: true,
   }).onOk(() => {
     void (async () => {
-      await imgPrcApi.deleteFile(file.id);
+      await filesApi.deleteFile(file.id);
       items.value = items.value.filter((f) => f.id !== file.id);
 
       void $q.notify({ type: 'positive', message: `"${file.originNm}" 삭제 완료` });
@@ -205,7 +205,7 @@ async function submitEdit(file: TFile) {
   }
 
   try {
-    await imgPrcApi.renameFile(file.id, newName);
+    await filesApi.renameFile(file.id, newName);
     const item = items.value.find((f) => f.id === file.id);
     if (item) {
       item.originNm = newName;

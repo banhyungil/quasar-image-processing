@@ -1,4 +1,4 @@
-import * as imgPrcApi from 'src/apis/imgPrcApi';
+import * as filesApi from 'src/apis/filesApi';
 import type { PreviewTempStep } from 'src/types/imgPrcType';
 import type { CropItem } from './useCropManager';
 
@@ -35,7 +35,7 @@ export function usePreviewManager(
     applying.value = true;
 
     try {
-      const result = await imgPrcApi.previewApply(
+      const result = await filesApi.applyCrop(
         fileId.value,
         crop.cropId,
         getStepPayload(),
@@ -59,7 +59,7 @@ export function usePreviewManager(
     timelineAbortController = new AbortController();
 
     try {
-      const results = await imgPrcApi.previewApplyAll(
+      const results = await filesApi.applyCropAll(
         fileId.value,
         crop.cropId,
         getStepPayload(),

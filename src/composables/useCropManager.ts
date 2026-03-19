@@ -1,5 +1,5 @@
 import { useQuasar } from 'quasar';
-import * as imgPrcApi from 'src/apis/imgPrcApi';
+import * as filesApi from 'src/apis/filesApi';
 import type { TreeBatchStep, Viewport } from 'src/types/imgPrcType';
 import { API_HOST } from 'src/boot/axios';
 
@@ -53,7 +53,7 @@ export function useCropManager(
   async function createCrop(viewport: Viewport): Promise<CropItem | null> {
     if (!fileId.value || !validateViewport(viewport)) return null;
 
-    const result = await imgPrcApi.previewCrop(
+    const result = await filesApi.createCrop(
       fileId.value,
       nodeSteps.value,
       nodeId.value,
@@ -75,7 +75,7 @@ export function useCropManager(
     const crop = cropList.value.find((c) => c.cropId === cropIdToRemove);
     if (!crop) return;
     if (fileId.value) {
-      void imgPrcApi.previewDelete(fileId.value, cropIdToRemove);
+      void filesApi.deleteCrop(fileId.value, cropIdToRemove);
     }
     cropList.value = cropList.value.filter((c) => c.cropId !== cropIdToRemove);
     if (activeCropId.value === cropIdToRemove) {
@@ -86,7 +86,7 @@ export function useCropManager(
   function cleanupAll() {
     for (const crop of cropList.value) {
       if (fileId.value) {
-        void imgPrcApi.previewDelete(fileId.value, crop.cropId);
+        void filesApi.deleteCrop(fileId.value, crop.cropId);
       }
     }
     cropList.value = [];
