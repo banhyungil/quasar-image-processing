@@ -15,3 +15,11 @@
 아래 항목을 참고할 것
 
 - vue template에서 ref는 자동 unwrap 된다.
+- package.json에 설치된 라이브러리를 참고하여 개발진행한다.
+
+## 타입 관리
+
+- `api.d.ts`는 OpenAPI 자동 생성 파일로 참조용으로만 사용
+- 프론트 타입은 `src/types/` 하위에 직접 정의
+- 백엔드 스키마 변경 시 `api.d.ts`를 갱신하고, diff를 보고 `types/`에 수동 반영
+- AI는 `api.d.ts`를 읽어서 타입 변경사항을 파악하고 직접 정의 파일에 반영

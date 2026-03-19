@@ -1,13 +1,62 @@
-import type { components, operations } from './api';
+// ── 필터 타입 ────────────────────────────────────────────────────────────────
 
-// api.d.ts 기반 타입 별칭
 export type PrcType =
-  components['schemas']['Body_img_processing_api_image_processing_post']['prcType'];
-export type FileSaveResponse = components['schemas']['FileSaveResponse'];
-export type FileListResponse = components['schemas']['FileListResponse'];
-export type GetProcessingImageOptions = NonNullable<
-  operations['get_saved_images_api_image_processing_get']['parameters']['query']
->;
+  // Edge Detection
+  | 'sobel' | 'prewitt' | 'laplacian' | 'canny' | 'roberts'
+  // Blurring
+  | 'gaussian' | 'blur' | 'gaussianBlur' | 'medianBlur' | 'bilateralFilter' | 'boxFilter'
+  // Contour Detection
+  | 'findContour' | 'convexHull' | 'boundingBox'
+  // Brightness
+  | 'plus' | 'minus' | 'gamma' | 'histogramEqualization'
+  // Thresholding
+  | 'binary' | 'inverse' | 'tozero' | 'tozeroInverse' | 'truncate' | 'otsu' | 'adaptive'
+  // Morphological
+  | 'erosion' | 'dilation' | 'opening' | 'closing'
+  // Custom
+  | 'custom';
+
+// ── 파일 응답 ────────────────────────────────────────────────────────────────
+
+export interface TFile {
+  id: string;
+  originNm: string;
+  nm: string;
+  path: string;
+  mimeType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+  options: Record<string, unknown>;
+  thumbnailUrl: string | null;
+  width: number | null;
+  height: number | null;
+}
+
+export interface FileListResponse {
+  items: TFile[];
+  hasMore: boolean;
+  nextCursorUploadedAt: string | null;
+  nextCursorId: string | null;
+}
+
+export interface FileSaveResponse {
+  id: string;
+  originNm: string;
+  nm: string;
+  path: string;
+  mimeType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+  options: Record<string, unknown>;
+  width: number | null;
+  height: number | null;
+}
+
+export interface GetProcessingImageOptions {
+  limit?: number;
+  cursorUploadedAt?: string;
+  cursorId?: string;
+}
 
 export interface ImgPrcOptions {
   file: File;
