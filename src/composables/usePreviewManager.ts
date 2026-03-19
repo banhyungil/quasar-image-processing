@@ -14,14 +14,14 @@ export function usePreviewManager(
 ) {
   const applying = ref(false);
   const lastExecutionMs = ref<number | null>(null);
-  const timelineSteps = ref<{ prcType: string; imageSrc: string; executionMs?: number }[]>([]);
+  const timelineSteps = ref<{ filterType: string; imageSrc: string; executionMs?: number }[]>([]);
 
   let previewAbortController: AbortController | null = null;
   let timelineAbortController: AbortController | null = null;
 
   function getStepPayload(): PreviewTempStep[] {
     return tempSteps.value.map((s) => ({
-      prcType: s.prcType,
+      filterType: s.filterType,
       parameters: { ...s.parameters },
     }));
   }
@@ -67,7 +67,7 @@ export function usePreviewManager(
         { signal: timelineAbortController.signal },
       );
       timelineSteps.value = results.map((r) => ({
-        prcType: r.prcType,
+        filterType: r.filterType,
         imageSrc: `data:image/png;base64,${r.imageBase64}`,
         executionMs: r.executionMs,
       }));

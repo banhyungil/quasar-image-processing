@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { QBtnDropdown } from 'quasar';
 import { FN_LIST, FN_OPTIONS_MAP } from 'src/constants/imgPrc';
-import type { PrcType } from 'src/types/imgPrcType';
+import type { FilterType } from 'src/types/imgPrcType';
 import type { CustomFilter } from 'src/apis/customFilterApi';
 
 interface FnTreeNode {
@@ -14,7 +14,7 @@ interface FnTreeNode {
 
 const props = defineProps<{
   /** 현재 선택된 알고리즘 */
-  modelValue?: PrcType;
+  modelValue?: FilterType;
   /** 버튼에 표시할 라벨 */
   label: string;
   /** 커스텀 필터 목록 */
@@ -22,7 +22,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'select', prcType: PrcType, label: string, filterId?: string): void;
+  (e: 'select', filterType: FilterType, label: string, filterId?: string): void;
 }>();
 
 const fnTreeNodes = computed<FnTreeNode[]>(() => {
@@ -57,7 +57,7 @@ const filterSearch = ref('');
 const btnDropdownRef = ref<InstanceType<typeof QBtnDropdown> | null>(null);
 
 function onSelectFilter(node: FnTreeNode) {
-  emit('select', node.value as PrcType, node.label, node.filterId);
+  emit('select', node.value as FilterType, node.label, node.filterId);
   btnDropdownRef.value?.hide();
 }
 </script>

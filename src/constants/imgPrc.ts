@@ -1,5 +1,5 @@
 // prettier-ignore
-import type { PrcType } from 'src/types/imgPrcType';
+import type { FilterType } from 'src/types/imgPrcType';
 
 export type FunctionKey = 'filtering' | 'blurring' | 'findContour' | 'brightness' | 'threshold';
 
@@ -11,7 +11,7 @@ export const FN_LIST = [
   { label: '이진화', value: 'threshold' },
 ] as const satisfies Array<{ label: string; value: FunctionKey }>;
 
-export const FN_OPTIONS_MAP: Record<FunctionKey, Array<{ label: string; value: PrcType }>> = {
+export const FN_OPTIONS_MAP: Record<FunctionKey, Array<{ label: string; value: FilterType }>> = {
   filtering: [
     { label: '소벨 (Sobel)', value: 'sobel' },
     { label: '프르윗 (Prewitt)', value: 'prewitt' },
@@ -37,7 +37,7 @@ export const FN_OPTIONS_MAP: Record<FunctionKey, Array<{ label: string; value: P
   ],
 };
 
-export const DEFAULT_KERNEL_SIZES: Partial<Record<PrcType, number>> = {
+export const DEFAULT_KERNEL_SIZES: Partial<Record<FilterType, number>> = {
   sobel: 3,
   laplacian: 3,
   gaussian: 5,
@@ -47,7 +47,7 @@ export const DEFAULT_KERNEL_SIZES: Partial<Record<PrcType, number>> = {
   bilateralFilter: 9,
 };
 
-// PrcType 약어 매핑 (다운로드 파일명용)
+// FilterType 약어 매핑 (다운로드 파일명용)
 export const PRC_ABBR: Record<string, string> = {
   sobel: 'sob',
   prewitt: 'prew',
@@ -86,8 +86,8 @@ export const PRC_ABBR: Record<string, string> = {
  * - 3단계 이하: 모든 약어를 연결 (e.g. "gBlur_sob_bin")
  * - 4단계 이상: 처음 2개 + ...N개... + 마지막 1개 (e.g. "gBlur_sob_+3_bin")
  */
-export function buildChainFilename(prcTypes: string[]): string {
-  const abbrs = prcTypes.map((t) => PRC_ABBR[t] ?? t);
+export function buildChainFilename(filterTypes: string[]): string {
+  const abbrs = filterTypes.map((t) => PRC_ABBR[t] ?? t);
   if (abbrs.length <= 3) return abbrs.join('_');
   const mid = abbrs.length - 3;
   return `${abbrs[0]}_${abbrs[1]}_+${mid}_${abbrs[abbrs.length - 1]}`;

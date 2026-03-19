@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { PARAM_FIELDS } from 'src/constants/imgPrc';
 import type { ParamFieldDef } from 'src/constants/imgPrc';
-import type { PrcType } from 'src/types/imgPrcType';
+import type { FilterType } from 'src/types/imgPrcType';
 import type { ProcessNodeData } from 'src/types/flowTypes';
 import type { CustomFilter } from 'src/apis/customFilterApi';
 import FilterTreeSelect from './FilterTreeSelect.vue';
@@ -16,7 +16,7 @@ const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'apply', nodeData: ProcessNodeData): void;
   (e: 'change', parameters: Record<string, unknown>): void;
-  (e: 'change-filter', prcType: PrcType, label: string, filterId?: string): void;
+  (e: 'change-filter', filterType: FilterType, label: string, filterId?: string): void;
 }>();
 
 // 로컬 파라미터 복사본 (적용 전까지 원본에 영향 없음)
@@ -67,7 +67,6 @@ function getDefaultParams(): Record<string, unknown> {
 function resetParams() {
   localParams.value = getDefaultParams();
 }
-
 </script>
 
 <template>
@@ -88,7 +87,7 @@ function resetParams() {
           :model-value="nodeData.algorithmNm"
           :label="nodeData.label"
           :custom-filters="customFilters"
-          @select="(prcType, label, filterId) => emit('change-filter', prcType, label, filterId)"
+          @select="(filterType, label, filterId) => emit('change-filter', filterType, label, filterId)"
         />
 
         <template v-if="cFields.length === 0">

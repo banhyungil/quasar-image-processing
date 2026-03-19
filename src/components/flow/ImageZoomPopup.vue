@@ -2,7 +2,7 @@
 import { useDebounceFn, useEventListener } from '@vueuse/core';
 import { PARAM_FIELDS } from 'src/constants/imgPrc';
 import type { ParamFieldDef } from 'src/constants/imgPrc';
-import type { PrcType } from 'src/types/imgPrcType';
+import type { FilterType } from 'src/types/imgPrcType';
 import type { TreeBatchStep, PreviewTempStep } from 'src/types/imgPrcType';
 import OsdViewer from './OsdViewer.vue';
 import TimelineViewer from './TimelineViewer.vue';
@@ -95,13 +95,13 @@ function onKeyDown(e: KeyboardEvent) {
 useEventListener(window, 'keydown', onKeyDown);
 
 // ── 필터 추가/삭제/변경 ─────────────────────────────────────────────────────
-async function onSelectFilter(prcType: PrcType, label: string) {
+async function onSelectFilter(filterType: FilterType, label: string) {
   const id = crypto.randomUUID();
-  const fields = PARAM_FIELDS[prcType] ?? [];
+  const fields = PARAM_FIELDS[filterType] ?? [];
   const parameters: Record<string, unknown> = Object.fromEntries(
     fields.map((f: ParamFieldDef) => [f.key, f.default]),
   );
-  tempSteps.value.push({ id, prcType, label, parameters });
+  tempSteps.value.push({ id, filterType, label, parameters });
   expandedStepId.value = id;
   selectedStepId.value = id;
   if (!showSidePanel.value) showSidePanel.value = true;
@@ -163,7 +163,7 @@ async function onRegionSelect(viewport: { x: number; y: number; w: number; h: nu
 // ── 캔버스 반영 ──────────────────────────────────────────────────────────────
 function applyToCanvas() {
   const steps: PreviewTempStep[] = tempSteps.value.map((s) => ({
-    prcType: s.prcType,
+    filterType: s.filterType,
     parameters: { ...s.parameters },
   }));
   emit('apply-to-canvas', steps);
@@ -209,7 +209,10 @@ onBeforeUnmount(() => {
       <div class="zoom-header row items-center q-py-xs q-px-sm" @mousedown="onHeaderMouseDown">
         <q-btn
           v-if="fileId"
-          flat round dense size="xs"
+          flat
+          round
+          dense
+          size="xs"
           :icon="showSidePanel ? 'chevron_left' : 'tune'"
           @click.stop="showSidePanel = !showSidePanel"
         >
@@ -221,7 +224,10 @@ onBeforeUnmount(() => {
         </div>
         <q-space />
         <q-btn
-          flat round dense size="xs"
+          flat
+          round
+          dense
+          size="xs"
           :icon="isMaximized ? 'filter_none' : 'crop_square'"
           @click.stop="isMaximized = !isMaximized"
         >
@@ -259,12 +265,26 @@ onBeforeUnmount(() => {
           >
             <q-btn-toggle
               v-model="mode"
-              flat dense size="sm" toggle-color="primary"
+              flat
+              dense
+              size="sm"
+              toggle-color="primary"
               :options="[
                 { value: 'explore', icon: 'search', slot: 'explore' },
                 { value: 'crop', icon: 'crop', slot: 'crop', disable: !cropMgr.activeCrop.value },
-                { value: 'compare', icon: 'compare', slot: 'compare', disable: !cropMgr.activeCrop.value || !cropMgr.activeCrop.value?.processedImageUrl },
-                { value: 'timeline', icon: 'view_timeline', slot: 'timeline', disable: !cropMgr.activeCrop.value || tempSteps.length === 0 },
+                {
+                  value: 'compare',
+                  icon: 'compare',
+                  slot: 'compare',
+                  disable:
+                    !cropMgr.activeCrop.value || !cropMgr.activeCrop.value?.processedImageUrl,
+                },
+                {
+                  value: 'timeline',
+                  icon: 'view_timeline',
+                  slot: 'timeline',
+                  disable: !cropMgr.activeCrop.value || tempSteps.length === 0,
+                },
               ]"
             >
               <template #explore><q-tooltip>탐색</q-tooltip></template>
@@ -305,7 +325,16 @@ onBeforeUnmount(() => {
             </div>
 
             <!-- 모드 1: Crop -->
-            <div v-show="mode === 'crop'" class="viewer-pane" style="display: flex; align-items: center; justify-content: center; background: #f5f5f5">
+            <div
+              v-show="mode === 'crop'"
+              class="viewer-pane"
+              style="
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #f5f5f5;
+              "
+            >
               <img
                 v-if="cropMgr.activeCrop.value?.nodeImageUrl"
                 :src="cropMgr.activeCrop.value!.nodeImageUrl"
@@ -315,8 +344,16 @@ onBeforeUnmount(() => {
 
             <!-- 모드 2: 비교 -->
             <div v-show="mode === 'compare'" class="viewer-pane row">
-              <template v-if="cropMgr.activeCrop.value?.nodeImageUrl && cropMgr.activeCrop.value?.processedImageUrl">
-                <div class="col" style="position: relative; border-right: 1px solid rgba(0,0,0,0.1)">
+              <template
+                v-if="
+                  cropMgr.activeCrop.value?.nodeImageUrl &&
+                  cropMgr.activeCrop.value?.processedImageUrl
+                "
+              >
+                <div
+                  class="col"
+                  style="position: relative; border-right: 1px solid rgba(0, 0, 0, 0.1)"
+                >
                   <OsdViewer
                     :src="cropMgr.activeCrop.value!.nodeImageUrl"
                     :zoom-per-scroll="settingsStore.defaultZoomPerScroll"
@@ -350,7 +387,10 @@ onBeforeUnmount(() => {
             <!-- 모드 3: 타임라인 -->
             <div v-show="mode === 'timeline'" class="viewer-pane">
               <TimelineViewer
-                v-if="cropMgr.activeCrop.value?.nodeImageUrl && previewMgr.timelineSteps.value.length > 0"
+                v-if="
+                  cropMgr.activeCrop.value?.nodeImageUrl &&
+                  previewMgr.timelineSteps.value.length > 0
+                "
                 :node-image-url="cropMgr.activeCrop.value!.nodeImageUrl"
                 :steps="previewMgr.timelineSteps.value"
                 class="fit"

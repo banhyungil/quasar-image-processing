@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { FN_LIST, FN_OPTIONS_MAP } from 'src/constants/imgPrc';
 import type { FunctionKey } from 'src/constants/imgPrc';
-import type { PrcType } from 'src/types/imgPrcType';
+import type { FilterType } from 'src/types/imgPrcType';
 import * as customFilterApi from 'src/apis/customFilterApi';
 import type { CustomFilter } from 'src/apis/customFilterApi';
 
@@ -14,9 +14,9 @@ const CATEGORY_ICONS: Record<FunctionKey, string> = {
 };
 
 const emit = defineEmits<{
-  (e: 'add-filter', prcType: PrcType, label: string): void;
+  (e: 'add-filter', filterType: FilterType, label: string): void;
   (e: 'add-custom-filter', cf: CustomFilter): void;
-  (e: 'drag-start', event: DragEvent, prcType: PrcType, label: string): void;
+  (e: 'drag-start', event: DragEvent, filterType: FilterType, label: string): void;
   (e: 'open-editor', cf?: CustomFilter): void;
   (e: 'delete-custom-filter', id: string): void;
 }>();

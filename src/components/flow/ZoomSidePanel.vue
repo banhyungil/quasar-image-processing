@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { PARAM_FIELDS } from 'src/constants/imgPrc';
 import type { ParamFieldDef } from 'src/constants/imgPrc';
-import type { PrcType } from 'src/types/imgPrcType';
+import type { FilterType } from 'src/types/imgPrcType';
 import FilterTreeSelect from './FilterTreeSelect.vue';
 import ParamField from './ParamField.vue';
 import type { CropItem } from 'src/composables/useCropManager';
@@ -16,7 +16,7 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'select-filter', prcType: PrcType, label: string): void;
+  (e: 'select-filter', filterType: FilterType, label: string): void;
   (e: 'create-crop'): void;
   (e: 'select-crop', cropId: string): void;
   (e: 'remove-crop', cropId: string): void;
@@ -26,8 +26,8 @@ const emit = defineEmits<{
   (e: 'apply-to-canvas'): void;
 }>();
 
-function getStepFields(prcType: PrcType): ParamFieldDef[] {
-  return PARAM_FIELDS[prcType] ?? [];
+function getStepFields(filterType: FilterType): ParamFieldDef[] {
+  return PARAM_FIELDS[filterType] ?? [];
 }
 </script>
 
@@ -47,12 +47,18 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
           <q-icon name="crop" size="xs" color="grey-7" />
         </q-item-section>
         <q-item-section>
-          <span class="text-body2 text-grey-7 text-weight-medium">Crop 목록 ({{ cropList.length }})</span>
+          <span class="text-body2 text-grey-7 text-weight-medium"
+            >Crop 목록 ({{ cropList.length }})</span
+          >
         </q-item-section>
         <q-item-section side>
           <q-btn
             v-if="mode === 'explore'"
-            flat dense size="xs" icon="content_cut" color="primary"
+            flat
+            dense
+            size="xs"
+            icon="content_cut"
+            color="primary"
             @click.stop="emit('create-crop')"
           >
             <q-tooltip>현재 뷰포트 자르기</q-tooltip>
@@ -72,7 +78,15 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
           >
             {{ crop.label }}
           </span>
-          <q-btn flat round dense size="xs" icon="close" color="grey-6" @click="emit('remove-crop', crop.cropId)" />
+          <q-btn
+            flat
+            round
+            dense
+            size="xs"
+            icon="close"
+            color="grey-6"
+            @click="emit('remove-crop', crop.cropId)"
+          />
         </div>
         <div
           class="zoom-side__crop-thumb cursor-pointer"
@@ -91,7 +105,9 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
           <q-icon name="layers" size="xs" color="grey-7" />
         </q-item-section>
         <q-item-section>
-          <span class="text-body2 text-grey-7 text-weight-medium">적용 필터 ({{ tempSteps.length }})</span>
+          <span class="text-body2 text-grey-7 text-weight-medium"
+            >적용 필터 ({{ tempSteps.length }})</span
+          >
         </q-item-section>
       </template>
 
@@ -110,13 +126,21 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
               <q-item-label class="text-body2">{{ step.label }}</q-item-label>
             </q-item-section>
             <q-item-section side>
-              <q-btn flat round dense size="xs" icon="close" color="negative" @click.stop="emit('remove-step', step.id)" />
+              <q-btn
+                flat
+                round
+                dense
+                size="xs"
+                icon="close"
+                color="negative"
+                @click.stop="emit('remove-step', step.id)"
+              />
             </q-item-section>
           </template>
 
           <div class="q-px-sm q-pb-sm">
             <ParamField
-              v-for="field in getStepFields(step.prcType)"
+              v-for="field in getStepFields(step.filterType)"
               :key="field.key"
               :field="field"
               :model-value="step.parameters?.[field.key]"
@@ -134,9 +158,14 @@ function getStepFields(prcType: PrcType): ParamFieldDef[] {
       style="border-top: 1px solid rgba(0, 0, 0, 0.08)"
     >
       <q-btn
-        unelevated dense no-caps size="sm"
-        label="캔버스에 반영" color="primary"
-        class="col" icon="check"
+        unelevated
+        dense
+        no-caps
+        size="sm"
+        label="캔버스에 반영"
+        color="primary"
+        class="col"
+        icon="check"
         @click="emit('apply-to-canvas')"
       />
     </div>

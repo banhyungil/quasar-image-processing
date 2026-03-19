@@ -1,18 +1,41 @@
 // ── 필터 타입 ────────────────────────────────────────────────────────────────
 
-export type PrcType =
+export type FilterType =
   // Edge Detection
-  | 'sobel' | 'prewitt' | 'laplacian' | 'canny' | 'roberts'
+  | 'sobel'
+  | 'prewitt'
+  | 'laplacian'
+  | 'canny'
+  | 'roberts'
   // Blurring
-  | 'gaussian' | 'blur' | 'gaussianBlur' | 'medianBlur' | 'bilateralFilter' | 'boxFilter'
+  | 'gaussian'
+  | 'blur'
+  | 'gaussianBlur'
+  | 'medianBlur'
+  | 'bilateralFilter'
+  | 'boxFilter'
   // Contour Detection
-  | 'findContour' | 'convexHull' | 'boundingBox'
+  | 'findContour'
+  | 'convexHull'
+  | 'boundingBox'
   // Brightness
-  | 'plus' | 'minus' | 'gamma' | 'histogramEqualization'
+  | 'plus'
+  | 'minus'
+  | 'gamma'
+  | 'histogramEqualization'
   // Thresholding
-  | 'binary' | 'inverse' | 'tozero' | 'tozeroInverse' | 'truncate' | 'otsu' | 'adaptive'
+  | 'binary'
+  | 'inverse'
+  | 'tozero'
+  | 'tozeroInverse'
+  | 'truncate'
+  | 'otsu'
+  | 'adaptive'
   // Morphological
-  | 'erosion' | 'dilation' | 'opening' | 'closing'
+  | 'erosion'
+  | 'dilation'
+  | 'opening'
+  | 'closing'
   // Custom
   | 'custom';
 
@@ -60,7 +83,7 @@ export interface GetProcessingImageOptions {
 
 export interface ImgPrcOptions {
   file: File;
-  prcType: PrcType;
+  filterType: FilterType;
   kernelSize: number;
 }
 
@@ -68,20 +91,20 @@ export interface SavePrcImageOptions {
   blob: Blob;
   originFileNm: string;
   /** 처리 유형 */
-  prcType: PrcType;
+  filterType: FilterType;
   /** 처리시간 */
   prcMs: number;
 }
 
 export interface BatchStep {
-  prcType: PrcType;
+  filterType: FilterType;
   parameters?: Record<string, unknown>;
 }
 
 export interface BatchResult {
   blob: Blob;
   totalExecutionMs: number;
-  stepTimes: { prcType: string; executionMs: number }[];
+  stepTimes: { filterType: string; executionMs: number }[];
 }
 
 // ── File Upload ─────────────────────────────────────────────────────────────
@@ -100,7 +123,7 @@ export interface FileUploadResponse {
 
 export interface TreeBatchStep {
   nodeId: string;
-  prcType: PrcType;
+  filterType: FilterType;
   parameters?: Record<string, unknown>;
   parentId?: string | null;
 }
@@ -133,6 +156,6 @@ export interface PreviewCropResponse {
 }
 
 export interface PreviewTempStep {
-  prcType: PrcType;
+  filterType: FilterType;
   parameters?: Record<string, unknown>;
 }

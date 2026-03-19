@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Handle, Position } from '@vue-flow/core';
 import { PARAM_FIELDS } from 'src/constants/imgPrc';
-import type { PrcType } from 'src/types/imgPrcType';
+import type { FilterType } from 'src/types/imgPrcType';
 import type { ProcessNodeData } from 'src/types/flowTypes';
 import { useSettingsStore } from 'src/stores/settings-store';
 import FilterTreeSelect from './FilterTreeSelect.vue';
@@ -22,12 +22,12 @@ const emit = defineEmits<{
   (e: 'zoom', nodeId: string): void;
   (e: 'download', nodeId: string): void;
   (e: 'copy-chain', nodeId: string): void;
-  (e: 'change-filter', nodeId: string, prcType: PrcType, label: string, filterId?: string): void;
+  (e: 'change-filter', nodeId: string, filterType: FilterType, label: string, filterId?: string): void;
 }>();
 
-function onSelectFilter(prcType: PrcType, label: string, filterId?: string) {
-  if (prcType === props.data.algorithmNm && !filterId) return;
-  emit('change-filter', props.id, prcType, label, filterId);
+function onSelectFilter(filterType: FilterType, label: string, filterId?: string) {
+  if (filterType === props.data.algorithmNm && !filterId) return;
+  emit('change-filter', props.id, filterType, label, filterId);
 }
 
 const cParamSummary = computed(() => {

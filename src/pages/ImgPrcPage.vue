@@ -7,7 +7,7 @@ import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 
 import { PARAM_FIELDS, buildChainFilename } from 'src/constants/imgPrc';
-import type { PrcType } from 'src/types/imgPrcType';
+import type { FilterType } from 'src/types/imgPrcType';
 import * as presetApi from 'src/apis/presetApi';
 import type { PresetResponse } from 'src/apis/presetApi';
 import * as processApi from 'src/apis/processApi';
@@ -194,8 +194,8 @@ async function loadProcessList() {
 }
 
 // ── 파라미터 패널 ──────────────────────────────────────────────────────────
-function getDefaultParams(prcType: string): Record<string, unknown> {
-  const fields = PARAM_FIELDS[prcType];
+function getDefaultParams(filterType: string): Record<string, unknown> {
+  const fields = PARAM_FIELDS[filterType];
   if (!fields) return {};
   return Object.fromEntries(fields.map((f) => [f.key, f.default]));
 }
@@ -256,17 +256,17 @@ const onParamChange = useDebounceFn((parameters: Record<string, unknown>) => {
 }, 200);
 
 // ── 노드 추가 (사이드바 클릭) ──────────────────────────────────────────────
-function addFilterNode(prcType: PrcType, label: string) {
+function addFilterNode(filterType: FilterType, label: string) {
   const id = crypto.randomUUID();
   const newNode: Node<ProcessNodeData> = {
     id,
     type: 'filter',
     position: { x: 0, y: 0 },
     data: {
-      algorithmNm: prcType,
+      algorithmNm: filterType,
       label,
       enabled: true,
-      parameters: getDefaultParams(prcType),
+      parameters: getDefaultParams(filterType),
       imageUrl: null,
       executionMs: null,
     },
@@ -322,7 +322,7 @@ function addCustomFilterNode(cf: CustomFilter) {
     type: 'filter',
     position: { x: 0, y: 0 },
     data: {
-      algorithmNm: 'custom' as PrcType,
+      algorithmNm: 'custom' as FilterType,
       label: cf.nm,
       enabled: true,
       parameters: defaultParams,
@@ -397,7 +397,7 @@ async function processNodeThumbnail(targetNodeId: string, options?: { signal?: A
     enabledIds.add(nodeId);
     steps.push({
       nodeId,
-      prcType: data.algorithmNm,
+      filterType: data.algorithmNm,
       parameters: { ...data.parameters },
       parentId,
     });
@@ -472,13 +472,13 @@ function toggleEnabled(nodeId: string) {
   }
 }
 
-function onChangeFilter(nodeId: string, prcType: PrcType, label: string, filterId?: string) {
+function onChangeFilter(nodeId: string, filterType: FilterType, label: string, filterId?: string) {
   const node = nodes.value.find((n) => n.id === nodeId);
   if (!node || node.type !== 'filter') return;
   const data = node.data;
-  data.algorithmNm = prcType;
+  data.algorithmNm = filterType;
   data.label = label;
-  data.parameters = getDefaultParams(prcType);
+  data.parameters = getDefaultParams(filterType);
   if (filterId) {
     data.parameters.filterId = filterId;
   }
@@ -554,9 +554,9 @@ function relayout() {
 }
 
 // ── 사이드바 드래그 → 캔버스 드롭 ─────────────────────────────────────────
-function onSidebarDragStart(event: DragEvent, prcType: PrcType, label: string) {
+function onSidebarDragStart(event: DragEvent, filterType: FilterType, label: string) {
   if (!event.dataTransfer) return;
-  event.dataTransfer.setData('application/vueflow-prctype', prcType);
+  event.dataTransfer.setData('application/vueflow-filtertype', filterType);
   event.dataTransfer.setData('application/vueflow-label', label);
   event.dataTransfer.effectAllowed = 'move';
 }
@@ -569,11 +569,13 @@ function onCanvasDragOver(event: DragEvent) {
 }
 
 function onCanvasDrop(event: DragEvent) {
-  const prcType = event.dataTransfer?.getData('application/vueflow-prctype') as PrcType | undefined;
+  const filterType = event.dataTransfer?.getData('application/vueflow-filtertype') as
+    | FilterType
+    | undefined;
   const label = event.dataTransfer?.getData('application/vueflow-label');
-  if (!prcType || !label) return;
+  if (!filterType || !label) return;
 
-  if (prcType === 'custom') {
+  if (filterType === 'custom') {
     const filterId = event.dataTransfer?.getData('application/vueflow-filter-id');
     if (filterId) {
       // 커스텀 필터를 FilterListPanel의 목록에서 찾아 노드 추가
@@ -587,7 +589,7 @@ function onCanvasDrop(event: DragEvent) {
     return;
   }
 
-  addFilterNode(prcType, label);
+  addFilterNode(filterType, label);
 }
 
 // ── 전체 노드 초기화 ─────────────────────────────────────────────────────
@@ -818,8 +820,8 @@ function onApplyPreviewToCanvas(parentNodeId: string, steps: PreviewTempStep[]) 
       type: 'filter',
       position: { x: 0, y: 0 },
       data: {
-        algorithmNm: step.prcType,
-        label: step.prcType,
+        algorithmNm: step.filterType,
+        label: step.filterType,
         enabled: true,
         parameters: { ...(step.parameters ?? {}) },
         imageUrl: null,
@@ -874,7 +876,7 @@ function buildStepsToNode(nodeId: string): TreeBatchStep[] {
     enabledIds.add(nid);
     steps.push({
       nodeId: nid,
-      prcType: node.data.algorithmNm,
+      filterType: node.data.algorithmNm,
       parameters: { ...node.data.parameters },
       parentId,
     });
@@ -923,8 +925,8 @@ async function onNodeDownload(nodeId: string) {
   if (steps.length === 0) return;
 
   const blob = await filesApi.downloadNodeImage(oOrigin.value.fileId, steps, nodeId);
-  const prcTypes = steps.map((s) => s.prcType);
-  const chainSuffix = buildChainFilename(prcTypes);
+  const filterTypes = steps.map((s) => s.filterType);
+  const chainSuffix = buildChainFilename(filterTypes);
   const baseName = 'image';
 
   const url = URL.createObjectURL(blob);
@@ -940,14 +942,14 @@ async function onCopyChain(nodeId: string) {
   if (steps.length === 0) return;
 
   const lines = steps.map((s, i) => {
-    const fields = PARAM_FIELDS[s.prcType];
+    const fields = PARAM_FIELDS[s.filterType];
     const paramStr = fields
       ?.map((f) => {
         const v = s.parameters?.[f.key] ?? f.default;
         return `${f.label}=${JSON.stringify(v)}`;
       })
       .join(', ');
-    return `${i + 1}. ${s.prcType}${paramStr ? ` (${paramStr})` : ''}`;
+    return `${i + 1}. ${s.filterType}${paramStr ? ` (${paramStr})` : ''}`;
   });
 
   await navigator.clipboard.writeText(lines.join('\n'));
@@ -1172,8 +1174,8 @@ async function onCopyChain(nodeId: string) {
                 @apply="onParamApply"
                 @change="onParamChange"
                 @change-filter="
-                  (prcType, label, filterId) =>
-                    optionPanelTarget && onChangeFilter(optionPanelTarget, prcType, label, filterId)
+                  (filterType, label, filterId) =>
+                    optionPanelTarget && onChangeFilter(optionPanelTarget, filterType, label, filterId)
                 "
               />
             </transition>

@@ -57,10 +57,10 @@ export async function uploadFile(file: File | Blob): Promise<FileUploadResponse>
 
 export async function saveProcessingImage(options: SavePrcImageOptions) {
   const form = new FormData();
-  const fileName = `${options.originFileNm}_${options.prcType}.png`;
+  const fileName = `${options.originFileNm}_${options.filterType}.png`;
 
   form.append('blob', options.blob, fileName);
-  form.append('prcType', options.prcType);
+  form.append('prcType', options.filterType);
   form.append('prcMs', options.prcMs.toString());
 
   const res = await api.post<FileSaveResponse>('/files/save', form, {
@@ -149,7 +149,7 @@ export async function applyCropAll(
   tempSteps: PreviewTempStep[],
   viewport: Viewport,
   options?: { padding?: number; signal?: AbortSignal },
-): Promise<{ prcType: string; imageBase64: string; executionMs: number }[]> {
+): Promise<{ filterType: string; imageBase64: string; executionMs: number }[]> {
   const form = new FormData();
   form.append('fileId', fileId);
   form.append('cropId', cropId);
@@ -167,7 +167,11 @@ export async function applyCropAll(
       signal: options?.signal,
     },
   );
-  return res.data;
+  return res.data.map((r) => ({
+    filterType: r.prcType,
+    imageBase64: r.imageBase64,
+    executionMs: r.executionMs,
+  }));
 }
 
 export async function deleteCrop(fileId: string, cropId: string): Promise<void> {
@@ -185,11 +189,9 @@ export async function getOriginSizeUrl(
   form.append('steps', JSON.stringify(steps));
   form.append('nodeId', nodeId);
 
-  const res = await api.post<{ dziUrl?: string; imageUrl?: string }>(
-    `/files/dzi/${fileId}`,
-    form,
-    { headers: { 'Content-Type': 'multipart/form-data' } },
-  );
+  const res = await api.post<{ dziUrl?: string; imageUrl?: string }>(`/files/dzi/${fileId}`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
   return res.data;
 }
 

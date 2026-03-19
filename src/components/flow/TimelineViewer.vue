@@ -6,7 +6,7 @@ const props = defineProps<{
   /** 노드 이미지 URL (첫 번째 항목) */
   nodeImageUrl: string;
   /** 각 step별 중간 결과 */
-  steps: { prcType: string; imageSrc: string; executionMs?: number }[];
+  steps: { filterType: string; imageSrc: string; executionMs?: number }[];
 }>();
 
 const emit = defineEmits<{
@@ -29,7 +29,7 @@ const selectedLabel = computed(() => {
   const step = props.steps[selectedIndex.value];
   if (!step) return '';
   const ms = step.executionMs != null ? ` (${step.executionMs.toFixed(1)}ms)` : '';
-  return `${selectedIndex.value + 1}. ${step.prcType}${ms}`;
+  return `${selectedIndex.value + 1}. ${step.filterType}${ms}`;
 });
 </script>
 
@@ -95,7 +95,7 @@ const selectedLabel = computed(() => {
           >
             <img :src="step.imageSrc" class="timeline-strip__img" />
             <div class="timeline-strip__label">
-              <span class="text-weight-medium">{{ i + 1 }}.</span> {{ step.prcType }}
+              <span class="text-weight-medium">{{ i + 1 }}.</span> {{ step.filterType }}
             </div>
           </div>
           <q-icon
@@ -143,7 +143,7 @@ const selectedLabel = computed(() => {
         <div class="timeline-scroll__card">
           <ZoomableImage :src="step.imageSrc" class="timeline-scroll__img" />
           <div class="timeline-scroll__label">
-            <span class="text-weight-medium">{{ i + 1 }}.</span> {{ step.prcType }}
+            <span class="text-weight-medium">{{ i + 1 }}.</span> {{ step.filterType }}
           </div>
         </div>
         <q-icon
