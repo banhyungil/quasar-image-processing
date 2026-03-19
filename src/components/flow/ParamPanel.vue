@@ -7,10 +7,20 @@ import type { CustomFilter } from 'src/apis/customFilterApi';
 import FilterTreeSelect from './FilterTreeSelect.vue';
 import ParamField from './ParamField.vue';
 
-const props = defineProps<{
-  nodeData: ProcessNodeData;
-  customFilters?: CustomFilter[];
-}>();
+const EMPTY_NODE_DATA: ProcessNodeData = {
+  algorithmNm: 'blur',
+  label: '',
+  enabled: false,
+  parameters: {},
+};
+
+const props = withDefaults(
+  defineProps<{
+    nodeData?: ProcessNodeData;
+    customFilters?: CustomFilter[];
+  }>(),
+  { nodeData: () => EMPTY_NODE_DATA },
+);
 
 const emit = defineEmits<{
   (e: 'close'): void;
@@ -29,14 +39,10 @@ watch(
   },
 );
 
-// 파라미터 변경 시 실시간 emit
-watch(
-  localParams,
-  (params) => {
-    emit('change', { ...params });
-  },
-  { deep: true },
-);
+function onParamUpdate(key: string, value: unknown) {
+  localParams.value[key] = value;
+  emit('change', { ...localParams.value });
+}
 
 const cFields = computed<ParamFieldDef[]>(() => {
   if (props.nodeData.algorithmNm === 'custom') {
@@ -66,6 +72,7 @@ function getDefaultParams(): Record<string, unknown> {
 
 function resetParams() {
   localParams.value = getDefaultParams();
+  emit('change', { ...localParams.value });
 }
 </script>
 
@@ -87,7 +94,9 @@ function resetParams() {
           :model-value="nodeData.algorithmNm"
           :label="nodeData.label"
           :custom-filters="customFilters"
-          @select="(filterType, label, filterId) => emit('change-filter', filterType, label, filterId)"
+          @select="
+            (filterType, label, filterId) => emit('change-filter', filterType, label, filterId)
+          "
         />
 
         <template v-if="cFields.length === 0">
@@ -99,7 +108,7 @@ function resetParams() {
           :key="field.key"
           :field="field"
           :model-value="localParams[field.key]"
-          @update:model-value="localParams[field.key] = $event"
+          @update:model-value="onParamUpdate(field.key, $event)"
         />
 
         <div class="row q-gutter-xs q-mt-sm">

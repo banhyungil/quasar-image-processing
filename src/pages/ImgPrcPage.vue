@@ -144,7 +144,7 @@ async function setOriginalFile(file: File | null) {
   if (sourceNode) {
     sourceNode.data.previewUrl = oOrigin.value.imageUrl;
     sourceNode.data.thumbnailUrl = oOrigin.value.fileId
-      ? `${API_HOST}/api/image-processing/thumbnail/${oOrigin.value.fileId}`
+      ? `${API_HOST}/api/files/thumbnail/${oOrigin.value.fileId}`
       : null;
   }
 
@@ -173,7 +173,7 @@ function onSelectExistingImage(tFile: {
   const sourceNode = nodes.value.find((n): n is SourceNodeType => n.type === 'source');
   if (sourceNode) {
     sourceNode.data.previewUrl = oOrigin.value.imageUrl;
-    sourceNode.data.thumbnailUrl = `${API_HOST}/api/image-processing/thumbnail/${tFile.id}`;
+    sourceNode.data.thumbnailUrl = `${API_HOST}/api/files/thumbnail/${tFile.id}`;
   }
   processAllLeaves();
 }
@@ -602,7 +602,7 @@ function resetCanvas() {
       data: {
         previewUrl: oOrigin.value.imageUrl,
         thumbnailUrl: oOrigin.value.fileId
-          ? `${API_HOST}/api/image-processing/thumbnail/${oOrigin.value.fileId}`
+          ? `${API_HOST}/api/files/thumbnail/${oOrigin.value.fileId}`
           : null,
       },
     },
@@ -1167,15 +1167,16 @@ async function onCopyChain(nodeId: string) {
             <!-- 파라미터 패널 (우측 슬라이드) -->
             <transition name="slide-option">
               <ParamPanel
-                v-if="showOptionPanel && cSelNodeData"
-                :node-data="cSelNodeData"
+                v-show="showOptionPanel"
+                :node-data="cSelNodeData ?? undefined"
                 :custom-filters="(filterListPanelRef as any)?.customFilters"
                 @close="showOptionPanel = false"
                 @apply="onParamApply"
                 @change="onParamChange"
                 @change-filter="
                   (filterType, label, filterId) =>
-                    optionPanelTarget && onChangeFilter(optionPanelTarget, filterType, label, filterId)
+                    optionPanelTarget &&
+                    onChangeFilter(optionPanelTarget, filterType, label, filterId)
                 "
               />
             </transition>
