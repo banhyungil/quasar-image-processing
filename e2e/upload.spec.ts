@@ -37,13 +37,16 @@ test.describe('파일 검색/필터', () => {
     await page.getByText('클릭 또는 파일 드래그').click();
     await expect(page.getByText('이미지 선택', { exact: true })).toBeVisible();
 
-    // 검색어 입력
+    // 검색어 입력 (응답 대기를 액션 전에 등록)
     const searchInput = page.getByPlaceholder('파일명 검색');
     await searchInput.fill('test');
+    // api 트리거전에 사전 등록 필요
+    // -> Enter 시에 /files API 호출하므로 그 이전에 등록
+    const searchResponse = page.waitForResponse(
+      (res) => res.url().includes('/files') && res.status() === 200,
+    );
     await searchInput.press('Enter');
-
-    // 검색 결과가 로드될 때까지 대기
-    await page.waitForResponse((res) => res.url().includes('/files') && res.status() === 200);
+    await searchResponse;
   });
 
   test('사이즈 필터 적용', async ({ page }) => {
@@ -52,12 +55,13 @@ test.describe('파일 검색/필터', () => {
     // 갤러리 다이얼로그 열기
     await page.getByText('클릭 또는 파일 드래그').click();
 
-    // 사이즈 프리셋 선택
+    // 사이즈 프리셋 선택 (응답 대기를 액션 전에 등록)
     await page.getByRole('combobox').first().click();
+    const filterResponse = page.waitForResponse(
+      (res) => res.url().includes('/files') && res.status() === 200,
+    );
     await page.getByText('1MB 이하').click();
-
-    // 필터된 결과 로드 대기
-    await page.waitForResponse((res) => res.url().includes('/files') && res.status() === 200);
+    await filterResponse;
   });
 });
 
@@ -68,7 +72,9 @@ test.describe('파일 선택', () => {
     await page.goto('/');
 
     // 갤러리 다이얼로그 열기 (응답 대기를 클릭 전에 등록)
-    const responsePromise = page.waitForResponse((res) => res.url().includes('/files') && res.status() === 200);
+    const responsePromise = page.waitForResponse(
+      (res) => res.url().includes('/files') && res.status() === 200,
+    );
     await page.getByText('클릭 또는 파일 드래그').click();
     await expect(page.getByText('이미지 선택', { exact: true })).toBeVisible();
     await responsePromise;
@@ -91,7 +97,9 @@ test.describe('파일 관리', () => {
     await page.goto('/');
 
     // 갤러리 다이얼로그 열기 (응답 대기를 클릭 전에 등록)
-    const responsePromise = page.waitForResponse((res) => res.url().includes('/files') && res.status() === 200);
+    const responsePromise = page.waitForResponse(
+      (res) => res.url().includes('/files') && res.status() === 200,
+    );
     await page.getByText('클릭 또는 파일 드래그').click();
     await expect(page.getByText('이미지 선택', { exact: true })).toBeVisible();
     await responsePromise;
@@ -117,7 +125,9 @@ test.describe('파일 관리', () => {
     await page.goto('/');
 
     // 갤러리 다이얼로그 열기 (응답 대기를 클릭 전에 등록)
-    const responsePromise = page.waitForResponse((res) => res.url().includes('/files') && res.status() === 200);
+    const responsePromise = page.waitForResponse(
+      (res) => res.url().includes('/files') && res.status() === 200,
+    );
     await page.getByText('클릭 또는 파일 드래그').click();
     await expect(page.getByText('이미지 선택', { exact: true })).toBeVisible();
     await responsePromise;
