@@ -1,11 +1,25 @@
+/**
+ * filesApi 단위 테스트
+ *
+ * 테스트 대상: src/apis/filesApi.ts의 각 API 함수
+ * 테스트 방식: 모듈 레벨 모킹 (axios를 mock으로 교체)
+ *
+ * 검증 항목:
+ * - 각 함수가 올바른 HTTP 메서드와 endpoint를 호출하는지
+ * - 인자를 올바른 형식(FormData, params 등)으로 변환하는지
+ * - 필요한 헤더(Content-Type 등)를 설정하는지
+ * - 응답 데이터를 올바르게 파싱하여 반환하는지
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// axios mock
+// axios mock — 실제 네트워크 요청 대신 호출 기록만 남기는 가짜 함수
 const mockGet = vi.fn();
 const mockPost = vi.fn();
 const mockDelete = vi.fn();
 const mockPatch = vi.fn();
 
+// src/boot/axios 모듈을 mock으로 교체
+// filesApi가 import하는 api 객체가 위의 mock 함수들로 연결됨
 vi.mock('src/boot/axios', () => ({
   api: {
     get: (...args: unknown[]) => mockGet(...args),
@@ -31,6 +45,7 @@ import {
   downloadNodeImage,
 } from 'src/apis/filesApi';
 
+// 각 테스트 전에 mock 호출 기록을 초기화 → 테스트 간 독립성 보장
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -38,11 +53,21 @@ beforeEach(() => {
 // ── 파일 CRUD ────────────────────────────────────────────────────────────────
 
 describe('파일 CRUD', () => {
+  // 검증: options → params 변환 로직 (기본값 추가, 필드 매핑)
   it('GET /files — getFiles', async () => {
     const mockData = { items: [], hasMore: false, nextCursorUploadedAt: null, nextCursorId: null };
     mockGet.mockResolvedValue({ data: mockData });
 
     const result = await getFiles({ search: 'test', minSize: 100 });
+
+    /**
+     * mockGet 함수 호출 인자를 검증한다.
+     * 1. 경로 검사
+     * 2. params 검사.
+     * * expect.objectContaining 함수를 사용하여 객체에 일부 필드만 검사하도록 하였다
+     * * 추후에 객체 필드가 증가하더라도 테스트가 깨지지 않고 특정 필드만 검사할 수 있음.
+     * * 보통 핵심 필드만 검증하는 편임.
+     **/
 
     expect(mockGet).toHaveBeenCalledWith('/files', {
       params: expect.objectContaining({ search: 'test', minSize: 100 }),
@@ -50,6 +75,7 @@ describe('파일 CRUD', () => {
     expect(result).toEqual(mockData);
   });
 
+  // 검증: fileId → URL 경로 조합
   it('DELETE /files/{id} — deleteFile', async () => {
     mockDelete.mockResolvedValue({});
 
@@ -58,6 +84,7 @@ describe('파일 CRUD', () => {
     expect(mockDelete).toHaveBeenCalledWith('/files/file-123');
   });
 
+  // 검증: fileId → URL 경로 조합 + body에 originNm 필드 구성
   it('PATCH /files/{id} — renameFile', async () => {
     mockPatch.mockResolvedValue({});
 
@@ -66,6 +93,7 @@ describe('파일 CRUD', () => {
     expect(mockPatch).toHaveBeenCalledWith('/files/file-123', { originNm: 'new-name.png' });
   });
 
+  // 검증: File → FormData 변환 + multipart 헤더 설정 + 응답 파싱
   it('POST /files/upload — uploadFile', async () => {
     const mockResponse = {
       id: 'new-id',
@@ -88,9 +116,14 @@ describe('파일 CRUD', () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       }),
     );
+
+    const formData = mockPost.mock.calls[0]![1] as FormData;
+    expect(formData.get('file')).toBeInstanceOf(File);
+
     expect(result.id).toBe('new-id');
   });
 
+  // 검증: Blob + 메타정보 → FormData 변환 + multipart 헤더 설정
   it('POST /files/save — saveProcessingImage', async () => {
     const mockResponse = { id: 'saved-id' };
     mockPost.mockResolvedValue({ data: mockResponse });
@@ -105,12 +138,18 @@ describe('파일 CRUD', () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       }),
     );
+
+    const formData = mockPost.mock.calls[0]![1] as FormData;
+    expect(formData.get('blob')).toBeInstanceOf(Blob);
+    expect(formData.get('filterType')).toBe('blur');
+    expect(formData.get('prcMs')).toBe('123');
   });
 });
 
 // ── 처리 ─────────────────────────────────────────────────────────────────────
 
 describe('처리', () => {
+  // 검증: fileId + steps + options → FormData 변환 + 응답 파싱
   it('POST /files/process/batch-tree — batchTreeProcessing', async () => {
     const mockResult = { totalExecutionMs: 100, results: [] };
     mockPost.mockResolvedValue({ data: mockResult });
@@ -123,6 +162,14 @@ describe('처리', () => {
       expect.any(FormData),
       expect.objectContaining({ headers: { 'Content-Type': 'multipart/form-data' } }),
     );
+
+    // mock속성 내부에 calls에는 호출한 인자 목록을 가지고 있음
+    // 한번 호출하였으니 [0]에서 formData는 2번째 인자이므로 [1]을 사용 -> [0][1]
+    const formData = mockPost.mock.calls[0]![1] as FormData;
+    expect(formData.get('fileId')).toBe('file-123');
+    expect(formData.get('steps')).toBe(JSON.stringify(steps));
+    expect(formData.get('thumbnailSize')).toBe('200');
+
     expect(result.totalExecutionMs).toBe(100);
   });
 });
@@ -130,6 +177,7 @@ describe('처리', () => {
 // ── Crop ─────────────────────────────────────────────────────────────────────
 
 describe('Crop', () => {
+  // 검증: fileId + viewport → FormData 변환 + 응답에서 cropId/사이즈 파싱
   it('POST /files/crop — createCrop', async () => {
     const mockResponse = { cropId: 'crop-1', nodeImageUrl: '/test.png', width: 100, height: 80 };
     mockPost.mockResolvedValue({ data: mockResponse });
@@ -141,9 +189,17 @@ describe('Crop', () => {
       expect.any(FormData),
       expect.objectContaining({ headers: { 'Content-Type': 'multipart/form-data' } }),
     );
+
+    const formData = mockPost.mock.calls[0]![1] as FormData;
+    expect(formData.get('fileId')).toBe('file-123');
+    expect(formData.get('nodeSteps')).toBe(JSON.stringify([]));
+    expect(formData.get('nodeId')).toBe('source');
+    expect(formData.get('viewport')).toBe(JSON.stringify({ x: 0, y: 0, w: 200, h: 150 }));
+
     expect(result.cropId).toBe('crop-1');
   });
 
+  // 검증: cropId + 필터 + viewport → FormData 변환 + base64 응답 파싱
   it('POST /files/crop/apply — applyCrop', async () => {
     const mockResponse = { imageBase64: 'abc123', executionMs: 50 };
     mockPost.mockResolvedValue({ data: mockResponse });
@@ -160,10 +216,18 @@ describe('Crop', () => {
       expect.any(FormData),
       expect.objectContaining({ headers: { 'Content-Type': 'multipart/form-data' } }),
     );
+
+    const formData = mockPost.mock.calls[0]![1] as FormData;
+    expect(formData.get('fileId')).toBe('file-123');
+    expect(formData.get('cropId')).toBe('crop-1');
+    expect(formData.get('tempSteps')).toBe(JSON.stringify([{ filterType: 'blur' }]));
+    expect(formData.get('viewport')).toBe(JSON.stringify({ x: 0, y: 0, w: 100, h: 100 }));
+
     expect(result?.imageBase64).toBe('abc123');
     expect(result?.executionMs).toBe(50);
   });
 
+  // 검증: 여러 필터 일괄 적용 → FormData 변환 + 배열 응답 파싱
   it('POST /files/crop/apply-all — applyCropAll', async () => {
     const mockResults = [
       { filterType: 'blur', imageBase64: 'aaa', executionMs: 10 },
@@ -183,10 +247,20 @@ describe('Crop', () => {
       expect.any(FormData),
       expect.objectContaining({ headers: { 'Content-Type': 'multipart/form-data' } }),
     );
+
+    const formData = mockPost.mock.calls[0]![1] as FormData;
+    expect(formData.get('fileId')).toBe('file-123');
+    expect(formData.get('cropId')).toBe('crop-1');
+    expect(formData.get('tempSteps')).toBe(
+      JSON.stringify([{ filterType: 'blur' }, { filterType: 'canny' }]),
+    );
+    expect(formData.get('viewport')).toBe(JSON.stringify({ x: 0, y: 0, w: 100, h: 100 }));
+
     expect(result).toHaveLength(2);
     expect(result[0]!.filterType).toBe('blur');
   });
 
+  // 검증: fileId + cropId → URL 경로 조합
   it('DELETE /files/crop/{fId}/{cId} — deleteCrop', async () => {
     mockDelete.mockResolvedValue({});
 
@@ -199,6 +273,7 @@ describe('Crop', () => {
 // ── DZI / 다운로드 ───────────────────────────────────────────────────────────
 
 describe('DZI / 다운로드', () => {
+  // 검증: steps + nodeId → FormData 변환 + dziUrl/imageUrl 응답 파싱
   it('POST /files/dzi/{id} — getOriginSizeUrl', async () => {
     const mockResponse = { dziUrl: null, imageUrl: '/uploads/cache/test.png' };
     mockPost.mockResolvedValue({ data: mockResponse });
@@ -211,9 +286,15 @@ describe('DZI / 다운로드', () => {
       expect.any(FormData),
       expect.objectContaining({ headers: { 'Content-Type': 'multipart/form-data' } }),
     );
+
+    const formData = mockPost.mock.calls[0]![1] as FormData;
+    expect(formData.get('steps')).toBe(JSON.stringify(steps));
+    expect(formData.get('nodeId')).toBe('n1');
+
     expect(result.imageUrl).toBe('/uploads/cache/test.png');
   });
 
+  // 검증: DZI 응답 경로 분기 — dziUrl 반환 시 imageUrl은 null
   it('POST /files/dzi/{id} — DZI 반환', async () => {
     const mockResponse = { dziUrl: '/uploads/cache/test.dzi', imageUrl: null };
     mockPost.mockResolvedValue({ data: mockResponse });
@@ -224,6 +305,7 @@ describe('DZI / 다운로드', () => {
     expect(result.imageUrl).toBeNull();
   });
 
+  // 검증: responseType: 'blob' 설정 + Blob 타입 응답 반환
   it('POST /files/download/{id} — downloadNodeImage', async () => {
     const mockBlob = new Blob(['image-data'], { type: 'image/png' });
     mockPost.mockResolvedValue({ data: mockBlob });
@@ -236,6 +318,11 @@ describe('DZI / 다운로드', () => {
       expect.any(FormData),
       expect.objectContaining({ responseType: 'blob' }),
     );
+
+    const formData = mockPost.mock.calls[0]![1] as FormData;
+    expect(formData.get('steps')).toBe(JSON.stringify(steps));
+    expect(formData.get('nodeId')).toBe('n1');
+
     expect(result).toBeInstanceOf(Blob);
   });
 });
