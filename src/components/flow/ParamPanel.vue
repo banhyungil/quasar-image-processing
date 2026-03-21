@@ -13,14 +13,12 @@ const props = withDefaults(
     customFilters?: CustomFilter[];
   }>(),
   {
-    nodeData: () => {
-      return {
-        algorithmNm: 'blur',
-        label: '',
-        enabled: false,
-        parameters: {},
-      };
-    },
+    nodeData: () => ({
+      algorithmNm: 'blur',
+      label: '',
+      enabled: false,
+      parameters: {},
+    }),
   },
 );
 
