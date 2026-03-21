@@ -7,19 +7,21 @@ import type { CustomFilter } from 'src/apis/customFilterApi';
 import FilterTreeSelect from './FilterTreeSelect.vue';
 import ParamField from './ParamField.vue';
 
-const EMPTY_NODE_DATA: ProcessNodeData = {
-  algorithmNm: 'blur',
-  label: '',
-  enabled: false,
-  parameters: {},
-};
-
 const props = withDefaults(
   defineProps<{
     nodeData?: ProcessNodeData;
     customFilters?: CustomFilter[];
   }>(),
-  { nodeData: () => EMPTY_NODE_DATA },
+  {
+    nodeData: () => {
+      return {
+        algorithmNm: 'blur',
+        label: '',
+        enabled: false,
+        parameters: {},
+      };
+    },
+  },
 );
 
 const emit = defineEmits<{
