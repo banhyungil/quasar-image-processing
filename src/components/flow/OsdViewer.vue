@@ -173,23 +173,11 @@ onMounted(() => {
     crossOriginPolicy: 'Anonymous',
     showNavigator: true,
     navigatorPosition: 'BOTTOM_RIGHT',
-    showNavigationControl: true,
+    showNavigationControl: false,
     minZoomLevel: 0.5,
     maxZoomLevel: 20,
     animationTime: 0.3,
     zoomPerScroll: props.zoomPerScroll,
-    prefixUrl: '/node_modules/openseadragon/build/openseadragon/images/',
-  });
-
-  // 네비게이션 버튼 툴팁 한글화
-  const tooltipLabels = ['확대', '축소', '홈(Esc)', '전체화면'];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const buttons: OpenSeadragon.Button[] | undefined = (viewer as any).buttonGroup?.buttons;
-  buttons?.forEach((btn, i) => {
-    if (tooltipLabels[i]) {
-      btn.tooltip = tooltipLabels[i];
-      btn.element.title = tooltipLabels[i];
-    }
   });
 
   viewer.addHandler('zoom', (e) => {
@@ -237,6 +225,25 @@ function goHome() {
   if (!viewer) return;
   stopZoomAnimation();
   viewer.viewport.goHome();
+}
+
+function zoomIn() {
+  if (!viewer) return;
+  stopZoomAnimation();
+  const zoom = viewer.viewport.getZoom();
+  viewer.viewport.zoomTo(zoom * 1.5);
+}
+
+function zoomOut() {
+  if (!viewer) return;
+  stopZoomAnimation();
+  const zoom = viewer.viewport.getZoom();
+  viewer.viewport.zoomTo(zoom / 1.5);
+}
+
+function toggleFullscreen() {
+  if (!viewer) return;
+  viewer.setFullScreen(!viewer.isFullPage());
 }
 
 function getViewportPx(): { x: number; y: number; w: number; h: number } | null {
@@ -294,6 +301,23 @@ watch(
 <template>
   <div class="osd-wrapper">
     <div ref="container" class="osd-viewer" />
+
+    <!-- 커스텀 네비게이션 버튼 -->
+    <div class="osd-nav">
+      <q-btn flat dense round icon="add" size="sm" color="grey-8" @click="zoomIn">
+        <q-tooltip>확대</q-tooltip>
+      </q-btn>
+      <q-btn flat dense round icon="remove" size="sm" color="grey-8" @click="zoomOut">
+        <q-tooltip>축소</q-tooltip>
+      </q-btn>
+      <q-btn flat dense round icon="home" size="sm" color="grey-8" @click="goHome">
+        <q-tooltip>홈</q-tooltip>
+      </q-btn>
+      <q-btn flat dense round icon="fullscreen" size="sm" color="grey-8" @click="toggleFullscreen">
+        <q-tooltip>전체화면</q-tooltip>
+      </q-btn>
+    </div>
+
     <!-- Shift+드래그 선택 영역 (OSD canvas 위에 표시) -->
     <div v-if="selecting" class="osd-overlay">
       <div v-if="selectionRect" class="osd-selection" :style="selectionRect" />
@@ -311,6 +335,20 @@ watch(
 .osd-viewer {
   width: 100%;
   height: 100%;
+}
+
+.osd-nav {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
 .osd-overlay {
