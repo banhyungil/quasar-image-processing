@@ -104,7 +104,12 @@ const processList = ref<ProcessResponse[]>([]);
 const activeProcessId = ref<string | null>(null);
 
 // ── 원본 이미지 ────────────────────────────────────────────────────────────
-const oOrigin = ref<{ fileId: string | null; imageUrl: string | null; width: number | null; height: number | null }>({
+const oOrigin = ref<{
+  fileId: string | null;
+  imageUrl: string | null;
+  width: number | null;
+  height: number | null;
+}>({
   fileId: null,
   imageUrl: null,
   width: null,
@@ -155,12 +160,16 @@ function updateSourceNodeImage(cropId: string | null) {
     if (crop) {
       data.previewUrl = crop.nodeImageUrl;
       data.thumbnailUrl = null;
+      data.width = crop.viewport.w;
+      data.height = crop.viewport.h;
     }
   } else {
     data.previewUrl = oOrigin.value.imageUrl;
     data.thumbnailUrl = oOrigin.value.fileId
       ? `${API_HOST}/api/files/thumbnail/${oOrigin.value.fileId}`
       : null;
+    data.width = oOrigin.value.width;
+    data.height = oOrigin.value.height;
   }
 }
 
@@ -271,6 +280,7 @@ async function setOriginalFile(file: File | null) {
       URL.revokeObjectURL(oOrigin.value.imageUrl);
     }
     oOrigin.value = { fileId: null, imageUrl: null, width: null, height: null };
+    cropMgr.cleanupAll();
     if (originalInputRef.value) {
       originalInputRef.value.value = '';
     }
@@ -427,8 +437,8 @@ function addFilterNode(filterType: FilterType, label: string) {
   // 부모 노드의 커스텀 사이즈 상속
   const parentId = selectedNodeId.value ?? findLastLeaf();
   const parentNode = nodes.value.find((n) => n.id === parentId);
-  const parentWidth = parentNode?.data?.customWidth as number | undefined;
-  const parentThumbHeight = parentNode?.data?.customThumbHeight as number | undefined;
+  const parentWidth = parentNode?.data?.customWidth;
+  const parentThumbHeight = parentNode?.data?.customThumbHeight;
 
   const newNode: Node<ProcessNodeData> = {
     id,
@@ -1401,7 +1411,9 @@ async function onCopyChain(nodeId: string) {
                   <SourceNode
                     v-bind="nodeProps"
                     :zoomed="cZoomedNodeIds.has(nodeProps.id)"
-                    :selected="selectedNodeId === nodeProps.id || cSelectedNodeIds.has(nodeProps.id)"
+                    :selected="
+                      selectedNodeId === nodeProps.id || cSelectedNodeIds.has(nodeProps.id)
+                    "
                     @pick-existing="showImageGallery = true"
                     @drop-file="onDropFile"
                     @clear-image="setOriginalFile(null)"
