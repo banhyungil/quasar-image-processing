@@ -104,9 +104,11 @@ const processList = ref<ProcessResponse[]>([]);
 const activeProcessId = ref<string | null>(null);
 
 // ── 원본 이미지 ────────────────────────────────────────────────────────────
-const oOrigin = ref<{ fileId: string | null; imageUrl: string | null }>({
+const oOrigin = ref<{ fileId: string | null; imageUrl: string | null; width: number | null; height: number | null }>({
   fileId: null,
   imageUrl: null,
+  width: null,
+  height: null,
 });
 const originalInputRef = ref<HTMLInputElement | null>(null);
 const showImageGallery = ref(false);
@@ -268,7 +270,7 @@ async function setOriginalFile(file: File | null) {
     if (oOrigin.value.imageUrl) {
       URL.revokeObjectURL(oOrigin.value.imageUrl);
     }
-    oOrigin.value = { fileId: null, imageUrl: null };
+    oOrigin.value = { fileId: null, imageUrl: null, width: null, height: null };
     if (originalInputRef.value) {
       originalInputRef.value.value = '';
     }
@@ -285,6 +287,8 @@ async function setOriginalFile(file: File | null) {
     try {
       const uploaded = await filesApi.uploadFile(file);
       oOrigin.value.fileId = uploaded.id;
+      oOrigin.value.width = uploaded.width;
+      oOrigin.value.height = uploaded.height;
     } catch (err) {
       console.error('원본 이미지 업로드 실패:', err);
     } finally {
@@ -299,6 +303,8 @@ async function setOriginalFile(file: File | null) {
     sourceNode.data.thumbnailUrl = oOrigin.value.fileId
       ? `${API_HOST}/api/files/thumbnail/${oOrigin.value.fileId}`
       : null;
+    sourceNode.data.width = oOrigin.value.width;
+    sourceNode.data.height = oOrigin.value.height;
   }
 
   processAllLeaves();
@@ -318,15 +324,21 @@ function onSelectExistingImage(tFile: {
   originNm: string;
   path: string;
   mimeType: string;
+  width?: number | null;
+  height?: number | null;
 }) {
   oOrigin.value.fileId = tFile.id;
   if (oOrigin.value.imageUrl) URL.revokeObjectURL(oOrigin.value.imageUrl);
   oOrigin.value.imageUrl = `${API_HOST}/${tFile.path}`;
+  oOrigin.value.width = tFile.width ?? null;
+  oOrigin.value.height = tFile.height ?? null;
 
   const sourceNode = nodes.value.find((n): n is SourceNodeType => n.type === 'source');
   if (sourceNode) {
     sourceNode.data.previewUrl = oOrigin.value.imageUrl;
     sourceNode.data.thumbnailUrl = `${API_HOST}/api/files/thumbnail/${tFile.id}`;
+    sourceNode.data.width = oOrigin.value.width;
+    sourceNode.data.height = oOrigin.value.height;
   }
   processAllLeaves();
 }

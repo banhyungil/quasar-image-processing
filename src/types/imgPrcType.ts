@@ -117,6 +117,8 @@ export interface FileUploadResponse {
   mimeType: string;
   sizeBytes: number;
   uploadedAt: string;
+  width: number | null;
+  height: number | null;
 }
 
 // ── Tree Batch Processing ───────────────────────────────────────────────────

@@ -146,6 +146,18 @@ function onDrop(e: DragEvent) {
       :style="{ height: `${cThumbHeight}px` }"
     >
       <img :src="data.thumbnailUrl ?? data.previewUrl" class="source-node__preview" />
+      <q-badge
+        v-if="data.width && data.height"
+        class="source-node__badge"
+        color="dark"
+        :label="`${data.width}x${data.height}`"
+      />
+      <!-- 노드 크기 뱃지 (hover 시 표시) -->
+      <q-badge
+        class="source-node__size-badge"
+        color="grey-8"
+        :label="`${cWidth}x${cThumbHeight}`"
+      />
     </div>
     <div
       v-else
@@ -216,6 +228,26 @@ function onDrop(e: DragEvent) {
     width: 100%;
     height: 100%;
     object-fit: contain;
+  }
+
+  &__badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    font-size: 10px;
+  }
+
+  &__size-badge {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    font-size: 10px;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  &:hover &__size-badge {
+    opacity: 1;
   }
 }
 

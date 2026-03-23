@@ -20,6 +20,8 @@ export interface SourceNodeData {
   thumbnailUrl: string | null;
   customWidth?: number;
   customThumbHeight?: number;
+  width?: number | null;
+  height?: number | null;
 }
 
 /** vue-flow 노드 타입 (source | filter) — data를 필수로 오버라이드 */

@@ -144,6 +144,12 @@ const cParamSummary = computed(() => {
         color="dark"
         :label="`${data.executionMs.toFixed(1)}ms`"
       />
+      <!-- 노드 크기 뱃지 (hover 시 표시) -->
+      <q-badge
+        class="filter-node__size-badge"
+        color="grey-8"
+        :label="`${cWidth}x${cThumbHeight}`"
+      />
     </div>
 
     <!-- 파라미터 정보 -->
@@ -238,6 +244,19 @@ const cParamSummary = computed(() => {
     bottom: 4px;
     right: 4px;
     font-size: 10px;
+  }
+
+  &__size-badge {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    font-size: 10px;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  &:hover &__size-badge {
+    opacity: 1;
   }
 
   &__params {
