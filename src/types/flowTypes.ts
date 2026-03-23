@@ -9,6 +9,9 @@ export interface ProcessNodeData {
   parameters: Record<string, unknown>;
   imageUrl?: string | null;
   executionMs?: number | null;
+  /** 처리 결과 이미지 해상도 */
+  imageWidth?: number | null;
+  imageHeight?: number | null;
   /** 개별 노드 크기 (미지정 시 설정 프리셋 사용) */
   customWidth?: number;
   customThumbHeight?: number;

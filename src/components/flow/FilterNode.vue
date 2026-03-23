@@ -22,12 +22,20 @@ const emit = defineEmits<{
   (e: 'zoom', nodeId: string): void;
   (e: 'download', nodeId: string): void;
   (e: 'copy-chain', nodeId: string): void;
-  (e: 'change-filter', nodeId: string, filterType: FilterType, label: string, filterId?: string): void;
+  (
+    e: 'change-filter',
+    nodeId: string,
+    filterType: FilterType,
+    label: string,
+    filterId?: string,
+  ): void;
   (e: 'resize', nodeId: string, width: number, thumbHeight: number): void;
 }>();
 
 const nodeWidth = computed(() => props.data.customWidth ?? settings.nodeSize.width);
-const nodeThumbHeight = computed(() => props.data.customThumbHeight ?? settings.nodeSize.thumbHeight);
+const nodeThumbHeight = computed(
+  () => props.data.customThumbHeight ?? settings.nodeSize.thumbHeight,
+);
 
 // ── 드래그 리사이즈 ──────────────────────────────────────────────────────
 const resizing = ref(false);
@@ -63,8 +71,8 @@ function onResizeMouseUp() {
   emit('resize', props.id, liveWidth.value, liveHeight.value);
 }
 
-const cWidth = computed(() => resizing.value ? liveWidth.value : nodeWidth.value);
-const cThumbHeight = computed(() => resizing.value ? liveHeight.value : nodeThumbHeight.value);
+const cWidth = computed(() => (resizing.value ? liveWidth.value : nodeWidth.value));
+const cThumbHeight = computed(() => (resizing.value ? liveHeight.value : nodeThumbHeight.value));
 
 function onSelectFilter(filterType: FilterType, label: string, filterId?: string) {
   if (filterType === props.data.algorithmNm && !filterId) return;
@@ -137,7 +145,7 @@ const cParamSummary = computed(() => {
         <q-icon name="image" size="sm" color="grey-4" />
       </div>
 
-      <!-- 실행시간 뱃지 -->
+      <!-- 실행시간 + 해상도 뱃지 -->
       <q-badge
         v-if="data.executionMs != null"
         class="filter-node__badge"

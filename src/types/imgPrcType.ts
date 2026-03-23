@@ -134,6 +134,8 @@ export interface TreeNodeResult {
   nodeId: string;
   imageUrl: string;
   executionMs: number;
+  width: number;
+  height: number;
 }
 
 export interface TreeBatchResult {

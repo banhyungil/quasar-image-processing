@@ -320,10 +320,6 @@ async function setOriginalFile(file: File | null) {
   processAllLeaves();
 }
 
-function openOriginalPicker() {
-  originalInputRef.value?.click();
-}
-
 function onOriginalInputChange(event: Event) {
   const input = event.target as HTMLInputElement;
   void setOriginalFile(input.files?.[0] ?? null);
@@ -609,9 +605,13 @@ async function processNodeThumbnail(targetNodeId: string, options?: { signal?: A
       if (nr.imageUrl) {
         node.data.imageUrl = nr.imageUrl.startsWith('data:') ? nr.imageUrl : API_HOST + nr.imageUrl;
         node.data.executionMs = nr.executionMs;
+        node.data.imageWidth = nr.width;
+        node.data.imageHeight = nr.height;
       } else {
         node.data.imageUrl = null;
         node.data.executionMs = null;
+        node.data.imageWidth = null;
+        node.data.imageHeight = null;
       }
     }
   }
