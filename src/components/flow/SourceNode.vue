@@ -2,6 +2,7 @@
 import { Handle, Position } from '@vue-flow/core';
 import type { SourceNodeData } from 'src/types/flowTypes';
 import { useSettingsStore } from 'src/stores/settings-store';
+import ZoomableImage from './ZoomableImage.vue';
 
 const settings = useSettingsStore();
 
@@ -145,7 +146,7 @@ function onDrop(e: DragEvent) {
       class="source-node__body"
       :style="{ height: `${cThumbHeight}px` }"
     >
-      <img :src="data.thumbnailUrl ?? data.previewUrl" class="source-node__preview" />
+      <ZoomableImage :src="data.thumbnailUrl ?? data.previewUrl" class="source-node__preview" />
       <q-badge
         v-if="data.width && data.height"
         class="source-node__badge"
