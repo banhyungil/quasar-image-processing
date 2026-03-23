@@ -23,7 +23,48 @@ const emit = defineEmits<{
   (e: 'download', nodeId: string): void;
   (e: 'copy-chain', nodeId: string): void;
   (e: 'change-filter', nodeId: string, filterType: FilterType, label: string, filterId?: string): void;
+  (e: 'resize', nodeId: string, width: number, thumbHeight: number): void;
 }>();
+
+const nodeWidth = computed(() => props.data.customWidth ?? settings.nodeSize.width);
+const nodeThumbHeight = computed(() => props.data.customThumbHeight ?? settings.nodeSize.thumbHeight);
+
+// ── 드래그 리사이즈 ──────────────────────────────────────────────────────
+const resizing = ref(false);
+const resizeStart = { x: 0, y: 0, w: 0, h: 0 };
+const liveWidth = ref(0);
+const liveHeight = ref(0);
+
+function onResizeMouseDown(e: MouseEvent) {
+  e.stopPropagation();
+  e.preventDefault();
+  resizing.value = true;
+  resizeStart.x = e.clientX;
+  resizeStart.y = e.clientY;
+  resizeStart.w = nodeWidth.value;
+  resizeStart.h = nodeThumbHeight.value;
+  liveWidth.value = resizeStart.w;
+  liveHeight.value = resizeStart.h;
+  window.addEventListener('mousemove', onResizeMouseMove);
+  window.addEventListener('mouseup', onResizeMouseUp);
+}
+
+function onResizeMouseMove(e: MouseEvent) {
+  const dx = e.clientX - resizeStart.x;
+  const dy = e.clientY - resizeStart.y;
+  liveWidth.value = Math.max(120, Math.round(resizeStart.w + dx));
+  liveHeight.value = Math.max(60, Math.round(resizeStart.h + dy));
+}
+
+function onResizeMouseUp() {
+  resizing.value = false;
+  window.removeEventListener('mousemove', onResizeMouseMove);
+  window.removeEventListener('mouseup', onResizeMouseUp);
+  emit('resize', props.id, liveWidth.value, liveHeight.value);
+}
+
+const cWidth = computed(() => resizing.value ? liveWidth.value : nodeWidth.value);
+const cThumbHeight = computed(() => resizing.value ? liveHeight.value : nodeThumbHeight.value);
 
 function onSelectFilter(filterType: FilterType, label: string, filterId?: string) {
   if (filterType === props.data.algorithmNm && !filterId) return;
@@ -44,7 +85,7 @@ const cParamSummary = computed(() => {
   <div
     class="filter-node cursor-pointer"
     :class="{ 'filter-node--disabled': !data.enabled, 'filter-node--selected': selected }"
-    :style="{ width: `${settings.nodeSize.width}px` }"
+    :style="{ width: `${cWidth}px` }"
   >
     <!-- Input Handle -->
     <Handle type="target" :position="Position.Top" class="handle" />
@@ -90,7 +131,7 @@ const cParamSummary = computed(() => {
     </div>
 
     <!-- 썸네일 -->
-    <div class="filter-node__body" :style="{ height: `${settings.nodeSize.thumbHeight}px` }">
+    <div class="filter-node__body" :style="{ height: `${cThumbHeight}px` }">
       <ZoomableImage v-if="data.imageUrl" :src="data.imageUrl" class="cursor-pointer" />
       <div v-else class="filter-node__placeholder">
         <q-icon name="image" size="sm" color="grey-4" />
@@ -115,6 +156,9 @@ const cParamSummary = computed(() => {
 
     <!-- Output Handle -->
     <Handle type="source" :position="Position.Bottom" class="handle" />
+
+    <!-- 리사이즈 핸들 -->
+    <div class="resize-handle" @mousedown="onResizeMouseDown" />
   </div>
 </template>
 
@@ -224,5 +268,21 @@ const cParamSummary = computed(() => {
   height: 10px;
   background: #1976d2;
   border: 2px solid white;
+}
+
+.resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, rgba(25, 118, 210, 0.4) 50%);
+  border-radius: 0 0 8px 0;
+  z-index: 5;
+
+  &:hover {
+    background: linear-gradient(135deg, transparent 50%, rgba(25, 118, 210, 0.7) 50%);
+  }
 }
 </style>

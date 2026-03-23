@@ -59,20 +59,24 @@ const nodes = ref<AppNode[]>([
 ]);
 const edges = ref<Edge[]>([]);
 
-const { addNodes, addEdges, removeNodes } = useVueFlow();
+const { addNodes, addEdges, removeNodes, getSelectedNodes } = useVueFlow();
 
 // ── 노드 선택 ────────────────────────────────────────────────────────────
 const selectedNodeId = ref<string | null>(null);
+const cSelectedNodeIds = computed(() => new Set(getSelectedNodes.value.map((n) => n.id)));
 
 function onNodeClick({ node }: { node: Node }) {
-  if (selectedNodeId.value === node.id) {
+  // 동일 노드 재클릭 시 선택 해제
+  if (selectedNodeId.value === node.id && getSelectedNodes.value.length <= 1) {
     selectedNodeId.value = null;
     toggleParamPanel(node.id, false);
-  } else {
-    selectedNodeId.value = node.id;
-    if (node.type === 'filter') {
-      toggleParamPanel(node.id);
-    }
+    return;
+  }
+
+  // 마지막 클릭된 노드를 기준으로 파람 패널 표시
+  selectedNodeId.value = node.id;
+  if (node.type === 'filter') {
+    toggleParamPanel(node.id);
   }
 }
 
@@ -187,6 +191,21 @@ function onClearCrop() {
 }
 
 function toggleFullResolution() {
+  if (!settingsStore.isFullResolution) {
+    // 풀해상도 ON 시 사이즈 검증
+    const sourceNode = nodes.value.find((n) => n.id === SOURCE_NODE_ID);
+    if (sourceNode && sourceNode.type === 'source') {
+      const data = sourceNode.data as SourceNodeData;
+      if (data.previewUrl && !cropMgr.activeCropId.value) {
+        $q.notify({
+          type: 'warning',
+          message:
+            '풀해상도 모드: 대용량 이미지는 처리 시간이 길어질 수 있습니다. Crop을 사용하면 성능이 향상됩니다.',
+          timeout: 4000,
+        });
+      }
+    }
+  }
   settingsStore.isFullResolution = !settingsStore.isFullResolution;
   processAllLeaves();
 }
@@ -194,6 +213,39 @@ function toggleFullResolution() {
 function toggleHideIntermediateNodes() {
   settingsStore.hideIntermediateNodes = !settingsStore.hideIntermediateNodes;
   processAllLeaves();
+}
+
+// ── 노드 사이즈 ─────────────────────────────────────────────────────────
+const nodeSizeInput = ref<number>(settingsStore.nodeSize.width);
+
+function applyNodeSizeAll() {
+  const w = Math.max(120, nodeSizeInput.value);
+  const ratio = settingsStore.nodeSize.thumbHeight / settingsStore.nodeSize.width;
+  const h = Math.round(w * ratio);
+  for (const node of nodes.value) {
+    setNodeSize(node, w, h);
+  }
+}
+
+// ── 노드 리사이즈 ──────────────────────────────────────────────────────────
+function setNodeSize(node: Node, width: number, thumbHeight: number) {
+  if (node.type === 'filter') {
+    (node.data as ProcessNodeData).customWidth = width;
+    (node.data as ProcessNodeData).customThumbHeight = thumbHeight;
+  } else if (node.type === 'source') {
+    (node.data as SourceNodeData).customWidth = width;
+    (node.data as SourceNodeData).customThumbHeight = thumbHeight;
+  }
+}
+
+function onNodeResize(nodeId: string, width: number, thumbHeight: number) {
+  const node = nodes.value.find((n) => n.id === nodeId);
+  if (node) setNodeSize(node, width, thumbHeight);
+
+  // 다중 선택 리사이즈: 선택된 노드들에 동일 사이즈 적용
+  for (const sn of getSelectedNodes.value) {
+    if (sn.id !== nodeId) setNodeSize(sn, width, thumbHeight);
+  }
 }
 
 async function onCropViewport(viewport: { x: number; y: number; w: number; h: number }) {
@@ -359,6 +411,13 @@ const onParamChange = useDebounceFn((parameters: Record<string, unknown>) => {
 // ── 노드 추가 (사이드바 클릭) ──────────────────────────────────────────────
 function addFilterNode(filterType: FilterType, label: string) {
   const id = crypto.randomUUID();
+
+  // 부모 노드의 커스텀 사이즈 상속
+  const parentId = selectedNodeId.value ?? findLastLeaf();
+  const parentNode = nodes.value.find((n) => n.id === parentId);
+  const parentWidth = parentNode?.data?.customWidth as number | undefined;
+  const parentThumbHeight = parentNode?.data?.customThumbHeight as number | undefined;
+
   const newNode: Node<ProcessNodeData> = {
     id,
     type: 'filter',
@@ -370,11 +429,10 @@ function addFilterNode(filterType: FilterType, label: string) {
       parameters: getDefaultParams(filterType),
       imageUrl: null,
       executionMs: null,
+      customWidth: parentWidth,
+      customThumbHeight: parentThumbHeight,
     },
   };
-
-  // 선택된 노드가 있으면 그 하위에, 없으면 마지막 리프에 연결
-  const parentId = selectedNodeId.value ?? findLastLeaf();
   const newEdge: Edge = {
     id: `e-${parentId}-${id}`,
     source: parentId,
@@ -508,6 +566,7 @@ async function processNodeThumbnail(targetNodeId: string, options?: { signal?: A
   const thumbSize = settingsStore.isFullResolution
     ? undefined
     : settingsStore.nodeSize.thumbResolution;
+
   const activeCropIdVal = cropMgr.activeCropId.value ?? undefined;
 
   // 중간 노드 숨기기 시 리프 노드만 이미지 반환 요청 (연산은 전체, 인코딩만 절약)
@@ -1159,14 +1218,6 @@ async function onCopyChain(nodeId: string) {
             style="flex-shrink: 0; border-bottom: 1px solid rgba(0, 0, 0, 0.12)"
           >
             <q-btn
-              flat
-              dense
-              size="sm"
-              icon="image"
-              :label="oOrigin.fileId ? '원본 이미지 선택됨' : '원본 이미지 선택'"
-              @click="openOriginalPicker"
-            />
-            <q-btn
               v-if="oOrigin.fileId"
               flat
               dense
@@ -1206,6 +1257,25 @@ async function onCopyChain(nodeId: string) {
                 >중간 노드 숨기기
                 {{ settingsStore.hideIntermediateNodes ? 'ON' : 'OFF' }}</q-tooltip
               >
+            </q-btn>
+
+            <q-separator vertical inset class="q-mx-xs" />
+
+            <!-- 노드 사이즈 입력 -->
+            <span class="text-caption text-grey-7 q-mr-xs">노드 크기</span>
+            <q-input
+              :model-value="nodeSizeInput"
+              dense
+              outlined
+              type="number"
+              style="width: 120px"
+              input-style="font-size: 12px; text-align: center"
+              suffix="px"
+              @update:model-value="nodeSizeInput = Number($event)"
+              @keydown.enter="applyNodeSizeAll"
+            />
+            <q-btn flat dense size="sm" label="적용" color="primary" @click="applyNodeSizeAll">
+              <q-tooltip>입력한 크기를 전체 노드에 적용</q-tooltip>
             </q-btn>
 
             <q-space />
@@ -1291,6 +1361,8 @@ async function onCopyChain(nodeId: string) {
                 :default-viewport="{ zoom: 1, x: 0, y: 0 }"
                 :min-zoom="0.2"
                 :max-zoom="3"
+                selection-key-code="Shift"
+                multi-selection-key-code="Shift"
                 class="flow-canvas"
                 @connect="onConnect"
                 @node-click="onNodeClick"
@@ -1300,7 +1372,9 @@ async function onCopyChain(nodeId: string) {
                 <template #node-filter="nodeProps">
                   <FilterNode
                     v-bind="nodeProps"
-                    :selected="selectedNodeId === nodeProps.id"
+                    :selected="
+                      selectedNodeId === nodeProps.id || cSelectedNodeIds.has(nodeProps.id)
+                    "
                     :zoomed="cZoomedNodeIds.has(nodeProps.id)"
                     @remove="removeFilterNode"
                     @toggle-enabled="toggleEnabled"
@@ -1308,17 +1382,20 @@ async function onCopyChain(nodeId: string) {
                     @zoom="onNodeZoom"
                     @download="onNodeDownload"
                     @copy-chain="onCopyChain"
+                    @resize="onNodeResize"
                   />
                 </template>
                 <template #node-source="nodeProps">
                   <SourceNode
                     v-bind="nodeProps"
                     :zoomed="cZoomedNodeIds.has(nodeProps.id)"
+                    :selected="selectedNodeId === nodeProps.id || cSelectedNodeIds.has(nodeProps.id)"
                     @pick-existing="showImageGallery = true"
                     @drop-file="onDropFile"
                     @clear-image="setOriginalFile(null)"
                     @zoom="onNodeZoom"
                     @crop="onSourceCrop"
+                    @resize="onNodeResize"
                   />
                 </template>
 

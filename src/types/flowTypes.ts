@@ -9,12 +9,17 @@ export interface ProcessNodeData {
   parameters: Record<string, unknown>;
   imageUrl?: string | null;
   executionMs?: number | null;
+  /** 개별 노드 크기 (미지정 시 설정 프리셋 사용) */
+  customWidth?: number;
+  customThumbHeight?: number;
 }
 
 /** vue-flow 소스(원본 이미지) 노드 데이터 */
 export interface SourceNodeData {
   previewUrl: string | null;
   thumbnailUrl: string | null;
+  customWidth?: number;
+  customThumbHeight?: number;
 }
 
 /** vue-flow 노드 타입 (source | filter) — data를 필수로 오버라이드 */
