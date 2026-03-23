@@ -186,10 +186,14 @@ export async function getOriginSizeUrl(
   fileId: string,
   steps: TreeBatchStep[],
   nodeId: string,
+  options?: { cropId?: string },
 ): Promise<{ dziUrl?: string; imageUrl?: string }> {
   const form = new FormData();
   form.append('steps', JSON.stringify(steps));
   form.append('nodeId', nodeId);
+  if (options?.cropId) {
+    form.append('cropId', options.cropId);
+  }
 
   const res = await api.post<{ dziUrl?: string; imageUrl?: string }>(`/files/dzi/${fileId}`, form, {
     headers: { 'Content-Type': 'multipart/form-data' },

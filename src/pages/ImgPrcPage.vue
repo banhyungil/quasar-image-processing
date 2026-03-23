@@ -1089,12 +1089,27 @@ async function onNodeZoom(nodeId: string) {
   if (!oOrigin.value.fileId) return;
 
   const isSource = nodeId === SOURCE_NODE_ID;
+  const activeCrop = cropMgr.activeCrop.value;
+
+  // Crop 선택 시 source 노드 확대 → crop 이미지 사용
+  if (isSource && activeCrop) {
+    zoomPopups.value.push({
+      id: crypto.randomUUID(),
+      nodeId,
+      title: `Crop: ${activeCrop.label}`,
+      nodeSteps: [],
+      src: activeCrop.nodeImageUrl,
+    });
+    return;
+  }
+
   const steps = isSource ? [] : buildStepsToNode(nodeId);
   if (!isSource && steps.length === 0) return;
 
   $q.loading.show({ message: '처리 중...' });
+  const cropIdVal = activeCrop?.cropId;
   const result = await filesApi
-    .getOriginSizeUrl(oOrigin.value.fileId, steps, nodeId)
+    .getOriginSizeUrl(oOrigin.value.fileId, steps, nodeId, cropIdVal ? { cropId: cropIdVal } : undefined)
     .finally(() => $q.loading.hide())
     .catch(() => null);
   if (!result) return;
