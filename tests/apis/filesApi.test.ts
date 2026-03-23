@@ -149,12 +149,13 @@ describe('파일 CRUD', () => {
 // ── 처리 ─────────────────────────────────────────────────────────────────────
 
 describe('처리', () => {
+  const steps = [{ nodeId: 'n1', filterType: 'blur' as const, parameters: {}, parentId: null }];
+
   // 검증: fileId + steps + options → FormData 변환 + 응답 파싱
-  it('POST /files/process/batch-tree — batchTreeProcessing', async () => {
+  it('POST /files/process/batch-tree — batchTreeProcessing (썸네일)', async () => {
     const mockResult = { totalExecutionMs: 100, results: [] };
     mockPost.mockResolvedValue({ data: mockResult });
 
-    const steps = [{ nodeId: 'n1', filterType: 'blur' as const, parameters: {}, parentId: null }];
     const result = await batchTreeProcessing('file-123', steps, { thumbnailSize: 200 });
 
     expect(mockPost).toHaveBeenCalledWith(
@@ -163,14 +164,62 @@ describe('처리', () => {
       expect.objectContaining({ headers: { 'Content-Type': 'multipart/form-data' } }),
     );
 
-    // mock속성 내부에 calls에는 호출한 인자 목록을 가지고 있음
-    // 한번 호출하였으니 [0]에서 formData는 2번째 인자이므로 [1]을 사용 -> [0][1]
     const formData = mockPost.mock.calls[0]![1] as FormData;
     expect(formData.get('fileId')).toBe('file-123');
     expect(formData.get('steps')).toBe(JSON.stringify(steps));
     expect(formData.get('thumbnailSize')).toBe('200');
+    expect(formData.get('cropId')).toBeNull();
+    expect(formData.get('returnNodeIds')).toBeNull();
 
     expect(result.totalExecutionMs).toBe(100);
+  });
+
+  // 검증: 풀해상도 — thumbnailSize 미전송
+  it('POST /files/process/batch-tree — 풀해상도 (thumbnailSize 없음)', async () => {
+    mockPost.mockResolvedValue({ data: { totalExecutionMs: 50, results: [] } });
+
+    await batchTreeProcessing('file-123', steps);
+
+    const formData = mockPost.mock.calls[0]![1] as FormData;
+    expect(formData.get('fileId')).toBe('file-123');
+    expect(formData.get('thumbnailSize')).toBeNull();
+  });
+
+  // 검증: cropId 전달
+  it('POST /files/process/batch-tree — cropId 전달', async () => {
+    mockPost.mockResolvedValue({ data: { totalExecutionMs: 80, results: [] } });
+
+    await batchTreeProcessing('file-123', steps, { cropId: 'crop-abc' });
+
+    const formData = mockPost.mock.calls[0]![1] as FormData;
+    expect(formData.get('fileId')).toBe('file-123');
+    expect(formData.get('cropId')).toBe('crop-abc');
+  });
+
+  // 검증: returnNodeIds 전달 (중간 노드 숨기기)
+  it('POST /files/process/batch-tree — returnNodeIds 전달', async () => {
+    mockPost.mockResolvedValue({ data: { totalExecutionMs: 60, results: [] } });
+
+    await batchTreeProcessing('file-123', steps, { returnNodeIds: ['n1', 'n3'] });
+
+    const formData = mockPost.mock.calls[0]![1] as FormData;
+    expect(formData.get('returnNodeIds')).toBe(JSON.stringify(['n1', 'n3']));
+  });
+
+  // 검증: cropId + 풀해상도 + returnNodeIds 조합
+  it('POST /files/process/batch-tree — 전체 옵션 조합', async () => {
+    mockPost.mockResolvedValue({ data: { totalExecutionMs: 120, results: [] } });
+
+    await batchTreeProcessing('file-123', steps, {
+      cropId: 'crop-xyz',
+      returnNodeIds: ['n1'],
+    });
+
+    const formData = mockPost.mock.calls[0]![1] as FormData;
+    expect(formData.get('fileId')).toBe('file-123');
+    expect(formData.get('cropId')).toBe('crop-xyz');
+    expect(formData.get('returnNodeIds')).toBe(JSON.stringify(['n1']));
+    expect(formData.get('thumbnailSize')).toBeNull();
   });
 });
 
