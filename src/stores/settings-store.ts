@@ -14,6 +14,8 @@ export type NodeSizeKey = keyof typeof NODE_SIZE_PRESETS;
 export const useSettingsStore = defineStore('settings', () => {
   const defaultZoomPerScroll = useLocalStorage('settings-defaultZoomPerScroll', 1.2);
   const nodeSizeKey = useLocalStorage<NodeSizeKey>('settings-nodeSizeKey', 'md');
+  const isFullResolution = useLocalStorage('settings-isFullResolution', false);
+  const hideIntermediateNodes = useLocalStorage('settings-hideIntermediateNodes', false);
 
   const nodeSize = computed(() => {
     const key = nodeSizeKey.value in NODE_SIZE_PRESETS ? nodeSizeKey.value : 'md';
@@ -28,7 +30,11 @@ export const useSettingsStore = defineStore('settings', () => {
     nodeSizeKey.value = key;
   }
 
-  return { defaultZoomPerScroll, setDefaultZoomPerScroll, nodeSizeKey, nodeSize, setNodeSize };
+  return {
+    defaultZoomPerScroll, setDefaultZoomPerScroll,
+    nodeSizeKey, nodeSize, setNodeSize,
+    isFullResolution, hideIntermediateNodes,
+  };
 });
 
 if (import.meta.hot) {

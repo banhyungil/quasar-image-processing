@@ -74,13 +74,19 @@ export async function saveProcessingImage(options: SavePrcImageOptions) {
 export async function batchTreeProcessing(
   fileId: string,
   steps: TreeBatchStep[],
-  options?: { thumbnailSize?: number; signal?: AbortSignal },
+  options?: { thumbnailSize?: number; cropId?: string; returnNodeIds?: string[]; signal?: AbortSignal },
 ): Promise<TreeBatchResult> {
   const form = new FormData();
   form.append('fileId', fileId);
   form.append('steps', JSON.stringify(steps));
   if (options?.thumbnailSize) {
     form.append('thumbnailSize', options.thumbnailSize.toString());
+  }
+  if (options?.cropId) {
+    form.append('cropId', options.cropId);
+  }
+  if (options?.returnNodeIds) {
+    form.append('returnNodeIds', JSON.stringify(options.returnNodeIds));
   }
 
   const res = await api.post<TreeBatchResult>('/files/process/batch-tree', form, {

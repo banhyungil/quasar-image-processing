@@ -13,6 +13,8 @@ declare module 'vue' {
   export interface GlobalComponents {
     AppSidebar: typeof import('./components/AppSidebar.vue')['default']
     BeforeAfterSlider: typeof import('./components/flow/BeforeAfterSlider.vue')['default']
+    CropDialog: typeof import('./components/dialog/CropDialog.vue')['default']
+    CropListPanel: typeof import('./components/sidebar/CropListPanel.vue')['default']
     CustomFilterEditorDialog: typeof import('./components/dialog/CustomFilterEditorDialog.vue')['default']
     EssentialLink: typeof import('./components/EssentialLink.vue')['default']
     ExampleComponent: typeof import('./components/ExampleComponent.vue')['default']

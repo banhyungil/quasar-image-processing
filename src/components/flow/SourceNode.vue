@@ -16,6 +16,7 @@ const emit = defineEmits<{
   (e: 'drop-file', file: File): void;
   (e: 'clear-image'): void;
   (e: 'zoom', nodeId: string): void;
+  (e: 'crop', nodeId: string): void;
 }>();
 
 const dragging = ref(false);
@@ -58,6 +59,18 @@ function onDrop(e: DragEvent) {
       <q-icon name="image" size="xs" color="primary" />
       <span class="source-node__label">원본 이미지</span>
       <q-space />
+      <q-btn
+        v-if="data.previewUrl"
+        flat
+        round
+        dense
+        size="xs"
+        icon="crop"
+        color="primary"
+        @click.stop="emit('crop', id)"
+      >
+        <q-tooltip>Crop 영역 지정</q-tooltip>
+      </q-btn>
       <q-btn
         v-if="data.previewUrl"
         flat

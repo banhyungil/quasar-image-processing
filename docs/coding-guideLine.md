@@ -56,6 +56,11 @@
   - store내에서는 composeble 함수를 사용하지 않는것으로 한다
     - composable에 watch나 provide, inject등 component와 관련된 함수가 있을 가능성이 높기 떄문이다.
 
+### Boolean
+
+- `is`, `has`, `show` prefix 사용
+- 예) isFullResolution, hasChanges, showDialog
+
 ### Computed
 
 - prefix : 'c'

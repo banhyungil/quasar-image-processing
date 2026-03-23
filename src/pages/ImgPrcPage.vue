@@ -24,12 +24,16 @@ import PresetSaveDialog from 'src/components/dialog/PresetSaveDialog.vue';
 import ProcessSaveDialog from 'src/components/dialog/ProcessSaveDialog.vue';
 import CustomFilterEditorDialog from 'src/components/dialog/CustomFilterEditorDialog.vue';
 import ImageGalleryDialog from 'src/components/dialog/ImageGalleryDialog.vue';
+import CropDialog from 'src/components/dialog/CropDialog.vue';
 import FilterListPanel from 'src/components/sidebar/FilterListPanel.vue';
 import PresetListPanel from 'src/components/sidebar/PresetListPanel.vue';
 import ProcessListPanel from 'src/components/sidebar/ProcessListPanel.vue';
+import CropListPanel from 'src/components/sidebar/CropListPanel.vue';
+import { useCropManager } from 'src/composables/useCropManager';
 import type { CustomFilter } from 'src/apis/customFilterApi';
 import type {
   ProcessNodeData,
+  SourceNodeData,
   FlatStep,
   AppNode,
   SourceNode as SourceNodeType,
@@ -77,7 +81,7 @@ function onPaneClick() {
 }
 
 // ── 사이드바 탭 ────────────────────────────────────────────────────────────
-const sidebarTab = ref<'filters' | 'presets' | 'processes'>('filters');
+const sidebarTab = ref<'filters' | 'presets' | 'processes' | 'crops'>('filters');
 const splitterSize = ref(20);
 
 // ── 파라미터 패널 ──────────────────────────────────────────────────────────
@@ -103,6 +107,103 @@ const oOrigin = ref<{ fileId: string | null; imageUrl: string | null }>({
 const originalInputRef = ref<HTMLInputElement | null>(null);
 const showImageGallery = ref(false);
 const droppedFile = ref<File | null>(null);
+
+// ── Crop 관리 ────────────────────────────────────────────────────────────
+const canvasFileId = computed(() => oOrigin.value.fileId);
+const canvasNodeSteps = ref<TreeBatchStep[]>([]);
+const canvasNodeId = ref('source');
+const cropMgr = useCropManager(canvasFileId, canvasNodeSteps, canvasNodeId);
+
+const cOriginalThumbnailUrl = computed(() =>
+  oOrigin.value.fileId ? `${API_HOST}/api/files/thumbnail/${oOrigin.value.fileId}` : null,
+);
+
+const showCropDialog = ref(false);
+const cropDialogSrc = ref('');
+const cropDialogDziUrl = ref<string | undefined>(undefined);
+
+async function onSourceCrop() {
+  if (!oOrigin.value.fileId) return;
+  try {
+    const res = await filesApi.getOriginSizeUrl(oOrigin.value.fileId, [], 'source');
+    cropDialogDziUrl.value = res.dziUrl ? API_HOST + res.dziUrl : undefined;
+    cropDialogSrc.value = res.imageUrl ? API_HOST + res.imageUrl : (oOrigin.value.imageUrl ?? '');
+    showCropDialog.value = true;
+  } catch {
+    cropDialogSrc.value = oOrigin.value.imageUrl ?? '';
+    showCropDialog.value = true;
+  }
+}
+
+function onCanvasCropCreate() {
+  void onSourceCrop();
+}
+
+function updateSourceNodeImage(cropId: string | null) {
+  const sourceNode = nodes.value.find((n) => n.id === SOURCE_NODE_ID);
+  if (!sourceNode || sourceNode.type !== 'source') return;
+  const data = sourceNode.data as SourceNodeData;
+
+  if (cropId) {
+    const crop = cropMgr.cropList.value.find((c) => c.cropId === cropId);
+    if (crop) {
+      data.previewUrl = crop.nodeImageUrl;
+      data.thumbnailUrl = null;
+    }
+  } else {
+    data.previewUrl = oOrigin.value.imageUrl;
+    data.thumbnailUrl = oOrigin.value.fileId
+      ? `${API_HOST}/api/files/thumbnail/${oOrigin.value.fileId}`
+      : null;
+  }
+}
+
+function onSelectCrop(cropId: string) {
+  cropMgr.activeCropId.value = cropId;
+  updateSourceNodeImage(cropId);
+  processAllLeaves();
+}
+
+function onRemoveCrop(cropId: string) {
+  const wasActive = cropMgr.activeCropId.value === cropId;
+  cropMgr.removeCrop(cropId);
+  if (!wasActive) return;
+  if (cropMgr.cropList.value.length === 0) {
+    cropMgr.activeCropId.value = null;
+    updateSourceNodeImage(null);
+    processAllLeaves();
+  } else {
+    const nextCropId = cropMgr.cropList.value[0]!.cropId;
+    cropMgr.activeCropId.value = nextCropId;
+    updateSourceNodeImage(nextCropId);
+    processAllLeaves();
+  }
+}
+
+function onClearCrop() {
+  cropMgr.activeCropId.value = null;
+  updateSourceNodeImage(null);
+  processAllLeaves();
+}
+
+function toggleFullResolution() {
+  settingsStore.isFullResolution = !settingsStore.isFullResolution;
+  processAllLeaves();
+}
+
+function toggleHideIntermediateNodes() {
+  settingsStore.hideIntermediateNodes = !settingsStore.hideIntermediateNodes;
+  processAllLeaves();
+}
+
+async function onCropViewport(viewport: { x: number; y: number; w: number; h: number }) {
+  if (!cropMgr.validateViewport(viewport)) return;
+  const crop = await cropMgr.createCrop(viewport);
+  if (crop) {
+    sidebarTab.value = 'crops';
+    cropMgr.activeCropId.value = crop.cropId;
+  }
+}
 
 function onDropFile(file: File) {
   droppedFile.value = file;
@@ -404,16 +505,33 @@ async function processNodeThumbnail(targetNodeId: string, options?: { signal?: A
   }
   if (steps.length === 0) return;
 
+  const thumbSize = settingsStore.isFullResolution
+    ? undefined
+    : settingsStore.nodeSize.thumbResolution;
+  const activeCropIdVal = cropMgr.activeCropId.value ?? undefined;
+
+  // 중간 노드 숨기기 시 리프 노드만 이미지 반환 요청 (연산은 전체, 인코딩만 절약)
+  const leafIds = collectDescendantLeaves(SOURCE_NODE_ID);
+  const returnNodeIds = settingsStore.hideIntermediateNodes ? leafIds : undefined;
+
   const result = await filesApi.batchTreeProcessing(oOrigin.value.fileId, steps, {
-    thumbnailSize: settingsStore.nodeSize.thumbResolution,
+    thumbnailSize: thumbSize,
+    cropId: activeCropIdVal,
+    returnNodeIds,
     signal: options?.signal,
   });
-  // 결과를 각 노드에 매핑
+
+  // 결과를 각 노드에 매핑 (백엔드에서 이미지 미반환 노드는 빈 문자열)
   for (const nr of result.results) {
     const node = nodes.value.find((n) => n.id === nr.nodeId);
     if (node && node.type === 'filter') {
-      node.data.imageUrl = nr.imageUrl.startsWith('data:') ? nr.imageUrl : API_HOST + nr.imageUrl;
-      node.data.executionMs = nr.executionMs;
+      if (nr.imageUrl) {
+        node.data.imageUrl = nr.imageUrl.startsWith('data:') ? nr.imageUrl : API_HOST + nr.imageUrl;
+        node.data.executionMs = nr.executionMs;
+      } else {
+        node.data.imageUrl = null;
+        node.data.executionMs = null;
+      }
     }
   }
 }
@@ -978,6 +1096,7 @@ async function onCopyChain(nodeId: string) {
             <q-tab name="filters" icon="filter_alt" label="필터" />
             <q-tab name="presets" icon="bookmarks" label="Preset" />
             <q-tab name="processes" icon="list_alt" label="처리목록" />
+            <q-tab name="crops" icon="crop" label="Crop" />
           </q-tabs>
           <q-separator />
 
@@ -1010,6 +1129,19 @@ async function onCopyChain(nodeId: string) {
                 :active-process-id="activeProcessId"
                 @load="onProcessDblClick"
                 @remove="removeProcess"
+              />
+            </q-tab-panel>
+
+            <!-- 라. Crop 탭 -->
+            <q-tab-panel name="crops" class="q-pa-none" style="height: 100%">
+              <CropListPanel
+                :crop-list="cropMgr.cropList.value"
+                :active-crop-id="cropMgr.activeCropId.value"
+                :original-thumbnail-url="cOriginalThumbnailUrl"
+                @create-crop="onCanvasCropCreate"
+                @select-crop="onSelectCrop"
+                @remove-crop="onRemoveCrop"
+                @clear-crop="onClearCrop"
               />
             </q-tab-panel>
           </q-tab-panels>
@@ -1045,6 +1177,35 @@ async function onCopyChain(nodeId: string) {
               @click="setOriginalFile(null)"
             >
               <q-tooltip>원본 초기화</q-tooltip>
+            </q-btn>
+
+            <q-separator vertical inset class="q-mx-xs" />
+
+            <!-- 캔버스 옵션 -->
+            <q-btn
+              flat
+              dense
+              round
+              size="sm"
+              icon="hd"
+              :color="settingsStore.isFullResolution ? 'primary' : 'grey-6'"
+              @click="toggleFullResolution"
+            >
+              <q-tooltip>풀해상도 {{ settingsStore.isFullResolution ? 'ON' : 'OFF' }}</q-tooltip>
+            </q-btn>
+            <q-btn
+              flat
+              dense
+              round
+              size="sm"
+              icon="visibility_off"
+              :color="settingsStore.hideIntermediateNodes ? 'primary' : 'grey-6'"
+              @click="toggleHideIntermediateNodes"
+            >
+              <q-tooltip
+                >중간 노드 숨기기
+                {{ settingsStore.hideIntermediateNodes ? 'ON' : 'OFF' }}</q-tooltip
+              >
             </q-btn>
 
             <q-space />
@@ -1157,6 +1318,7 @@ async function onCopyChain(nodeId: string) {
                     @drop-file="onDropFile"
                     @clear-image="setOriginalFile(null)"
                     @zoom="onNodeZoom"
+                    @crop="onSourceCrop"
                   />
                 </template>
 
@@ -1215,6 +1377,17 @@ async function onCopyChain(nodeId: string) {
       :initial-file="droppedFile"
       @select="onSelectExistingImage"
       @update:model-value="!$event && (droppedFile = null)"
+    />
+
+    <!-- Crop 다이얼로그 -->
+    <CropDialog
+      v-if="oOrigin.fileId"
+      v-model="showCropDialog"
+      :src="cropDialogSrc"
+      :dzi-url="cropDialogDziUrl"
+      :crop-list="cropMgr.cropList.value"
+      @save-viewport="onCropViewport"
+      @region-select="onCropViewport"
     />
 
     <!-- 이미지 확대 팝업 (복수 모달리스) -->

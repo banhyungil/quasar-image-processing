@@ -14,6 +14,17 @@ export interface CropItem {
 const MIN_CROP_PIXELS = 2_500; // 50x50
 const MAX_CROP_PIXELS = 16_000_000; // 4000x4000
 
+/** 뷰포트 사이즈 검증 (composable 외부에서도 사용 가능) */
+export function computeViewportStatus(
+  viewportSize: { w: number; h: number } | null,
+): 'ok' | 'too-small' | 'too-large' {
+  if (!viewportSize) return 'ok';
+  const pixels = viewportSize.w * viewportSize.h;
+  if (pixels < MIN_CROP_PIXELS) return 'too-small';
+  if (pixels > MAX_CROP_PIXELS) return 'too-large';
+  return 'ok';
+}
+
 export function useCropManager(
   fileId: Ref<string | null | undefined>,
   nodeSteps: Ref<TreeBatchStep[]>,
