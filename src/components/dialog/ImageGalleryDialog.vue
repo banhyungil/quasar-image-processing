@@ -2,6 +2,7 @@
 import { useQuasar } from 'quasar';
 import * as filesApi from 'src/apis/filesApi';
 import type { FileListResponse } from 'src/types/imgPrcType';
+import LocalImportDialog from './LocalImportDialog.vue';
 
 type TFile = FileListResponse['items'][number];
 
@@ -17,6 +18,7 @@ const emit = defineEmits<{
 }>();
 
 const items = ref<TFile[]>([]);
+const showLocalImport = ref(false);
 const loading = ref(false);
 const hasMore = ref(false);
 const nextCursor = ref<{ uploadedAt?: string; id?: number }>({});
@@ -267,13 +269,19 @@ watch(show, (val) => {
             @change="onFileChange"
           />
 
-          <div v-if="!pendingFile" class="upload-area__trigger" @click="onClickUpload">
-            <q-icon name="add_photo_alternate" size="sm" color="grey-6" />
-            <span class="text-grey-7">새 이미지 업로드</span>
+          <div v-if="!pendingFile" class="row">
+            <div class="upload-area__trigger col" @click="onClickUpload">
+              <q-icon name="add_photo_alternate" size="sm" color="grey-6" />
+              <span class="text-grey-7">새 이미지 업로드</span>
+            </div>
+            <div class="upload-area__trigger col" @click="showLocalImport = true">
+              <q-icon name="folder_open" size="sm" color="grey-6" />
+              <span class="text-grey-7">로컬 이미지 가져오기</span>
+            </div>
           </div>
 
           <div v-else class="upload-area__pending">
-            <img :src="pendingPreview ?? ''" class="upload-area__preview" />
+            <img :sr="pendingPreview ?? ''" class="upload-area__preview" />
             <div class="upload-area__form">
               <q-input
                 v-model="pendingName"
@@ -439,6 +447,8 @@ watch(show, (val) => {
       </q-card-section>
     </q-card>
   </q-dialog>
+
+  <LocalImportDialog v-model="showLocalImport" @registered="load(true)" />
 </template>
 
 <style scoped lang="scss">

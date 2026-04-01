@@ -13,6 +13,8 @@ import type {
   Viewport,
   PreviewCropResponse,
   PreviewTempStep,
+  LocalScanResponse,
+  LocalRegisterResponse,
 } from 'src/types/imgPrcType';
 
 // ── 파일 CRUD ────────────────────────────────────────────────────────────────
@@ -213,6 +215,28 @@ export async function downloadNodeImage(
   const res = await api.post<Blob>(`/files/download/${fileId}`, form, {
     headers: { 'Content-Type': 'multipart/form-data' },
     responseType: 'blob',
+  });
+  return res.data;
+}
+
+// ── Local Import ────────────────────────────────────────────────────────────
+
+export async function scanLocalDir(
+  dirPath: string,
+  options?: { recursive?: boolean },
+): Promise<LocalScanResponse> {
+  const res = await api.post<LocalScanResponse>('/files/local/scan', {
+    dirPath,
+    recursive: options?.recursive ?? false,
+  });
+  return res.data;
+}
+
+export async function registerLocalFiles(
+  paths: string[],
+): Promise<LocalRegisterResponse> {
+  const res = await api.post<LocalRegisterResponse>('/files/local/register', {
+    files: paths.map((path) => ({ path })),
   });
   return res.data;
 }

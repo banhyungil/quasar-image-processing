@@ -49,6 +49,7 @@ export interface TFile {
   mimeType: string;
   sizeBytes: number;
   uploadedAt: string;
+  sourceType: string;
   options: Record<string, unknown>;
   thumbnailUrl: string | null;
   width: number | null;
@@ -117,6 +118,7 @@ export interface FileUploadResponse {
   mimeType: string;
   sizeBytes: number;
   uploadedAt: string;
+  sourceType: string;
   width: number | null;
   height: number | null;
 }
@@ -162,4 +164,25 @@ export interface PreviewCropResponse {
 export interface PreviewTempStep {
   filterType: FilterType;
   parameters?: Record<string, unknown>;
+}
+
+// ── Local Import ──────────────────────────────────────────────────────────
+
+export interface LocalFileInfo {
+  path: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  width: number;
+  height: number;
+  thumbnailUrl: string;
+  alreadyRegistered: boolean;
+}
+
+export interface LocalScanResponse {
+  items: LocalFileInfo[];
+}
+
+export interface LocalRegisterResponse {
+  items: FileUploadResponse[];
 }

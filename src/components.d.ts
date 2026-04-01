@@ -23,6 +23,7 @@ declare module 'vue' {
     FilterTreeSelect: typeof import('./components/flow/FilterTreeSelect.vue')['default']
     ImageGalleryDialog: typeof import('./components/dialog/ImageGalleryDialog.vue')['default']
     ImageZoomPopup: typeof import('./components/flow/ImageZoomPopup.vue')['default']
+    LocalImportDialog: typeof import('./components/dialog/LocalImportDialog.vue')['default']
     OsdViewer: typeof import('./components/flow/OsdViewer.vue')['default']
     ParamField: typeof import('./components/flow/ParamField.vue')['default']
     ParamPanel: typeof import('./components/flow/ParamPanel.vue')['default']
