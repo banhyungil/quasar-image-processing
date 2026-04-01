@@ -42,7 +42,7 @@ export type FilterType =
 // ── 파일 응답 ────────────────────────────────────────────────────────────────
 
 export interface TFile {
-  id: string;
+  id: number;
   originNm: string;
   nm: string;
   path: string;
@@ -59,11 +59,11 @@ export interface FileListResponse {
   items: TFile[];
   hasMore: boolean;
   nextCursorUploadedAt: string | null;
-  nextCursorId: string | null;
+  nextCursorId: number | null;
 }
 
 export interface FileSaveResponse {
-  id: string;
+  id: number;
   originNm: string;
   nm: string;
   path: string;
@@ -78,7 +78,7 @@ export interface FileSaveResponse {
 export interface GetProcessingImageOptions {
   limit?: number;
   cursorUploadedAt?: string;
-  cursorId?: string;
+  cursorId?: number;
 }
 
 export interface ImgPrcOptions {
@@ -110,7 +110,7 @@ export interface BatchResult {
 // ── File Upload ─────────────────────────────────────────────────────────────
 
 export interface FileUploadResponse {
-  id: string;
+  id: number;
   originNm: string;
   nm: string;
   path: string;

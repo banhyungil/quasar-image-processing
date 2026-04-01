@@ -3,8 +3,8 @@ export interface ProcessStepBase {
   stepOrder: number;
   parameters: Record<string, unknown>;
   isEnabled: boolean;
-  presetId?: string | null;
-  parentId?: string | null;
+  presetId?: number | null;
+  parentId?: number | null;
 }
 
 export interface ProcessStepCreate extends ProcessStepBase {
@@ -13,32 +13,32 @@ export interface ProcessStepCreate extends ProcessStepBase {
 }
 
 export interface ProcessStepResponse extends ProcessStepBase {
-  id: string;
-  processId: string;
+  id: number;
+  processId: number;
   createdAt: string;
   executionMs: number | null;
 }
 
 export interface ProcessCreate {
   nm: string;
-  fileId: string;
+  fileId: number;
   steps: ProcessStepCreate[];
 }
 
 export interface ProcessUpdate {
   nm?: string | null;
-  finalFileId?: string | null;
+  finalFileId?: number | null;
   isLatest?: boolean | null;
   totalExecutionMs?: number | null;
   steps?: ProcessStepCreate[] | null;
 }
 
 export interface ProcessResponse {
-  id: string;
+  id: number;
   nm: string;
-  fileId: string;
+  fileId: number;
   filePath: string | null;
-  finalFileId: string | null;
+  finalFileId: number | null;
   isLatest: boolean;
   totalExecutionMs: number | null;
   createdAt: string;
@@ -51,5 +51,5 @@ export interface ProcessListResponse {
 }
 
 export interface GetProcessesOptions {
-  fileId?: string;
+  fileId?: number;
 }

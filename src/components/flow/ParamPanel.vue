@@ -26,7 +26,7 @@ const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'apply', nodeData: ProcessNodeData): void;
   (e: 'change', parameters: Record<string, unknown>): void;
-  (e: 'change-filter', filterType: FilterType, label: string, filterId?: string): void;
+  (e: 'change-filter', filterType: FilterType, label: string, filterId?: number): void;
 }>();
 
 // 로컬 파라미터 복사본 (적용 전까지 원본에 영향 없음)
@@ -47,7 +47,7 @@ function onParamUpdate(key: string, value: unknown) {
 const cFields = computed<ParamFieldDef[]>(() => {
   if (props.nodeData.algorithmNm === 'custom') {
     // 커스텀 필터: filterId로 커스텀 필터 조회 → params 기반 동적 폼 생성
-    const filterId = props.nodeData.parameters?.filterId as string | undefined;
+    const filterId = props.nodeData.parameters?.filterId as number | undefined;
     if (filterId && props.customFilters) {
       const cf = props.customFilters.find((c) => c.id === filterId);
       if (cf && Array.isArray(cf.params)) {

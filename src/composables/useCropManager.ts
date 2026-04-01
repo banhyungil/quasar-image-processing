@@ -26,7 +26,7 @@ export function computeViewportStatus(
 }
 
 export function useCropManager(
-  fileId: Ref<string | null | undefined>,
+  fileId: Ref<number | null | undefined>,
   nodeSteps: Ref<TreeBatchStep[]>,
   nodeId: Ref<string>,
 ) {

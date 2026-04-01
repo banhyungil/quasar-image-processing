@@ -1,7 +1,7 @@
 import type { ParamFieldDef } from 'src/constants/imgPrc';
 
 export interface CustomFilter {
-  id: string;
+  id: number;
   nm: string;
   description: string;
   code: string;

@@ -3,12 +3,12 @@ import type { PresetResponse } from 'src/apis/presetApi';
 
 defineProps<{
   presets: PresetResponse[];
-  activePresetId: string | null;
+  activePresetId: number | null;
 }>();
 
 const emit = defineEmits<{
   (e: 'load', preset: PresetResponse): void;
-  (e: 'remove', presetId: string): void;
+  (e: 'remove', presetId: number): void;
 }>();
 </script>
 

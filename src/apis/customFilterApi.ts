@@ -18,7 +18,7 @@ export async function getCustomFilters(): Promise<CustomFilterListResponse> {
   return res.data;
 }
 
-export async function getCustomFilter(id: string): Promise<CustomFilter> {
+export async function getCustomFilter(id: number): Promise<CustomFilter> {
   const res = await api.get<CustomFilter>(`/custom-filters/${id}`);
   return res.data;
 }
@@ -29,19 +29,19 @@ export async function createCustomFilter(body: CustomFilterCreate): Promise<Cust
 }
 
 export async function updateCustomFilter(
-  id: string,
+  id: number,
   body: CustomFilterUpdate,
 ): Promise<CustomFilter> {
   const res = await api.put<CustomFilter>(`/custom-filters/${id}`, body);
   return res.data;
 }
 
-export async function deleteCustomFilter(id: string): Promise<void> {
+export async function deleteCustomFilter(id: number): Promise<void> {
   await api.delete(`/custom-filters/${id}`);
 }
 
 export async function testCustomFilter(
-  id: string,
+  id: number,
   image: File | Blob,
   parameters?: Record<string, unknown>,
 ): Promise<Blob> {

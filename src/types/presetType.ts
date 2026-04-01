@@ -10,8 +10,8 @@ export interface PresetStepCreate extends PresetStepBase {
 }
 
 export interface PresetStepResponse extends PresetStepBase {
-  id: string;
-  parentId: string | null;
+  id: number;
+  parentId: number | null;
 }
 
 export interface PresetCreate {
@@ -28,7 +28,7 @@ export interface PresetUpdate {
 }
 
 export interface PresetResponse {
-  id: string;
+  id: number;
   nm: string;
   description: string | null;
   isSystem: boolean;

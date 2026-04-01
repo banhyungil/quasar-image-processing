@@ -19,7 +19,7 @@ const emit = defineEmits<{
 const items = ref<TFile[]>([]);
 const loading = ref(false);
 const hasMore = ref(false);
-const nextCursor = ref<{ uploadedAt?: string; id?: string }>({});
+const nextCursor = ref<{ uploadedAt?: string; id?: number }>({});
 
 // 검색 관련 상태
 const searchQuery = ref('');
@@ -63,7 +63,7 @@ const pendingName = ref('');
 const uploading = ref(false);
 
 // 파일명 수정 관련 상태
-const editingId = ref<string | null>(null);
+const editingId = ref<number | null>(null);
 const editingName = ref('');
 
 async function load(reset = false) {

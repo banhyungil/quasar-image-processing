@@ -27,7 +27,7 @@ const emit = defineEmits<{
     nodeId: string,
     filterType: FilterType,
     label: string,
-    filterId?: string,
+    filterId?: number,
   ): void;
   (e: 'resize', nodeId: string, width: number, thumbHeight: number): void;
 }>();
@@ -74,7 +74,7 @@ function onResizeMouseUp() {
 const cWidth = computed(() => (resizing.value ? liveWidth.value : nodeWidth.value));
 const cThumbHeight = computed(() => (resizing.value ? liveHeight.value : nodeThumbHeight.value));
 
-function onSelectFilter(filterType: FilterType, label: string, filterId?: string) {
+function onSelectFilter(filterType: FilterType, label: string, filterId?: number) {
   if (filterType === props.data.algorithmNm && !filterId) return;
   emit('change-filter', props.id, filterType, label, filterId);
 }

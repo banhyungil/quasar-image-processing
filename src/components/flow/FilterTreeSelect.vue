@@ -7,7 +7,7 @@ import type { CustomFilter } from 'src/apis/customFilterApi';
 interface FnTreeNode {
   label: string;
   value: string;
-  filterId?: string;
+  filterId?: number;
   selectable?: boolean;
   children?: FnTreeNode[];
 }
@@ -22,7 +22,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'select', filterType: FilterType, label: string, filterId?: string): void;
+  (e: 'select', filterType: FilterType, label: string, filterId?: number): void;
 }>();
 
 const fnTreeNodes = computed<FnTreeNode[]>(() => {

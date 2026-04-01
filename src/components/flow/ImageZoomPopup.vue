@@ -16,7 +16,7 @@ const props = defineProps<{
   src: string | null;
   dziUrl?: string;
   title?: string;
-  fileId?: string | null;
+  fileId?: number | null;
   nodeSteps?: TreeBatchStep[];
   nodeId?: string;
 }>();

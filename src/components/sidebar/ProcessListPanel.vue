@@ -4,12 +4,12 @@ import { API_HOST } from 'src/boot/axios';
 
 defineProps<{
   processList: ProcessResponse[];
-  activeProcessId: string | null;
+  activeProcessId: number | null;
 }>();
 
 const emit = defineEmits<{
   (e: 'load', process: ProcessResponse): void;
-  (e: 'remove', processId: string): void;
+  (e: 'remove', processId: number): void;
 }>();
 </script>
 

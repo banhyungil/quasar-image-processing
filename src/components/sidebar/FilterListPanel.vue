@@ -29,7 +29,7 @@ async function loadCustomFilters() {
   customFilters.value = res.items;
 }
 
-async function onDeleteCustomFilter(id: string) {
+async function onDeleteCustomFilter(id: number) {
   await customFilterApi.deleteCustomFilter(id);
   customFilters.value = customFilters.value.filter((cf) => cf.id !== id);
 }
@@ -38,7 +38,7 @@ function onCustomFilterDragStart(event: DragEvent, cf: CustomFilter) {
   if (!event.dataTransfer) return;
   event.dataTransfer.setData('application/vueflow-prctype', 'custom');
   event.dataTransfer.setData('application/vueflow-label', cf.nm);
-  event.dataTransfer.setData('application/vueflow-filter-id', cf.id);
+  event.dataTransfer.setData('application/vueflow-filter-id', String(cf.id));
   event.dataTransfer.effectAllowed = 'move';
 }
 

@@ -79,18 +79,18 @@ describe('파일 CRUD', () => {
   it('DELETE /files/{id} — deleteFile', async () => {
     mockDelete.mockResolvedValue({});
 
-    await deleteFile('file-123');
+    await deleteFile(123);
 
-    expect(mockDelete).toHaveBeenCalledWith('/files/file-123');
+    expect(mockDelete).toHaveBeenCalledWith('/files/123');
   });
 
   // 검증: fileId → URL 경로 조합 + body에 originNm 필드 구성
   it('PATCH /files/{id} — renameFile', async () => {
     mockPatch.mockResolvedValue({});
 
-    await renameFile('file-123', 'new-name.png');
+    await renameFile(123, 'new-name.png');
 
-    expect(mockPatch).toHaveBeenCalledWith('/files/file-123', { originNm: 'new-name.png' });
+    expect(mockPatch).toHaveBeenCalledWith('/files/123', { originNm: 'new-name.png' });
   });
 
   // 검증: File → FormData 변환 + multipart 헤더 설정 + 응답 파싱
@@ -156,7 +156,7 @@ describe('처리', () => {
     const mockResult = { totalExecutionMs: 100, results: [] };
     mockPost.mockResolvedValue({ data: mockResult });
 
-    const result = await batchTreeProcessing('file-123', steps, { thumbnailSize: 200 });
+    const result = await batchTreeProcessing(123, steps, { thumbnailSize: 200 });
 
     expect(mockPost).toHaveBeenCalledWith(
       '/files/process/batch-tree',
@@ -165,7 +165,7 @@ describe('처리', () => {
     );
 
     const formData = mockPost.mock.calls[0]![1] as FormData;
-    expect(formData.get('fileId')).toBe('file-123');
+    expect(formData.get('fileId')).toBe('123');
     expect(formData.get('steps')).toBe(JSON.stringify(steps));
     expect(formData.get('thumbnailSize')).toBe('200');
     expect(formData.get('cropId')).toBeNull();
@@ -178,10 +178,10 @@ describe('처리', () => {
   it('POST /files/process/batch-tree — 풀해상도 (thumbnailSize 없음)', async () => {
     mockPost.mockResolvedValue({ data: { totalExecutionMs: 50, results: [] } });
 
-    await batchTreeProcessing('file-123', steps);
+    await batchTreeProcessing(123, steps);
 
     const formData = mockPost.mock.calls[0]![1] as FormData;
-    expect(formData.get('fileId')).toBe('file-123');
+    expect(formData.get('fileId')).toBe('123');
     expect(formData.get('thumbnailSize')).toBeNull();
   });
 
@@ -189,10 +189,10 @@ describe('처리', () => {
   it('POST /files/process/batch-tree — cropId 전달', async () => {
     mockPost.mockResolvedValue({ data: { totalExecutionMs: 80, results: [] } });
 
-    await batchTreeProcessing('file-123', steps, { cropId: 'crop-abc' });
+    await batchTreeProcessing(123, steps, { cropId: 'crop-abc' });
 
     const formData = mockPost.mock.calls[0]![1] as FormData;
-    expect(formData.get('fileId')).toBe('file-123');
+    expect(formData.get('fileId')).toBe('123');
     expect(formData.get('cropId')).toBe('crop-abc');
   });
 
@@ -200,7 +200,7 @@ describe('처리', () => {
   it('POST /files/process/batch-tree — returnNodeIds 전달', async () => {
     mockPost.mockResolvedValue({ data: { totalExecutionMs: 60, results: [] } });
 
-    await batchTreeProcessing('file-123', steps, { returnNodeIds: ['n1', 'n3'] });
+    await batchTreeProcessing(123, steps, { returnNodeIds: ['n1', 'n3'] });
 
     const formData = mockPost.mock.calls[0]![1] as FormData;
     expect(formData.get('returnNodeIds')).toBe(JSON.stringify(['n1', 'n3']));
@@ -210,13 +210,13 @@ describe('처리', () => {
   it('POST /files/process/batch-tree — 전체 옵션 조합', async () => {
     mockPost.mockResolvedValue({ data: { totalExecutionMs: 120, results: [] } });
 
-    await batchTreeProcessing('file-123', steps, {
+    await batchTreeProcessing(123, steps, {
       cropId: 'crop-xyz',
       returnNodeIds: ['n1'],
     });
 
     const formData = mockPost.mock.calls[0]![1] as FormData;
-    expect(formData.get('fileId')).toBe('file-123');
+    expect(formData.get('fileId')).toBe('123');
     expect(formData.get('cropId')).toBe('crop-xyz');
     expect(formData.get('returnNodeIds')).toBe(JSON.stringify(['n1']));
     expect(formData.get('thumbnailSize')).toBeNull();
@@ -231,7 +231,7 @@ describe('Crop', () => {
     const mockResponse = { cropId: 'crop-1', nodeImageUrl: '/test.png', width: 100, height: 80 };
     mockPost.mockResolvedValue({ data: mockResponse });
 
-    const result = await createCrop('file-123', [], 'source', { x: 0, y: 0, w: 200, h: 150 });
+    const result = await createCrop(123, [], 'source', { x: 0, y: 0, w: 200, h: 150 });
 
     expect(mockPost).toHaveBeenCalledWith(
       '/files/crop',
@@ -240,7 +240,7 @@ describe('Crop', () => {
     );
 
     const formData = mockPost.mock.calls[0]![1] as FormData;
-    expect(formData.get('fileId')).toBe('file-123');
+    expect(formData.get('fileId')).toBe('123');
     expect(formData.get('nodeSteps')).toBe(JSON.stringify([]));
     expect(formData.get('nodeId')).toBe('source');
     expect(formData.get('viewport')).toBe(JSON.stringify({ x: 0, y: 0, w: 200, h: 150 }));
@@ -253,7 +253,7 @@ describe('Crop', () => {
     const mockResponse = { imageBase64: 'abc123', executionMs: 50 };
     mockPost.mockResolvedValue({ data: mockResponse });
 
-    const result = await applyCrop('file-123', 'crop-1', [{ filterType: 'blur' }], {
+    const result = await applyCrop(123, 'crop-1', [{ filterType: 'blur' }], {
       x: 0,
       y: 0,
       w: 100,
@@ -267,7 +267,7 @@ describe('Crop', () => {
     );
 
     const formData = mockPost.mock.calls[0]![1] as FormData;
-    expect(formData.get('fileId')).toBe('file-123');
+    expect(formData.get('fileId')).toBe('123');
     expect(formData.get('cropId')).toBe('crop-1');
     expect(formData.get('tempSteps')).toBe(JSON.stringify([{ filterType: 'blur' }]));
     expect(formData.get('viewport')).toBe(JSON.stringify({ x: 0, y: 0, w: 100, h: 100 }));
@@ -285,7 +285,7 @@ describe('Crop', () => {
     mockPost.mockResolvedValue({ data: mockResults });
 
     const result = await applyCropAll(
-      'file-123',
+      123,
       'crop-1',
       [{ filterType: 'blur' }, { filterType: 'canny' }],
       { x: 0, y: 0, w: 100, h: 100 },
@@ -298,7 +298,7 @@ describe('Crop', () => {
     );
 
     const formData = mockPost.mock.calls[0]![1] as FormData;
-    expect(formData.get('fileId')).toBe('file-123');
+    expect(formData.get('fileId')).toBe('123');
     expect(formData.get('cropId')).toBe('crop-1');
     expect(formData.get('tempSteps')).toBe(
       JSON.stringify([{ filterType: 'blur' }, { filterType: 'canny' }]),
@@ -313,9 +313,9 @@ describe('Crop', () => {
   it('DELETE /files/crop/{fId}/{cId} — deleteCrop', async () => {
     mockDelete.mockResolvedValue({});
 
-    await deleteCrop('file-123', 'crop-1');
+    await deleteCrop(123, 'crop-1');
 
-    expect(mockDelete).toHaveBeenCalledWith('/files/crop/file-123/crop-1');
+    expect(mockDelete).toHaveBeenCalledWith('/files/crop/123/crop-1');
   });
 });
 
@@ -328,10 +328,10 @@ describe('DZI / 다운로드', () => {
     mockPost.mockResolvedValue({ data: mockResponse });
 
     const steps = [{ nodeId: 'n1', filterType: 'blur' as const, parameters: {}, parentId: null }];
-    const result = await getOriginSizeUrl('file-123', steps, 'n1');
+    const result = await getOriginSizeUrl(123, steps, 'n1');
 
     expect(mockPost).toHaveBeenCalledWith(
-      '/files/dzi/file-123',
+      '/files/dzi/123',
       expect.any(FormData),
       expect.objectContaining({ headers: { 'Content-Type': 'multipart/form-data' } }),
     );
@@ -348,7 +348,7 @@ describe('DZI / 다운로드', () => {
     const mockResponse = { dziUrl: '/uploads/cache/test.dzi', imageUrl: null };
     mockPost.mockResolvedValue({ data: mockResponse });
 
-    const result = await getOriginSizeUrl('file-123', [], 'source');
+    const result = await getOriginSizeUrl(123, [], 'source');
 
     expect(result.dziUrl).toBe('/uploads/cache/test.dzi');
     expect(result.imageUrl).toBeNull();
@@ -360,10 +360,10 @@ describe('DZI / 다운로드', () => {
     mockPost.mockResolvedValue({ data: mockBlob });
 
     const steps = [{ nodeId: 'n1', filterType: 'blur' as const, parameters: {}, parentId: null }];
-    const result = await downloadNodeImage('file-123', steps, 'n1');
+    const result = await downloadNodeImage(123, steps, 'n1');
 
     expect(mockPost).toHaveBeenCalledWith(
-      '/files/download/file-123',
+      '/files/download/123',
       expect.any(FormData),
       expect.objectContaining({ responseType: 'blob' }),
     );

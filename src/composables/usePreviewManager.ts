@@ -8,7 +8,7 @@ export interface TempStep extends PreviewTempStep {
 }
 
 export function usePreviewManager(
-  fileId: Ref<string | null | undefined>,
+  fileId: Ref<number | null | undefined>,
   activeCrop: Ref<CropItem | null>,
   tempSteps: Ref<TempStep[]>,
 ) {

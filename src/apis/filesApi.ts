@@ -37,11 +37,11 @@ export async function getFiles(
   return res.data;
 }
 
-export async function deleteFile(fileId: string): Promise<void> {
+export async function deleteFile(fileId: number): Promise<void> {
   await api.delete(`/files/${fileId}`);
 }
 
-export async function renameFile(fileId: string, originNm: string): Promise<void> {
+export async function renameFile(fileId: number, originNm: string): Promise<void> {
   await api.patch(`/files/${fileId}`, { originNm });
 }
 
@@ -72,12 +72,12 @@ export async function saveProcessingImage(options: SavePrcImageOptions) {
 // ── 처리 ─────────────────────────────────────────────────────────────────────
 
 export async function batchTreeProcessing(
-  fileId: string,
+  fileId: number,
   steps: TreeBatchStep[],
   options?: { thumbnailSize?: number; cropId?: string; returnNodeIds?: string[]; signal?: AbortSignal },
 ): Promise<TreeBatchResult> {
   const form = new FormData();
-  form.append('fileId', fileId);
+  form.append('fileId', String(fileId));
   form.append('steps', JSON.stringify(steps));
   if (options?.thumbnailSize) {
     form.append('thumbnailSize', options.thumbnailSize.toString());
@@ -99,14 +99,14 @@ export async function batchTreeProcessing(
 // ── Crop ─────────────────────────────────────────────────────────────────────
 
 export async function createCrop(
-  fileId: string,
+  fileId: number,
   nodeSteps: TreeBatchStep[],
   nodeId: string,
   viewport: Viewport,
   options?: { padding?: number; signal?: AbortSignal },
 ): Promise<PreviewCropResponse> {
   const form = new FormData();
-  form.append('fileId', fileId);
+  form.append('fileId', String(fileId));
   form.append('nodeSteps', JSON.stringify(nodeSteps));
   form.append('nodeId', nodeId);
   form.append('viewport', JSON.stringify(viewport));
@@ -122,14 +122,14 @@ export async function createCrop(
 }
 
 export async function applyCrop(
-  fileId: string,
+  fileId: number,
   cropId: string,
   tempSteps: PreviewTempStep[],
   viewport: Viewport,
   options?: { padding?: number; signal?: AbortSignal },
 ): Promise<{ imageBase64: string; executionMs: number } | null> {
   const form = new FormData();
-  form.append('fileId', fileId);
+  form.append('fileId', String(fileId));
   form.append('cropId', cropId);
   form.append('tempSteps', JSON.stringify(tempSteps));
   form.append('viewport', JSON.stringify(viewport));
@@ -150,14 +150,14 @@ export async function applyCrop(
 }
 
 export async function applyCropAll(
-  fileId: string,
+  fileId: number,
   cropId: string,
   tempSteps: PreviewTempStep[],
   viewport: Viewport,
   options?: { padding?: number; signal?: AbortSignal },
 ): Promise<{ filterType: string; imageBase64: string; executionMs: number }[]> {
   const form = new FormData();
-  form.append('fileId', fileId);
+  form.append('fileId', String(fileId));
   form.append('cropId', cropId);
   form.append('tempSteps', JSON.stringify(tempSteps));
   form.append('viewport', JSON.stringify(viewport));
@@ -176,14 +176,14 @@ export async function applyCropAll(
   return res.data;
 }
 
-export async function deleteCrop(fileId: string, cropId: string): Promise<void> {
+export async function deleteCrop(fileId: number, cropId: string): Promise<void> {
   await api.delete(`/files/crop/${fileId}/${cropId}`);
 }
 
 // ── DZI / 다운로드 ───────────────────────────────────────────────────────────
 
 export async function getOriginSizeUrl(
-  fileId: string,
+  fileId: number,
   steps: TreeBatchStep[],
   nodeId: string,
   options?: { cropId?: string },
@@ -202,7 +202,7 @@ export async function getOriginSizeUrl(
 }
 
 export async function downloadNodeImage(
-  fileId: string,
+  fileId: number,
   steps: TreeBatchStep[],
   nodeId: string,
 ): Promise<Blob> {

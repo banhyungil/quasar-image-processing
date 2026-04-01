@@ -94,18 +94,18 @@ const optionPanelTarget = ref<string | null>(null);
 
 // ── Preset ─────────────────────────────────────────────────────────────────
 const presets = ref<PresetResponse[]>([]);
-const activePresetId = ref<string | null>(null);
+const activePresetId = ref<number | null>(null);
 const showSavePresetDialog = ref(false);
 const presetDialogName = ref('');
 const presetDialogDescription = ref('');
 
 // ── 처리목록 ───────────────────────────────────────────────────────────────
 const processList = ref<ProcessResponse[]>([]);
-const activeProcessId = ref<string | null>(null);
+const activeProcessId = ref<number | null>(null);
 
 // ── 원본 이미지 ────────────────────────────────────────────────────────────
 const oOrigin = ref<{
-  fileId: string | null;
+  fileId: number | null;
   imageUrl: string | null;
   width: number | null;
   height: number | null;
@@ -326,7 +326,7 @@ function onOriginalInputChange(event: Event) {
 }
 
 function onSelectExistingImage(tFile: {
-  id: string;
+  id: number;
   originNm: string;
   path: string;
   mimeType: string;
@@ -542,7 +542,8 @@ function findLastLeaf(): string {
 
 /** 특정 노드까지의 경로(source→…→nodeId)에 대해 batch-tree API를 호출하여 썸네일을 갱신 */
 async function processNodeThumbnail(targetNodeId: string, options?: { signal?: AbortSignal }) {
-  if (!oOrigin.value.fileId) return;
+  const fileId = oOrigin.value.fileId;
+  if (!fileId) return;
 
   // source → targetNodeId 경로에 있는 노드 수집
   const pathNodeIds = collectPathToNode(targetNodeId);
@@ -591,7 +592,7 @@ async function processNodeThumbnail(targetNodeId: string, options?: { signal?: A
   const leafIds = collectDescendantLeaves(SOURCE_NODE_ID);
   const returnNodeIds = settingsStore.hideIntermediateNodes ? leafIds : undefined;
 
-  const result = await filesApi.batchTreeProcessing(oOrigin.value.fileId, steps, {
+  const result = await filesApi.batchTreeProcessing(fileId, steps, {
     thumbnailSize: thumbSize,
     cropId: activeCropIdVal,
     returnNodeIds,
@@ -671,7 +672,7 @@ function toggleEnabled(nodeId: string) {
   }
 }
 
-function onChangeFilter(nodeId: string, filterType: FilterType, label: string, filterId?: string) {
+function onChangeFilter(nodeId: string, filterType: FilterType, label: string, filterId?: number) {
   const node = nodes.value.find((n) => n.id === nodeId);
   if (!node || node.type !== 'filter') return;
   const data = node.data;
@@ -781,7 +782,7 @@ function onCanvasDrop(event: DragEvent) {
       const cf = filterListPanelRef.value
         ? (
             filterListPanelRef.value as unknown as { customFilters: CustomFilter[] }
-          ).customFilters?.find((c: CustomFilter) => c.id === filterId)
+          ).customFilters?.find((c: CustomFilter) => c.id === Number(filterId))
         : undefined;
       if (cf) addCustomFilterNode(cf);
     }
@@ -867,8 +868,8 @@ async function onConfirmPreset(name: string, description: string) {
 function loadPreset(preset: PresetResponse) {
   activePresetId.value = preset.id;
   const flatSteps: FlatStep[] = preset.steps.map((s) => ({
-    id: s.id ?? crypto.randomUUID(),
-    parentId: s.parentId ?? null,
+    id: String(s.id),
+    parentId: s.parentId != null ? String(s.parentId) : null,
     algorithmNm: s.algorithmNm,
     stepOrder: s.stepOrder,
     parameters: { ...getDefaultParams(s.algorithmNm), ...(s.parameters ?? {}) },
@@ -883,7 +884,7 @@ function loadPreset(preset: PresetResponse) {
   });
 }
 
-async function removePreset(presetId: string) {
+async function removePreset(presetId: number) {
   await presetApi.deletePreset(presetId);
   if (activePresetId.value === presetId) {
     activePresetId.value = null;
@@ -907,8 +908,8 @@ async function onProcessDblClick(process: ProcessResponse) {
   }
 
   const flatSteps: FlatStep[] = detail.steps.map((s) => ({
-    id: s.id ?? crypto.randomUUID(),
-    parentId: s.parentId ?? null,
+    id: String(s.id),
+    parentId: s.parentId != null ? String(s.parentId) : null,
     algorithmNm: s.algorithmNm,
     stepOrder: s.stepOrder,
     parameters: { ...getDefaultParams(s.algorithmNm), ...(s.parameters ?? {}) },
@@ -985,7 +986,7 @@ async function onConfirmProcess(name: string) {
   await loadProcessList();
 }
 
-async function removeProcess(processId: string) {
+async function removeProcess(processId: number) {
   await processApi.deleteProcess(processId);
   if (activeProcessId.value === processId) {
     activeProcessId.value = null;
@@ -1105,11 +1106,17 @@ async function onNodeZoom(nodeId: string) {
 
   const steps = isSource ? [] : buildStepsToNode(nodeId);
   if (!isSource && steps.length === 0) return;
+  if (!oOrigin.value.fileId) return;
 
   $q.loading.show({ message: '처리 중...' });
   const cropIdVal = activeCrop?.cropId;
   const result = await filesApi
-    .getOriginSizeUrl(oOrigin.value.fileId, steps, nodeId, cropIdVal ? { cropId: cropIdVal } : undefined)
+    .getOriginSizeUrl(
+      oOrigin.value.fileId,
+      steps,
+      nodeId,
+      cropIdVal ? { cropId: cropIdVal } : undefined,
+    )
     .finally(() => $q.loading.hide())
     .catch(() => null);
   if (!result) return;

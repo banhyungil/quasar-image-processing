@@ -21,7 +21,7 @@ export async function getPresets(): Promise<PresetListResponse> {
   return res.data;
 }
 
-export async function getPreset(presetId: string): Promise<PresetResponse> {
+export async function getPreset(presetId: number): Promise<PresetResponse> {
   const res = await api.get<PresetResponse>(`/presets/${presetId}`);
   return res.data;
 }
@@ -31,11 +31,11 @@ export async function createPreset(body: PresetCreate): Promise<PresetResponse> 
   return res.data;
 }
 
-export async function updatePreset(presetId: string, body: PresetUpdate): Promise<PresetResponse> {
+export async function updatePreset(presetId: number, body: PresetUpdate): Promise<PresetResponse> {
   const res = await api.put<PresetResponse>(`/presets/${presetId}`, body);
   return res.data;
 }
 
-export async function deletePreset(presetId: string): Promise<void> {
+export async function deletePreset(presetId: number): Promise<void> {
   await api.delete(`/presets/${presetId}`);
 }
