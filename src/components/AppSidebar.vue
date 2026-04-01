@@ -25,6 +25,12 @@ const linksList: EssentialLinkProps[] = [
     icon: 'photo_filter',
     to: { name: 'img-prc' },
   },
+  {
+    title: '테스트',
+    caption: '테스트',
+    icon: 'photo_filter',
+    to: { name: 'test' },
+  },
 ];
 </script>
 

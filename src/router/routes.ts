@@ -10,6 +10,11 @@ const routes: RouteRecordRaw[] = [
         name: 'img-prc',
         component: () => import('pages/ImgPrcPage.vue'),
       },
+      {
+        path: 'test',
+        name: 'test',
+        component: () => import('pages/TestPage.vue'),
+      },
     ],
   },
 
