@@ -31,7 +31,7 @@ function onConfirm() {
 </script>
 
 <template>
-  <q-dialog v-model="show">
+  <q-dialog class="preset-save-dialog" v-model="show">
     <q-card style="min-width: 300px">
       <q-card-section>
         <div class="text-h6">{{ isEditing ? 'Preset 수정' : 'Preset 저장' }}</div>

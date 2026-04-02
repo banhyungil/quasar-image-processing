@@ -200,7 +200,7 @@ onBeforeUnmount(() => {
 <template>
   <Teleport to="body">
     <div
-      class="zoom-window column"
+      class="image-zoom-popup zoom-window column"
       :class="{ 'zoom-window--maximized': isMaximized }"
       :style="isMaximized ? {} : { left: pos.x + 'px', top: pos.y + 'px' }"
       @mousedown="bringToFront"

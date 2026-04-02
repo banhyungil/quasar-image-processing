@@ -11,7 +11,7 @@
   * header, footer 설정에 따라 page 사이드의 공간이 달라짐. (l/L, r/R)
   ** q-drawer는 page 사이드의 공간 차지
   -->
-  <q-layout view="hHh Lpr fFf">
+  <q-layout class="main-layout" view="hHh Lpr fFf">
     <q-header elevated>
       <q-toolbar>
         <q-btn

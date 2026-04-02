@@ -1,5 +1,5 @@
 <template>
-  <q-item clickable :to="to">
+  <q-item class="essential-link" clickable :to="to">
     <q-item-section v-if="icon" avatar>
       <q-icon :name="icon" />
       <q-tooltip v-if="mini" class="q-mini-drawer-only" anchor="center right" self="center left">

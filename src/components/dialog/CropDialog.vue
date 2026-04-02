@@ -40,7 +40,7 @@ function saveViewportCrop() {
 </script>
 
 <template>
-  <q-dialog v-model="show" maximized transition-show="fade" transition-hide="fade">
+  <q-dialog class="crop-dialog" v-model="show" maximized transition-show="fade" transition-hide="fade">
     <q-card class="column" style="background: #1a1a1a">
       <!-- 헤더 -->
       <q-bar class="bg-primary text-white">

@@ -299,7 +299,7 @@ watch(
 </script>
 
 <template>
-  <div class="osd-wrapper">
+  <div class="osd-viewer osd-wrapper">
     <div ref="container" class="osd-viewer" />
 
     <!-- 커스텀 네비게이션 버튼 -->

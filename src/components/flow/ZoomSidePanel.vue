@@ -32,7 +32,7 @@ function getStepFields(filterType: FilterType): ParamFieldDef[] {
 </script>
 
 <template>
-  <div class="zoom-side column">
+  <div class="zoom-side-panel zoom-side column">
     <!-- 필터 선택 -->
     <div style="border-bottom: 1px solid rgba(0, 0, 0, 0.08)">
       <div class="q-pa-xs">

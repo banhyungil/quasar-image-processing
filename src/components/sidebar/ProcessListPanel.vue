@@ -14,7 +14,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <q-scroll-area style="height: 100%">
+  <q-scroll-area class="process-list-panel" style="height: 100%">
     <div class="q-pa-sm">
       <div v-if="processList.length === 0" class="text-center text-caption text-grey-6 q-pa-md">
         처리된 이미지가 없습니다

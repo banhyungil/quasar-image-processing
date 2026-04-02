@@ -34,7 +34,7 @@ const selectedLabel = computed(() => {
 </script>
 
 <template>
-  <div class="timeline-layout" :class="{ 'timeline-layout--column': layout === 'scroll' }">
+  <div class="timeline-viewer timeline-layout" :class="{ 'timeline-layout--column': layout === 'scroll' }">
     <!-- A. 메인 + 우측 썸네일 -->
     <template v-if="layout === 'split'">
       <div class="timeline-main">

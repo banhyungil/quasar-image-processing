@@ -16,7 +16,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="crop-panel column fit">
+  <div class="crop-list-panel crop-panel column fit">
     <!-- 헤더 -->
     <div class="row items-center q-px-sm q-py-xs" style="border-bottom: 1px solid rgba(0, 0, 0, 0.08)">
       <q-icon name="crop" size="xs" color="grey-7" class="q-mr-xs" />

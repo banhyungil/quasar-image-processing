@@ -15,7 +15,7 @@ const nodeSizeOptions: { label: string; value: NodeSizeKey }[] = [
 </script>
 
 <template>
-  <q-dialog v-model="show">
+  <q-dialog class="settings-dialog" v-model="show">
     <q-card style="min-width: 320px">
       <q-card-section>
         <div class="text-h6">설정</div>

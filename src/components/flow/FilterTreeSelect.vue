@@ -64,6 +64,7 @@ function onSelectFilter(node: FnTreeNode) {
 
 <template>
   <q-btn-dropdown
+    class="filter-tree-select"
     ref="btnDropdownRef"
     flat
     dense

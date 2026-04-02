@@ -48,7 +48,7 @@ defineExpose({ loadCustomFilters });
 </script>
 
 <template>
-  <q-scroll-area style="height: 100%">
+  <q-scroll-area class="filter-list-panel" style="height: 100%">
     <q-list>
       <q-expansion-item
         v-for="fn in FN_LIST"

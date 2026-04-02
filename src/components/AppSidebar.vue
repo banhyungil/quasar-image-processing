@@ -29,7 +29,7 @@ const linksList: EssentialLinkProps[] = [
 </script>
 
 <template>
-  <div class="column fit">
+  <div class="app-sidebar column fit">
     <!-- 상단 영역: 네비게이션 -->
     <q-list>
       <EssentialLink v-for="link in linksList" :key="link.title" v-bind="link" :mini="mini" />

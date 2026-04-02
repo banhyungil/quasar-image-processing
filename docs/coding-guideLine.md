@@ -54,18 +54,26 @@ export function remove() {...}
 
 1. Layout
 
+- `Layout` postfix 사용
 - <이름>Layout.vue
 
 2. Page
 
+- `Page` postfix 사용
 - <이름>Page.vue
 
 3. 공통 컴포넌트
 
 - basic-components 폴더 하위
+- `B` prefix 사용
 - B<이름>.vue
 
-4.
+4. 공통사항
+
+- 각 컴포넌트 루트 요소에는 파일명 기반 kebab-case로 class를 부여한다
+  - ex. `AppSidebar.vue -> class="app-sidebar"`
+  - 이유. selector가 명확해져 접근이 손쉬워 짐
+    - playwright나 vue에서 deep을 통한 접근 등
 
 ## Naming
 
@@ -132,12 +140,6 @@ const dPlace = _.keyBy(places, 'placeId');_
 ### 변수
 
 - selected -> sel
-
-### 내장 속성 prefix
-
-- 현재 네이버는 '\_'를 내장 속성으로 사용하고 있다.
-- 다른 라이브러리들도 '\_'를 내장 속성으로 사용하는 경우가 많다.
-- 그러므로 안정성을 위해 dms는 '$'를 내장속성 prefix로 사용한다.
 
 ## css
 

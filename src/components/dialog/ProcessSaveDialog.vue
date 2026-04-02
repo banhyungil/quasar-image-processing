@@ -28,7 +28,7 @@ function onConfirm() {
 </script>
 
 <template>
-  <q-dialog v-model="show">
+  <q-dialog class="process-save-dialog" v-model="show">
     <q-card style="min-width: 300px">
       <q-card-section>
         <div class="text-h6">

@@ -250,7 +250,7 @@ watch(show, (val) => {
 </script>
 
 <template>
-  <q-dialog v-model="show">
+  <q-dialog class="image-gallery-dialog" v-model="show">
     <q-card style="width: 600px; max-width: 90vw; max-height: 80vh">
       <q-card-section class="row items-center">
         <div class="text-h6">이미지 선택</div>

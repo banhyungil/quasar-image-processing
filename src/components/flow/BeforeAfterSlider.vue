@@ -34,7 +34,7 @@ function onPointerUp() {
 <template>
   <div
     ref="containerRef"
-    class="ba-slider"
+    class="before-after-slider ba-slider"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"

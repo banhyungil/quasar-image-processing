@@ -46,7 +46,7 @@ const useSlider = computed(() => props.field.type === 'number' && checkUseSlider
 
 <template>
   <!-- 슬라이더: number + 범위 넓음 -->
-  <div v-if="useSlider" class="q-px-xs">
+  <div v-if="useSlider" class="param-field q-px-xs">
     <div class="row items-center justify-between q-mb-none">
       <span class="text-caption text-grey-7">{{ field.label }}</span>
       <span class="text-caption text-weight-medium">{{ modelValue }}</span>
@@ -82,6 +82,7 @@ const useSlider = computed(() => props.field.type === 'number' && checkUseSlider
 
   <!-- 숫자 입력: 범위 좁음 -->
   <q-input
+    class="param-field"
     v-else-if="field.type === 'number'"
     :model-value="modelValue as number"
     @update:model-value="emit('update:modelValue', Number($event))"
@@ -96,6 +97,7 @@ const useSlider = computed(() => props.field.type === 'number' && checkUseSlider
 
   <!-- 셀렉트 -->
   <q-select
+    class="param-field"
     v-else-if="field.type === 'select'"
     :model-value="modelValue"
     @update:model-value="emit('update:modelValue', $event)"

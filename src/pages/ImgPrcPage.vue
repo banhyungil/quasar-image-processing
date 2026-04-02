@@ -1178,7 +1178,7 @@ async function onCopyChain(nodeId: string) {
 </script>
 
 <template>
-  <q-page class="overflow-hidden">
+  <q-page class="img-prc-page overflow-hidden">
     <!-- absolute-full을 통해 page 전체 확장 -->
     <q-splitter v-model="splitterSize" :limits="[15, 40]" class="absolute-full">
       <template #before>

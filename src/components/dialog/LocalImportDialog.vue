@@ -107,7 +107,7 @@ function formatSize(bytes: number): string {
 </script>
 
 <template>
-  <q-dialog v-model="show" maximized transition-show="slide-up" transition-hide="slide-down">
+  <q-dialog class="local-import-dialog" v-model="show" maximized transition-show="slide-up" transition-hide="slide-down">
     <q-card class="column no-wrap" style="height: 100%">
       <!-- 헤더 -->
       <q-card-section class="row items-center q-pb-none">

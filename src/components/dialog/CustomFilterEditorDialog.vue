@@ -99,7 +99,7 @@ async function onSave() {
 </script>
 
 <template>
-  <q-dialog v-model="show" maximized transition-show="slide-up" transition-hide="slide-down">
+  <q-dialog class="custom-filter-editor-dialog" v-model="show" maximized transition-show="slide-up" transition-hide="slide-down">
     <q-card class="column">
       <!-- 헤더 -->
       <q-card-section class="row items-center q-pb-none">
