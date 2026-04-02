@@ -5,12 +5,15 @@
 드래그 앤 드롭으로 필터 노드를 연결하고, 파라미터를 조절하면 실시간으로 결과를 확인할 수 있는 이미지 처리 도구입니다.
 
 ### 노드 기반 이미지 처리
+
 ![노드 플로우](docs/assets/기본%20이미지%20node%20flow%20기능.gif)
 
 ### 프리셋 저장 & 불러오기
+
 ![프리셋](docs/assets/프리셋%20기능.gif)
 
 ### 고해상도 확대 편집
+
 ![확대 편집](docs/assets/확대%20편집%20기능.gif)
 
 ## 왜 만들었나
@@ -178,7 +181,7 @@ pnpm test:run
 
 ```
 src/
-├── apis/                 API 함수 (filesApi, presetApi, processApi, customFilterApi)
+├── apis/                 API 함수 (filesApi, presetsApi, processesApi, customFiltersApi)
 ├── components/
 │   ├── flow/             노드 편집기 (FilterNode, ParamPanel, ImageZoomPopup, TimelineViewer)
 │   ├── sidebar/          사이드바 패널 (필터 목록, 프리셋, 프로세스)

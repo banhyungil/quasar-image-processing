@@ -30,7 +30,7 @@
 
 ### api
 
-- <resource>Api
+- <resource 복수형>Api
   - ex. filesApi.ts
 - api 함수 호출은 namespace import를 기본으로 한다.
 - namespace import를 사용하는 경우 함수명에는 resource명을 중복해서 넣지 않는다.

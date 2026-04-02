@@ -2,7 +2,7 @@
 import { QBtnDropdown } from 'quasar';
 import { FN_LIST, FN_OPTIONS_MAP } from 'src/constants/imgPrc';
 import type { FilterType } from 'src/types/imgPrcType';
-import type { CustomFilter } from 'src/apis/customFilterApi';
+import type { CustomFilter } from 'src/apis/customFiltersApi';
 
 interface FnTreeNode {
   label: string;

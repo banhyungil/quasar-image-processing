@@ -2,8 +2,8 @@
 import { FN_LIST, FN_OPTIONS_MAP } from 'src/constants/imgPrc';
 import type { FunctionKey } from 'src/constants/imgPrc';
 import type { FilterType } from 'src/types/imgPrcType';
-import * as customFilterApi from 'src/apis/customFilterApi';
-import type { CustomFilter } from 'src/apis/customFilterApi';
+import * as customFiltersApi from 'src/apis/customFiltersApi';
+import type { CustomFilter } from 'src/apis/customFiltersApi';
 
 const CATEGORY_ICONS: Record<FunctionKey, string> = {
   filtering: 'filter_alt',
@@ -25,12 +25,12 @@ const emit = defineEmits<{
 const customFilters = ref<CustomFilter[]>([]);
 
 async function loadCustomFilters() {
-  const res = await customFilterApi.fetchList();
+  const res = await customFiltersApi.fetchList();
   customFilters.value = res.items;
 }
 
 async function onDeleteCustomFilter(id: number) {
-  await customFilterApi.remove(id);
+  await customFiltersApi.remove(id);
   customFilters.value = customFilters.value.filter((cf) => cf.id !== id);
 }
 

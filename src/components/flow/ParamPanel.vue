@@ -3,7 +3,7 @@ import { PARAM_FIELDS } from 'src/constants/imgPrc';
 import type { ParamFieldDef } from 'src/constants/imgPrc';
 import type { FilterType } from 'src/types/imgPrcType';
 import type { ProcessNodeData } from 'src/types/flowTypes';
-import type { CustomFilter } from 'src/apis/customFilterApi';
+import type { CustomFilter } from 'src/apis/customFiltersApi';
 import FilterTreeSelect from './FilterTreeSelect.vue';
 import ParamField from './ParamField.vue';
 

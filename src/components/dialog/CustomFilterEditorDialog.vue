@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
-import type { CustomFilter } from 'src/apis/customFilterApi';
-import * as customFilterApi from 'src/apis/customFilterApi';
+import type { CustomFilter } from 'src/apis/customFiltersApi';
+import * as customFiltersApi from 'src/apis/customFiltersApi';
 import type { ParamFieldDef } from 'src/constants/imgPrc';
 
 const show = defineModel<boolean>({ required: true });
@@ -84,9 +84,9 @@ async function onSave() {
 
     let saved: CustomFilter;
     if (isEditing.value && props.customFilter) {
-      saved = await customFilterApi.update(props.customFilter.id, body);
+      saved = await customFiltersApi.update(props.customFilter.id, body);
     } else {
-      saved = await customFilterApi.create(body);
+      saved = await customFiltersApi.create(body);
     }
     emit('saved', saved);
     show.value = false;

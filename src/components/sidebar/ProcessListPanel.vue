@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ProcessResponse } from 'src/apis/processApi';
+import type { ProcessResponse } from 'src/apis/processesApi';
 import { API_HOST } from 'src/boot/axios';
 
 defineProps<{

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PresetResponse } from 'src/apis/presetApi';
+import type { PresetResponse } from 'src/apis/presetsApi';
 
 defineProps<{
   presets: PresetResponse[];
@@ -15,10 +15,7 @@ const emit = defineEmits<{
 <template>
   <q-scroll-area style="height: 100%">
     <div class="q-pa-sm">
-      <div
-        v-if="presets.length === 0"
-        class="text-center text-caption text-grey-6 q-pa-md"
-      >
+      <div v-if="presets.length === 0" class="text-center text-caption text-grey-6 q-pa-md">
         저장된 Preset이 없습니다
       </div>
       <div

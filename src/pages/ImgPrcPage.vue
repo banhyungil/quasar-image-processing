@@ -8,10 +8,10 @@ import '@vue-flow/core/dist/theme-default.css';
 
 import { PARAM_FIELDS, buildChainFilename } from 'src/constants/imgPrc';
 import type { FilterType } from 'src/types/imgPrcType';
-import * as presetApi from 'src/apis/presetApi';
-import type { PresetResponse } from 'src/apis/presetApi';
-import * as processApi from 'src/apis/processApi';
-import type { ProcessResponse } from 'src/apis/processApi';
+import * as presetsApi from 'src/apis/presetsApi';
+import type { PresetResponse } from 'src/apis/presetsApi';
+import * as processesApi from 'src/apis/processesApi';
+import type { ProcessResponse } from 'src/apis/processesApi';
 import * as filesApi from 'src/apis/filesApi';
 import type { TreeBatchStep, PreviewTempStep } from 'src/types/imgPrcType';
 import { API_HOST } from 'src/boot/axios';
@@ -30,7 +30,7 @@ import PresetListPanel from 'src/components/sidebar/PresetListPanel.vue';
 import ProcessListPanel from 'src/components/sidebar/ProcessListPanel.vue';
 import CropListPanel from 'src/components/sidebar/CropListPanel.vue';
 import { useCropManager } from 'src/composables/useCropManager';
-import type { CustomFilter } from 'src/apis/customFilterApi';
+import type { CustomFilter } from 'src/apis/customFiltersApi';
 import type {
   ProcessNodeData,
   SourceNodeData,
@@ -355,12 +355,12 @@ onMounted(async () => {
 });
 
 async function loadPresets() {
-  const res = await presetApi.fetchList();
+  const res = await presetsApi.fetchList();
   presets.value = res.items;
 }
 
 async function loadProcessList() {
-  const res = await processApi.fetchList();
+  const res = await processesApi.fetchList();
   processList.value = res.items;
 }
 
@@ -848,13 +848,13 @@ async function onConfirmPreset(name: string, description: string) {
   }));
 
   if (isEditingPreset.value && activePresetId.value) {
-    await presetApi.update(activePresetId.value, {
+    await presetsApi.update(activePresetId.value, {
       nm: name,
       description: description || null,
       steps: stepPayload,
     });
   } else {
-    const created = await presetApi.create({
+    const created = await presetsApi.create({
       nm: name,
       description: description || null,
       steps: stepPayload,
@@ -885,7 +885,7 @@ function loadPreset(preset: PresetResponse) {
 }
 
 async function removePreset(presetId: number) {
-  await presetApi.remove(presetId);
+  await presetsApi.remove(presetId);
   if (activePresetId.value === presetId) {
     activePresetId.value = null;
   }
@@ -895,7 +895,7 @@ async function removePreset(presetId: number) {
 // ── 처리목록 → 캔버스 로드 ────────────────────────────────────────────────
 async function onProcessDblClick(process: ProcessResponse) {
   activeProcessId.value = process.id;
-  const detail = await processApi.fetchById(process.id);
+  const detail = await processesApi.fetchById(process.id);
 
   // 원본 이미지를 서버에서 fetch → File 객체로 변환
   if (detail.filePath) {
@@ -969,13 +969,13 @@ async function onConfirmProcess(name: string) {
   }));
 
   if (isEditingProcess.value && activeProcessId.value) {
-    await processApi.update(activeProcessId.value, {
+    await processesApi.update(activeProcessId.value, {
       nm: name,
       steps: stepPayload,
     });
   } else {
     const fileId = oOrigin.value.fileId;
-    const created = await processApi.create({
+    const created = await processesApi.create({
       nm: name,
       fileId,
       steps: stepPayload,
@@ -987,7 +987,7 @@ async function onConfirmProcess(name: string) {
 }
 
 async function removeProcess(processId: number) {
-  await processApi.remove(processId);
+  await processesApi.remove(processId);
   if (activeProcessId.value === processId) {
     activeProcessId.value = null;
   }
