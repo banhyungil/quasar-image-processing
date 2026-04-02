@@ -9,7 +9,7 @@ export interface PresetStepCreate extends PresetStepBase {
   parentClientId?: string | null;
 }
 
-export interface PresetStepResponse extends PresetStepBase {
+export interface PresetStepRes extends PresetStepBase {
   id: number;
   parentId: number | null;
 }
@@ -27,16 +27,16 @@ export interface PresetUpdate {
   steps?: PresetStepCreate[] | null;
 }
 
-export interface PresetResponse {
+export interface PresetRes {
   id: number;
   nm: string;
   description: string | null;
   isSystem: boolean;
   createdAt: string;
   updatedAt: string;
-  steps: PresetStepResponse[];
+  steps: PresetStepRes[];
 }
 
-export interface PresetListResponse {
-  items: PresetResponse[];
+export interface PresetListRes {
+  items: PresetRes[];
 }

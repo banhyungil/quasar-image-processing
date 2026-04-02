@@ -1,7 +1,7 @@
 import type { Edge } from '@vue-flow/core';
 
 import * as processesApi from 'src/apis/processesApi';
-import type { ProcessResponse } from 'src/apis/processesApi';
+import type { ProcessRes } from 'src/apis/processesApi';
 import type { AppNode, FlatStep } from 'src/types/flowTypes';
 import { stepsToFlow, flowToSteps } from 'src/utils/flowConverter';
 import { API_HOST } from 'src/boot/axios';
@@ -15,7 +15,7 @@ export function useProcessMgr(
   relayout: () => void,
   processAllLeaves: () => void,
 ) {
-  const processList = ref<ProcessResponse[]>([]);
+  const processList = ref<ProcessRes[]>([]);
   const activeProcessId = ref<number | null>(null);
   const showSaveProcessDialog = ref(false);
   const processDialogName = ref('');
@@ -26,7 +26,7 @@ export function useProcessMgr(
     processList.value = res.items;
   }
 
-  async function onProcessDblClick(process: ProcessResponse) {
+  async function onProcessDblClick(process: ProcessRes) {
     activeProcessId.value = process.id;
     const detail = await processesApi.fetchById(process.id);
 

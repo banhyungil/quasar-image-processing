@@ -12,7 +12,7 @@ export interface ProcessStepCreate extends ProcessStepBase {
   parentClientId?: string | null;
 }
 
-export interface ProcessStepResponse extends ProcessStepBase {
+export interface ProcessStepRes extends ProcessStepBase {
   id: number;
   processId: number;
   createdAt: string;
@@ -33,7 +33,7 @@ export interface ProcessUpdate {
   steps?: ProcessStepCreate[] | null;
 }
 
-export interface ProcessResponse {
+export interface ProcessRes {
   id: number;
   nm: string;
   fileId: number;
@@ -43,11 +43,11 @@ export interface ProcessResponse {
   totalExecutionMs: number | null;
   createdAt: string;
   updatedAt: string;
-  steps: ProcessStepResponse[];
+  steps: ProcessStepRes[];
 }
 
-export interface ProcessListResponse {
-  items: ProcessResponse[];
+export interface ProcessListRes {
+  items: ProcessRes[];
 }
 
 export interface GetProcessesOptions {

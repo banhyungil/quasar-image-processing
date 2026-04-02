@@ -19,7 +19,7 @@ export const API_HOST = import.meta.env.VITE_API_HOST ?? 'http://127.0.0.1:8000'
 const api = axios.create({ baseURL: `${API_HOST}/api` });
 
 // 백엔드 에러 응답 타입
-interface AppErrorResponse {
+interface AppErrorRes {
   code?: string;
   message?: string;
   detail?: string | Record<string, unknown>;
@@ -28,7 +28,7 @@ interface AppErrorResponse {
 // 응답 에러 공통 처리
 api.interceptors.response.use(
   (res) => res,
-  (err: AxiosError<AppErrorResponse>) => {
+  (err: AxiosError<AppErrorRes>) => {
     // abort된 요청은 알림 없이 무시
     if (axios.isCancel(err)) {
       return Promise.reject(err);

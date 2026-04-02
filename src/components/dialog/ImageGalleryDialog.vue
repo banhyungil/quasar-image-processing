@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { useQuasar } from 'quasar';
 import * as filesApi from 'src/apis/filesApi';
-import type { FileListResponse } from 'src/types/imgPrcType';
+import type { FileListRes } from 'src/types/imgPrcType';
 import LocalImportDialog from './LocalImportDialog.vue';
 
-type TFile = FileListResponse['items'][number];
+type TFile = FileListRes['items'][number];
 
 const $q = useQuasar();
 const props = defineProps<{

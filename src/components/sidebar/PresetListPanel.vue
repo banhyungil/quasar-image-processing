@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import type { PresetResponse } from 'src/apis/presetsApi';
+import type { PresetRes } from 'src/apis/presetsApi';
 
 defineProps<{
-  presets: PresetResponse[];
+  presets: PresetRes[];
   activePresetId: number | null;
 }>();
 
 const emit = defineEmits<{
-  (e: 'load', preset: PresetResponse): void;
+  (e: 'load', preset: PresetRes): void;
   (e: 'remove', presetId: number): void;
 }>();
 </script>

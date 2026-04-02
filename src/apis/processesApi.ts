@@ -3,23 +3,23 @@ import type {
   GetProcessesOptions,
   ProcessCreate,
   ProcessUpdate,
-  ProcessResponse,
-  ProcessListResponse,
+  ProcessRes,
+  ProcessListRes,
 } from 'src/types/processType';
 
 export type {
   ProcessStepBase,
   ProcessStepCreate,
-  ProcessStepResponse,
+  ProcessStepRes,
   ProcessCreate,
   ProcessUpdate,
-  ProcessResponse,
-  ProcessListResponse,
+  ProcessRes,
+  ProcessListRes,
   GetProcessesOptions,
 } from 'src/types/processType';
 
-export async function fetchList(options: GetProcessesOptions = {}): Promise<ProcessListResponse> {
-  const res = await api.get<ProcessListResponse>('/processes', {
+export async function fetchList(options: GetProcessesOptions = {}): Promise<ProcessListRes> {
+  const res = await api.get<ProcessListRes>('/processes', {
     params: {
       fileId: options.fileId ?? undefined,
     },
@@ -27,18 +27,18 @@ export async function fetchList(options: GetProcessesOptions = {}): Promise<Proc
   return res.data;
 }
 
-export async function fetchById(processId: number): Promise<ProcessResponse> {
-  const res = await api.get<ProcessResponse>(`/processes/${processId}`);
+export async function fetchById(processId: number): Promise<ProcessRes> {
+  const res = await api.get<ProcessRes>(`/processes/${processId}`);
   return res.data;
 }
 
-export async function create(body: ProcessCreate): Promise<ProcessResponse> {
-  const res = await api.post<ProcessResponse>('/processes', body);
+export async function create(body: ProcessCreate): Promise<ProcessRes> {
+  const res = await api.post<ProcessRes>('/processes', body);
   return res.data;
 }
 
-export async function update(processId: number, body: ProcessUpdate): Promise<ProcessResponse> {
-  const res = await api.put<ProcessResponse>(`/processes/${processId}`, body);
+export async function update(processId: number, body: ProcessUpdate): Promise<ProcessRes> {
+  const res = await api.put<ProcessRes>(`/processes/${processId}`, body);
   return res.data;
 }
 

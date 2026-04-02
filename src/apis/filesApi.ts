@@ -5,16 +5,16 @@ import { api } from 'src/boot/axios';
 import type {
   SavePrcImageOptions,
   GetProcessingImageOptions,
-  FileSaveResponse,
-  FileListResponse,
-  FileUploadResponse,
+  FileSaveRes,
+  FileListRes,
+  FileUploadRes,
   TreeBatchStep,
   TreeBatchResult,
   Viewport,
-  PreviewCropResponse,
+  PreviewCropRes,
   PreviewTempStep,
-  LocalScanResponse,
-  LocalRegisterResponse,
+  LocalScanRes,
+  LocalRegisterRes,
 } from 'src/types/imgPrcType';
 
 // ── 파일 CRUD ────────────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ export async function fetchList(
     cursorId: options.cursorId ?? undefined,
   };
 
-  const res = await api.get<FileListResponse>('/files', { params });
+  const res = await api.get<FileListRes>('/files', { params });
   return res.data;
 }
 
@@ -47,11 +47,11 @@ export async function update(fileId: number, originNm: string): Promise<void> {
   await api.patch(`/files/${fileId}`, { originNm });
 }
 
-export async function create(file: File | Blob): Promise<FileUploadResponse> {
+export async function create(file: File | Blob): Promise<FileUploadRes> {
   const form = new FormData();
   form.append('file', file);
 
-  const res = await api.post<FileUploadResponse>('/files/upload', form, {
+  const res = await api.post<FileUploadRes>('/files/upload', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return res.data;
@@ -65,7 +65,7 @@ export async function saveProcessingImage(options: SavePrcImageOptions) {
   form.append('filterType', options.filterType);
   form.append('prcMs', options.prcMs.toString());
 
-  const res = await api.post<FileSaveResponse>('/files/save', form, {
+  const res = await api.post<FileSaveRes>('/files/save', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return res.data;
@@ -111,7 +111,7 @@ export async function createCrop(
   nodeId: string,
   viewport: Viewport,
   options?: { padding?: number; signal?: AbortSignal },
-): Promise<PreviewCropResponse> {
+): Promise<PreviewCropRes> {
   const form = new FormData();
   form.append('fileId', String(fileId));
   form.append('nodeSteps', JSON.stringify(nodeSteps));
@@ -121,7 +121,7 @@ export async function createCrop(
     form.append('padding', options.padding.toString());
   }
 
-  const res = await api.post<PreviewCropResponse>('/files/crop', form, {
+  const res = await api.post<PreviewCropRes>('/files/crop', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
     signal: options?.signal,
   });
@@ -229,16 +229,16 @@ export async function downloadNodeImage(
 export async function scanLocalDir(
   dirPath: string,
   options?: { recursive?: boolean },
-): Promise<LocalScanResponse> {
-  const res = await api.post<LocalScanResponse>('/files/local/scan', {
+): Promise<LocalScanRes> {
+  const res = await api.post<LocalScanRes>('/files/local/scan', {
     dirPath,
     recursive: options?.recursive ?? false,
   });
   return res.data;
 }
 
-export async function registerLocalFiles(paths: string[]): Promise<LocalRegisterResponse> {
-  const res = await api.post<LocalRegisterResponse>('/files/local/register', {
+export async function registerLocalFiles(paths: string[]): Promise<LocalRegisterRes> {
+  const res = await api.post<LocalRegisterRes>('/files/local/register', {
     files: paths.map((path) => ({ path })),
   });
   return res.data;

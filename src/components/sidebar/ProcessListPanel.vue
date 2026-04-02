@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import type { ProcessResponse } from 'src/apis/processesApi';
+import type { ProcessRes } from 'src/apis/processesApi';
 import { API_HOST } from 'src/boot/axios';
 
 defineProps<{
-  processList: ProcessResponse[];
+  processList: ProcessRes[];
   activeProcessId: number | null;
 }>();
 
 const emit = defineEmits<{
-  (e: 'load', process: ProcessResponse): void;
+  (e: 'load', process: ProcessRes): void;
   (e: 'remove', processId: number): void;
 }>();
 </script>

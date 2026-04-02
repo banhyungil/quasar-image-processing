@@ -3,18 +3,18 @@ import type {
   CustomFilter,
   CustomFilterCreate,
   CustomFilterUpdate,
-  CustomFilterListResponse,
+  CustomFilterListRes,
 } from 'src/types/customFilterType';
 
 export type {
   CustomFilter,
   CustomFilterCreate,
   CustomFilterUpdate,
-  CustomFilterListResponse,
+  CustomFilterListRes,
 } from 'src/types/customFilterType';
 
-export async function fetchList(): Promise<CustomFilterListResponse> {
-  const res = await api.get<CustomFilterListResponse>('/custom-filters');
+export async function fetchList(): Promise<CustomFilterListRes> {
+  const res = await api.get<CustomFilterListRes>('/custom-filters');
   return res.data;
 }
 

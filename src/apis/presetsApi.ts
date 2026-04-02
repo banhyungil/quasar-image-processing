@@ -2,37 +2,37 @@ import { api } from 'src/boot/axios';
 import type {
   PresetCreate,
   PresetUpdate,
-  PresetResponse,
-  PresetListResponse,
+  PresetRes,
+  PresetListRes,
 } from 'src/types/presetType';
 
 export type {
   PresetStepBase,
   PresetStepCreate,
-  PresetStepResponse,
+  PresetStepRes,
   PresetCreate,
   PresetUpdate,
-  PresetResponse,
-  PresetListResponse,
+  PresetRes,
+  PresetListRes,
 } from 'src/types/presetType';
 
-export async function fetchList(): Promise<PresetListResponse> {
-  const res = await api.get<PresetListResponse>('/presets');
+export async function fetchList(): Promise<PresetListRes> {
+  const res = await api.get<PresetListRes>('/presets');
   return res.data;
 }
 
-export async function fetchById(presetId: number): Promise<PresetResponse> {
-  const res = await api.get<PresetResponse>(`/presets/${presetId}`);
+export async function fetchById(presetId: number): Promise<PresetRes> {
+  const res = await api.get<PresetRes>(`/presets/${presetId}`);
   return res.data;
 }
 
-export async function create(body: PresetCreate): Promise<PresetResponse> {
-  const res = await api.post<PresetResponse>('/presets', body);
+export async function create(body: PresetCreate): Promise<PresetRes> {
+  const res = await api.post<PresetRes>('/presets', body);
   return res.data;
 }
 
-export async function update(presetId: number, body: PresetUpdate): Promise<PresetResponse> {
-  const res = await api.put<PresetResponse>(`/presets/${presetId}`, body);
+export async function update(presetId: number, body: PresetUpdate): Promise<PresetRes> {
+  const res = await api.put<PresetRes>(`/presets/${presetId}`, body);
   return res.data;
 }
 

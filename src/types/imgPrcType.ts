@@ -56,14 +56,14 @@ export interface TFile {
   height: number | null;
 }
 
-export interface FileListResponse {
+export interface FileListRes {
   items: TFile[];
   hasMore: boolean;
   nextCursorUploadedAt: string | null;
   nextCursorId: number | null;
 }
 
-export interface FileSaveResponse {
+export interface FileSaveRes {
   id: number;
   originNm: string;
   nm: string;
@@ -110,7 +110,7 @@ export interface BatchResult {
 
 // ── File Upload ─────────────────────────────────────────────────────────────
 
-export interface FileUploadResponse {
+export interface FileUploadRes {
   id: number;
   originNm: string;
   nm: string;
@@ -154,7 +154,7 @@ export interface Viewport {
   h: number;
 }
 
-export interface PreviewCropResponse {
+export interface PreviewCropRes {
   cropId: string;
   nodeImageUrl: string;
   width: number;
@@ -179,10 +179,10 @@ export interface LocalFileInfo {
   alreadyRegistered: boolean;
 }
 
-export interface LocalScanResponse {
+export interface LocalScanRes {
   items: LocalFileInfo[];
 }
 
-export interface LocalRegisterResponse {
-  items: FileUploadResponse[];
+export interface LocalRegisterRes {
+  items: FileUploadRes[];
 }

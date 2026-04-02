@@ -1,7 +1,7 @@
 import type { Edge } from '@vue-flow/core';
 
 import * as presetsApi from 'src/apis/presetsApi';
-import type { PresetResponse } from 'src/apis/presetsApi';
+import type { PresetRes } from 'src/apis/presetsApi';
 import type { AppNode, FlatStep } from 'src/types/flowTypes';
 import { stepsToFlow, flowToSteps } from 'src/utils/flowConverter';
 
@@ -13,7 +13,7 @@ export function usePresetMgr(
   relayout: () => void,
   processAllLeaves: () => void,
 ) {
-  const presets = ref<PresetResponse[]>([]);
+  const presets = ref<PresetRes[]>([]);
   const activePresetId = ref<number | null>(null);
   const showSavePresetDialog = ref(false);
   const presetDialogName = ref('');
@@ -25,7 +25,7 @@ export function usePresetMgr(
     presets.value = res.items;
   }
 
-  function loadPreset(preset: PresetResponse) {
+  function loadPreset(preset: PresetRes) {
     activePresetId.value = preset.id;
     const flatSteps: FlatStep[] = preset.steps.map((s) => ({
       id: String(s.id),

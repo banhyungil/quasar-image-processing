@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { useQuasar } from 'quasar';
 import * as filesApi from 'src/apis/filesApi';
-import type { LocalFileInfo, FileUploadResponse } from 'src/types/imgPrcType';
+import type { LocalFileInfo, FileUploadRes } from 'src/types/imgPrcType';
 
 const $q = useQuasar();
 
 const show = defineModel<boolean>({ required: true });
 
 const emit = defineEmits<{
-  (e: 'registered', files: FileUploadResponse[]): void;
+  (e: 'registered', files: FileUploadRes[]): void;
 }>();
 
 // ── 상태 ────────────────────────────────────────────────────────────────────
