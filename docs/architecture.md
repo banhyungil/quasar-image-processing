@@ -29,7 +29,6 @@ src/
 ├── layouts/                  # 공통 레이아웃
 │   └── ...
 ├── pages/
-│   ├── IndexPage.vue        # 인덱스 페이지
 │   └── ErrorNotFound.vue    # 404 페이지
 ├── router/
 │   ├── index.ts             # 라우터 설정 (WebHistory)
