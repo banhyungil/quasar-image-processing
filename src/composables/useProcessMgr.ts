@@ -6,6 +6,7 @@ import type { AppNode, FlatStep } from 'src/types/flowTypes';
 import { stepsToFlow, flowToSteps } from 'src/utils/flowConverter';
 import { API_HOST } from 'src/boot/axios';
 
+/** Process CRUD(목록 조회, 로드, 저장, 수정, 삭제)를 관리하는 composable */
 export function useProcessMgr(
   nodes: Ref<AppNode[]>,
   edges: Ref<Edge[]>,
@@ -21,11 +22,13 @@ export function useProcessMgr(
   const processDialogName = ref('');
   const isEditingProcess = ref(false);
 
+  /** 서버에서 처리 목록을 조회하여 processList에 반영 */
   async function loadProcessList() {
     const res = await processesApi.fetchList();
     processList.value = res.items;
   }
 
+  /** 처리 더블클릭 시 원본 이미지 + steps를 캔버스에 로드 */
   async function onProcessDblClick(process: ProcessRes) {
     activeProcessId.value = process.id;
     const detail = await processesApi.fetchById(process.id);
@@ -57,6 +60,7 @@ export function useProcessMgr(
     });
   }
 
+  /** 새 처리 저장 다이얼로그를 열고 초기값 설정 */
   function openSaveProcessDialog() {
     isEditingProcess.value = false;
     const active = processList.value.find((p) => p.id === activeProcessId.value);
@@ -64,6 +68,7 @@ export function useProcessMgr(
     showSaveProcessDialog.value = true;
   }
 
+  /** 기존 처리 수정 다이얼로그를 열고 현재 값으로 초기화 */
   function openUpdateProcessDialog() {
     if (!activeProcessId.value) return;
     isEditingProcess.value = true;
@@ -72,6 +77,7 @@ export function useProcessMgr(
     showSaveProcessDialog.value = true;
   }
 
+  /** 처리 저장/수정 확인 시 현재 flow를 steps로 변환하여 API 호출 */
   async function onConfirmProcess(name: string) {
     if (!oOriginFileId.value) return;
 
@@ -103,6 +109,7 @@ export function useProcessMgr(
     await loadProcessList();
   }
 
+  /** 처리 삭제 후 목록 갱신 */
   async function removeProcess(processId: number) {
     await processesApi.remove(processId);
     if (activeProcessId.value === processId) {

@@ -13,6 +13,7 @@ export interface OriginData {
   height: number | null;
 }
 
+/** 원본 이미지 업로드/선택/초기화 및 source 노드 동기화를 관리하는 composable */
 export function useOriginImage(
   nodes: Ref<AppNode[]>,
   onProcessAllLeaves: () => void,
@@ -29,6 +30,7 @@ export function useOriginImage(
   const showImageGallery = ref(false);
   const droppedFile = ref<File | null>(null);
 
+  /** oOrigin 데이터를 source 노드의 data에 반영 */
   function syncSourceNode() {
     const sourceNode = nodes.value.find((n): n is SourceNodeType => n.type === 'source');
     if (sourceNode) {
@@ -77,11 +79,13 @@ export function useOriginImage(
     onProcessAllLeaves();
   }
 
+  /** file input의 change 이벤트 핸들러 */
   function onOriginalInputChange(event: Event) {
     const input = event.target as HTMLInputElement;
     void setOriginalFile(input.files?.[0] ?? null);
   }
 
+  /** 갤러리에서 기존 이미지를 선택하여 원본으로 설정 */
   function onSelectExistingImage(tFile: {
     id: number;
     originNm: string;
@@ -106,6 +110,7 @@ export function useOriginImage(
     onProcessAllLeaves();
   }
 
+  /** 드래그 앤 드롭된 파일을 갤러리 다이얼로그로 전달 */
   function onDropFile(file: File) {
     droppedFile.value = file;
     showImageGallery.value = true;

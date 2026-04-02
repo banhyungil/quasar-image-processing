@@ -2,6 +2,7 @@ import type { Ref } from 'vue';
 import type * as Monaco from 'monaco-editor';
 import type { ParamFieldDef } from 'src/constants/imgPrc';
 
+/** Monaco 에디터에서 params 자동완성을 제공하는 composable */
 export function useParamCompletion(paramDefs: Ref<ParamFieldDef[]>) {
   let disposable: Monaco.IDisposable | null = null;
 

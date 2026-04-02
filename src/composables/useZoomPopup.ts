@@ -20,6 +20,7 @@ export interface ZoomPopup {
   nodeSteps: TreeBatchStep[];
 }
 
+/** 이미지 확대 팝업(모달리스, 복수), 다운로드, 체인 복사를 관리하는 composable */
 export function useZoomPopup(
   nodes: Ref<AppNode[]>,
   edges: Ref<Edge[]>,
@@ -36,6 +37,7 @@ export function useZoomPopup(
   const zoomPopups = ref<ZoomPopup[]>([]);
   const cZoomedNodeIds = computed(() => new Set(zoomPopups.value.map((p) => p.nodeId)));
 
+  /** 팝업 ID로 확대 팝업 닫기 */
   function closeZoomPopup(popupId: string) {
     zoomPopups.value = zoomPopups.value.filter((p) => p.id !== popupId);
   }
@@ -73,6 +75,7 @@ export function useZoomPopup(
     });
   }
 
+  /** 원본 해상도로 노드 이미지를 확대 팝업에 표시 */
   async function onNodeZoom(nodeId: string) {
     if (zoomPopups.value.some((p) => p.nodeId === nodeId)) return;
     if (!oOriginFileId.value) return;
@@ -126,6 +129,7 @@ export function useZoomPopup(
     });
   }
 
+  /** 노드의 처리 결과 이미지를 PNG로 다운로드 */
   async function onNodeDownload(nodeId: string) {
     if (!oOriginFileId.value) return;
 
@@ -145,6 +149,7 @@ export function useZoomPopup(
     URL.revokeObjectURL(url);
   }
 
+  /** 노드까지의 필터 체인 정보를 클립보드에 복사 */
   async function onCopyChain(nodeId: string) {
     const steps = buildStepsToNode(nodeId);
     if (steps.length === 0) return;

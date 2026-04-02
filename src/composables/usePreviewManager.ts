@@ -7,6 +7,7 @@ export interface TempStep extends PreviewTempStep {
   label: string;
 }
 
+/** crop 기반 미리보기 필터 적용 및 타임라인 로드를 관리하는 composable */
 export function usePreviewManager(
   fileId: Ref<number | null | undefined>,
   activeCrop: Ref<CropItem | null>,
@@ -26,6 +27,7 @@ export function usePreviewManager(
     }));
   }
 
+  /** 임시 필터 steps를 crop 영역에 적용하여 미리보기 이미지 갱신 */
   async function applyFilters() {
     const crop = activeCrop.value;
     if (!fileId.value || !crop || tempSteps.value.length === 0) return;
@@ -51,6 +53,7 @@ export function usePreviewManager(
     }
   }
 
+  /** 각 step별 중간 결과 이미지를 타임라인으로 로드 */
   async function loadTimeline() {
     const crop = activeCrop.value;
     if (!fileId.value || !crop || tempSteps.value.length === 0) return;
@@ -76,6 +79,7 @@ export function usePreviewManager(
     }
   }
 
+  /** 진행 중인 미리보기/타임라인 요청을 모두 취소 */
   function abortAll() {
     previewAbortController?.abort();
     timelineAbortController?.abort();

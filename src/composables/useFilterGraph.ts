@@ -22,6 +22,7 @@ export interface FilterGraphCallbacks {
   onProcessAllLeaves: () => void;
 }
 
+/** 노드/엣지 CRUD, 그래프 알고리즘, 레이아웃, 드래그드롭을 관리하는 composable */
 export function useFilterGraph(
   oOriginFileId: Ref<number | null>,
   callbacks: FilterGraphCallbacks,
@@ -47,6 +48,7 @@ export function useFilterGraph(
   const selectedNodeId = ref<string | null>(null);
   const cSelectedNodeIds = computed(() => new Set(getSelectedNodes.value.map((n) => n.id)));
 
+  /** 노드 클릭 시 선택 상태 토글 및 파라미터 패널 표시 */
   function onNodeClick({ node }: { node: Node }) {
     if (selectedNodeId.value === node.id && getSelectedNodes.value.length <= 1) {
       selectedNodeId.value = null;
@@ -65,6 +67,7 @@ export function useFilterGraph(
   }
 
   // ── 파라미터 기본값 ─────────────────────────────────────────────────────────
+  /** PARAM_FIELDS에서 필터 타입에 맞는 기본 파라미터 객체를 생성 */
   function getDefaultParams(filterType: string): Record<string, unknown> {
     const fields = PARAM_FIELDS[filterType];
     if (!fields) return {};
@@ -72,6 +75,7 @@ export function useFilterGraph(
   }
 
   // ── 노드 추가 ──────────────────────────────────────────────────────────────
+  /** 필터 노드를 추가하고 선택된 노드(또는 마지막 리프)에 엣지 연결 */
   function addFilterNode(filterType: FilterType, label: string) {
     const id = crypto.randomUUID();
 
@@ -114,6 +118,7 @@ export function useFilterGraph(
     });
   }
 
+  /** 커스텀 필터 노드를 추가하고 선택된 노드에 엣지 연결 */
   function addCustomFilterNode(cf: CustomFilter) {
     const id = crypto.randomUUID();
     const paramDefs = Array.isArray(cf.params)
@@ -159,6 +164,7 @@ export function useFilterGraph(
   }
 
   // ── 노드 삭제 ──────────────────────────────────────────────────────────────
+  /** 노드 삭제 후 자식 엣지를 부모에 재연결 */
   function removeFilterNode(nodeId: string) {
     if (nodeId === SOURCE_NODE_ID) return;
 
@@ -180,6 +186,7 @@ export function useFilterGraph(
   }
 
   // ── enabled 토글 ───────────────────────────────────────────────────────────
+  /** 노드 enabled 토글 후 하위 리프 노드 재연산 트리거 */
   function toggleEnabled(nodeId: string) {
     const node = nodes.value.find((n) => n.id === nodeId);
     if (node && node.type === 'filter') {
@@ -194,6 +201,7 @@ export function useFilterGraph(
   }
 
   // ── 필터 변경 ──────────────────────────────────────────────────────────────
+  /** 노드의 필터 타입을 변경하고 하위 리프 재연산 트리거 */
   function onChangeFilter(nodeId: string, filterType: FilterType, label: string, filterId?: number) {
     const node = nodes.value.find((n) => n.id === nodeId);
     if (!node || node.type !== 'filter') return;
@@ -216,6 +224,7 @@ export function useFilterGraph(
   }
 
   // ── 그래프 알고리즘 ─────────────────────────────────────────────────────────
+  /** outgoing edge가 없는 마지막 노드(리프) ID를 반환 */
   function findLastLeaf(): string {
     const sources = new Set(edges.value.map((e) => e.source));
     const allNodeIds = nodes.value.map((n) => n.id);
@@ -223,6 +232,7 @@ export function useFilterGraph(
     return leaves.length > 0 ? leaves[leaves.length - 1]! : SOURCE_NODE_ID;
   }
 
+  /** source → targetNodeId 경로의 filter 노드 ID를 순서대로 반환 */
   function collectPathToNode(targetNodeId: string): string[] {
     const path: string[] = [];
     let current: string | null = targetNodeId;
@@ -234,6 +244,7 @@ export function useFilterGraph(
     return path;
   }
 
+  /** nodeId 포함 하위 모든 리프 노드 ID를 재귀 수집 */
   function collectDescendantLeaves(nodeId: string): string[] {
     const children = edges.value.filter((e) => e.source === nodeId).map((e) => e.target);
     if (children.length === 0) return [nodeId];
@@ -245,6 +256,7 @@ export function useFilterGraph(
   }
 
   // ── 엣지 연결 ──────────────────────────────────────────────────────────────
+  /** 엣지 연결 (순환 참조 방지 포함) */
   function onConnect(connection: Connection) {
     if (!connection.source || !connection.target) return;
     if (hasCycle(connection.source, connection.target)) return;
@@ -258,6 +270,7 @@ export function useFilterGraph(
     addEdges([newEdge]);
   }
 
+  /** source에서 역방향 탐색하여 target에 도달 가능하면 순환으로 판단 */
   function hasCycle(source: string, target: string): boolean {
     const visited = new Set<string>();
     const stack = [source];
@@ -276,6 +289,7 @@ export function useFilterGraph(
   }
 
   // ── 레이아웃 ───────────────────────────────────────────────────────────────
+  /** dagre 알고리즘으로 노드 위치를 자동 배치 */
   function relayout() {
     const layouted = applyDagreLayout(nodes.value, edges.value);
     for (const ln of layouted) {
@@ -289,6 +303,7 @@ export function useFilterGraph(
   // ── 노드 사이즈 ───────────────────────────────────────────────────────────
   const nodeSizeInput = ref<number>(settingsStore.nodeSize.width);
 
+  /** 개별 노드의 커스텀 사이즈 설정 */
   function setNodeSize(node: Node, width: number, thumbHeight: number) {
     if (node.type === 'filter') {
       (node.data as ProcessNodeData).customWidth = width;
@@ -299,6 +314,7 @@ export function useFilterGraph(
     }
   }
 
+  /** nodeSizeInput 값을 전체 노드에 일괄 적용 */
   function applyNodeSizeAll() {
     const w = Math.max(120, nodeSizeInput.value);
     const ratio = settingsStore.nodeSize.thumbHeight / settingsStore.nodeSize.width;
@@ -308,6 +324,7 @@ export function useFilterGraph(
     }
   }
 
+  /** 노드 리사이즈 완료 시 해당 노드 + 다중 선택 노드에 사이즈 적용 */
   function onNodeResize(nodeId: string, width: number, thumbHeight: number) {
     const node = nodes.value.find((n) => n.id === nodeId);
     if (node) setNodeSize(node, width, thumbHeight);
@@ -318,6 +335,7 @@ export function useFilterGraph(
   }
 
   // ── 캔버스 초기화 ──────────────────────────────────────────────────────────
+  /** 캔버스를 source 노드만 남기고 초기화 */
   function resetCanvas(imageUrl: string | null, fileId: number | null, apiHost: string) {
     nodes.value = [
       {
@@ -335,6 +353,7 @@ export function useFilterGraph(
   }
 
   // ── 사이드바 드래그 → 캔버스 드롭 ─────────────────────────────────────────
+  /** 사이드바에서 캔버스로의 드래그 시작 시 dataTransfer 설정 */
   function onSidebarDragStart(event: DragEvent, filterType: FilterType, label: string) {
     if (!event.dataTransfer) return;
     event.dataTransfer.setData('application/vueflow-filtertype', filterType);
@@ -349,6 +368,7 @@ export function useFilterGraph(
     }
   }
 
+  /** 캔버스에 드롭된 필터를 노드로 추가. 커스텀 필터는 resolveCustomFilter로 조회 */
   function onCanvasDrop(event: DragEvent, resolveCustomFilter?: (filterId: string) => CustomFilter | undefined) {
     const filterType = event.dataTransfer?.getData('application/vueflow-filtertype') as
       | FilterType

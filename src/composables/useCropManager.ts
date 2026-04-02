@@ -25,6 +25,7 @@ export function computeViewportStatus(
   return 'ok';
 }
 
+/** Crop 영역의 생성, 삭제, 전체 정리를 관리하는 composable */
 export function useCropManager(
   fileId: Ref<number | null | undefined>,
   nodeSteps: Ref<TreeBatchStep[]>,
@@ -38,6 +39,7 @@ export function useCropManager(
     () => cropList.value.find((c) => c.cropId === activeCropId.value) ?? null,
   );
 
+  /** 뷰포트 픽셀 수 검증. 범위 밖이면 notify 후 false 반환 */
   function validateViewport(viewport: { w: number; h: number }): boolean {
     const pixels = viewport.w * viewport.h;
     if (pixels < MIN_CROP_PIXELS) {
@@ -51,6 +53,7 @@ export function useCropManager(
     return true;
   }
 
+  /** 서버에 crop 생성 요청 후 cropList에 추가 */
   async function createCrop(viewport: Viewport): Promise<CropItem | null> {
     if (!fileId.value || !validateViewport(viewport)) return null;
 
@@ -67,6 +70,7 @@ export function useCropManager(
     return newCrop;
   }
 
+  /** crop 삭제. 서버 삭제 요청 + cropList에서 제거 */
   function removeCrop(cropIdToRemove: string) {
     const crop = cropList.value.find((c) => c.cropId === cropIdToRemove);
     if (!crop) return;
@@ -79,6 +83,7 @@ export function useCropManager(
     }
   }
 
+  /** 전체 crop 삭제 (서버 + 로컬 상태 초기화) */
   function cleanupAll() {
     for (const crop of cropList.value) {
       if (fileId.value) {
