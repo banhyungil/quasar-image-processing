@@ -174,3 +174,10 @@ const dPlace = _.keyBy(places, 'placeId');_
 
 - 함수 작성시에는 tsdoc을 반드시 작성해준다.
 - parameter는 상태 처리가 복잡한 경우만 명시해준다.
+
+## Composable 사용
+
+- Composable 함수가 많지 않은 경우는 state, 함수 모두 destructuring 해서 사용 (유연하게)
+- Composable 내에 함수를 많이 사용해야 경우 객체 그대로 사용
+  - 객체 변수명은 use를 제외하여 네이밍 한다. (ex.useFilterGraph.ts -> const filterGraph)
+  - state는 destructuring 하여 사용 (필수)

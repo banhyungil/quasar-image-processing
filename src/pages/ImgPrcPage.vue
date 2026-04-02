@@ -6,7 +6,7 @@ import '@vue-flow/core/dist/theme-default.css';
 
 import * as filesApi from 'src/apis/filesApi';
 import type { TreeBatchStep } from 'src/types/imgPrcType';
-import type { ProcessNodeData, SourceNodeData } from 'src/types/flowTypes';
+import type { ProcessNodeData } from 'src/types/flowTypes';
 import { API_HOST } from 'src/boot/axios';
 
 import FilterNode from 'src/components/flow/FilterNode.vue';
@@ -74,10 +74,11 @@ const thumbnailCallbacks = {
 
 // 1. 원본 이미지
 const originImage = useOriginImage(nodes, () => thumbnailCallbacks.processAllLeaves());
+const { oOrigin, originalInputRef, showImageGallery, droppedFile } = originImage;
 
 // 2. 그래프 (공유 nodes/edges 사용)
 const graph = useFilterGraph(
-  computed(() => originImage.oOrigin.value.fileId),
+  computed(() => oOrigin.value.fileId),
   {
     onToggleParamPanel: toggleParamPanel,
     onProcessNodeThumbnail: (id) => thumbnailCallbacks.processNodeThumbnail(id),
@@ -86,9 +87,10 @@ const graph = useFilterGraph(
   nodes,
   edges,
 );
+const { selectedNodeId, cSelectedNodeIds, cHasFilterNodes, nodeSizeInput } = graph;
 
 // 3. Crop 관리
-const canvasFileId = computed(() => originImage.oOrigin.value.fileId);
+const canvasFileId = computed(() => oOrigin.value.fileId);
 const canvasNodeSteps = ref<TreeBatchStep[]>([]);
 const canvasNodeId = ref('source');
 const cropMgr = useCropManager(canvasFileId, canvasNodeSteps, canvasNodeId);
@@ -97,7 +99,7 @@ const cropMgr = useCropManager(canvasFileId, canvasNodeSteps, canvasNodeId);
 const thumbnailProcessor = useThumbnailProcessor(
   nodes,
   edges,
-  computed(() => originImage.oOrigin.value.fileId),
+  computed(() => oOrigin.value.fileId),
   cropMgr.activeCropId,
   graph.collectPathToNode,
   graph.collectDescendantLeaves,
@@ -111,29 +113,31 @@ thumbnailCallbacks.processAllLeaves = () => thumbnailProcessor.processAllLeaves(
 const presetMgr = usePresetMgr(
   nodes,
   edges,
-  computed(() => originImage.oOrigin.value.imageUrl),
+  computed(() => oOrigin.value.imageUrl),
   graph.getDefaultParams,
   graph.relayout,
   () => thumbnailProcessor.processAllLeaves(),
 );
+const { presets, activePresetId, showSavePresetDialog, presetDialogName, presetDialogDescription, isEditingPreset } = presetMgr;
 
 // 6. Process 관리
 const processMgr = useProcessMgr(
   nodes,
   edges,
-  computed(() => originImage.oOrigin.value.fileId),
+  computed(() => oOrigin.value.fileId),
   graph.getDefaultParams,
   (file) => originImage.setOriginalFile(file),
   graph.relayout,
   () => thumbnailProcessor.processAllLeaves(),
 );
+const { processList, activeProcessId, showSaveProcessDialog, processDialogName, isEditingProcess } = processMgr;
 
 // 7. 줌 팝업
 const { addNodes, addEdges } = useVueFlow();
 const zoomPopup = useZoomPopup(
   nodes,
   edges,
-  computed(() => originImage.oOrigin.value.fileId),
+  computed(() => oOrigin.value.fileId),
   cropMgr.activeCrop,
   thumbnailProcessor.buildStepsToNode,
   addNodes,
@@ -141,6 +145,7 @@ const zoomPopup = useZoomPopup(
   graph.relayout,
   () => thumbnailProcessor.processAllLeaves(),
 );
+const { zoomPopups, cZoomedNodeIds } = zoomPopup;
 
 // ── 사이드바 ──────────────────────────────────────────────────────────────
 const sidebarTab = ref<'filters' | 'presets' | 'processes' | 'crops'>('filters');
@@ -162,8 +167,8 @@ function onCustomFilterSaved() {
 
 // ── Crop 핸들러 ──────────────────────────────────────────────────────────
 const cOriginalThumbnailUrl = computed(() =>
-  originImage.oOrigin.value.fileId
-    ? `${API_HOST}/api/files/thumbnail/${originImage.oOrigin.value.fileId}`
+  oOrigin.value.fileId
+    ? `${API_HOST}/api/files/thumbnail/${oOrigin.value.fileId}`
     : null,
 );
 
@@ -172,16 +177,16 @@ const cropDialogSrc = ref('');
 const cropDialogDziUrl = ref<string | undefined>(undefined);
 
 async function onSourceCrop() {
-  if (!originImage.oOrigin.value.fileId) return;
+  if (!oOrigin.value.fileId) return;
   try {
-    const res = await filesApi.fetchOriginSizeUrl(originImage.oOrigin.value.fileId, [], 'source');
+    const res = await filesApi.fetchOriginSizeUrl(oOrigin.value.fileId, [], 'source');
     cropDialogDziUrl.value = res.dziUrl ? API_HOST + res.dziUrl : undefined;
     cropDialogSrc.value = res.imageUrl
       ? API_HOST + res.imageUrl
-      : (originImage.oOrigin.value.imageUrl ?? '');
+      : (oOrigin.value.imageUrl ?? '');
     showCropDialog.value = true;
   } catch {
-    cropDialogSrc.value = originImage.oOrigin.value.imageUrl ?? '';
+    cropDialogSrc.value = oOrigin.value.imageUrl ?? '';
     showCropDialog.value = true;
   }
 }
@@ -204,12 +209,12 @@ function updateSourceNodeImage(cropId: string | null) {
       data.height = crop.viewport.h;
     }
   } else {
-    data.previewUrl = originImage.oOrigin.value.imageUrl;
-    data.thumbnailUrl = originImage.oOrigin.value.fileId
-      ? `${API_HOST}/api/files/thumbnail/${originImage.oOrigin.value.fileId}`
+    data.previewUrl = oOrigin.value.imageUrl;
+    data.thumbnailUrl = oOrigin.value.fileId
+      ? `${API_HOST}/api/files/thumbnail/${oOrigin.value.fileId}`
       : null;
-    data.width = originImage.oOrigin.value.width;
-    data.height = originImage.oOrigin.value.height;
+    data.width = oOrigin.value.width;
+    data.height = oOrigin.value.height;
   }
 }
 
@@ -294,11 +299,11 @@ function onParamChange(parameters: Record<string, unknown>) {
 
 // ── 캔버스 초기화 래퍼 ────────────────────────────────────────────────────
 function resetCanvas() {
-  graph.resetCanvas(originImage.oOrigin.value.imageUrl, originImage.oOrigin.value.fileId, API_HOST);
+  graph.resetCanvas(oOrigin.value.imageUrl, oOrigin.value.fileId, API_HOST);
   showOptionPanel.value = false;
   optionPanelTarget.value = null;
-  presetMgr.activePresetId.value = null;
-  processMgr.activeProcessId.value = null;
+  activePresetId.value = null;
+  activeProcessId.value = null;
 }
 
 // ── 노드 삭제 래퍼 (패널 닫기 포함) ─────────────────────────────────────────
@@ -334,71 +339,10 @@ onMounted(async () => {
   await Promise.all([presetMgr.loadPresets(), processMgr.loadProcessList()]);
 });
 
-// ── 편의용 alias / destructuring ─────────────────────────────────────────
-const {
-  selectedNodeId,
-  cSelectedNodeIds,
-  cHasFilterNodes,
-  nodeSizeInput,
-  applyNodeSizeAll,
-  onNodeResize,
-  onNodeClick,
-  onPaneClick,
-  addFilterNode,
-  addCustomFilterNode,
-  onConnect,
-  relayout,
-  onSidebarDragStart,
-  onCanvasDragOver,
-  toggleEnabled,
-} = graph;
-const {
-  oOrigin,
-  originalInputRef,
-  showImageGallery,
-  droppedFile,
-  onOriginalInputChange,
-  onSelectExistingImage,
-  onDropFile,
-} = originImage;
-
+// ── 원본 초기화 래퍼 (crop cleanup 포함) ─────────────────────────────────
 function setOriginalFile(file: File | null) {
   return originImage.setOriginalFile(file, file == null ? () => cropMgr.cleanupAll() : undefined);
 }
-const {
-  presets,
-  activePresetId,
-  showSavePresetDialog,
-  presetDialogName,
-  presetDialogDescription,
-  isEditingPreset,
-  loadPreset,
-  removePreset,
-  openSavePresetDialog,
-  openUpdatePresetDialog,
-  onConfirmPreset,
-} = presetMgr;
-const {
-  processList,
-  activeProcessId,
-  showSaveProcessDialog,
-  processDialogName,
-  isEditingProcess,
-  onProcessDblClick,
-  removeProcess,
-  openSaveProcessDialog,
-  openUpdateProcessDialog,
-  onConfirmProcess,
-} = processMgr;
-const {
-  zoomPopups,
-  cZoomedNodeIds,
-  closeZoomPopup,
-  onApplyPreviewToCanvas,
-  onNodeZoom,
-  onNodeDownload,
-  onCopyChain,
-} = zoomPopup;
 </script>
 
 <template>
@@ -432,9 +376,9 @@ const {
             <q-tab-panel name="filters" class="q-pa-none" style="height: 100%">
               <FilterListPanel
                 ref="filterListPanelRef"
-                @add-filter="addFilterNode"
-                @add-custom-filter="addCustomFilterNode"
-                @drag-start="onSidebarDragStart"
+                @add-filter="graph.addFilterNode"
+                @add-custom-filter="graph.addCustomFilterNode"
+                @drag-start="graph.onSidebarDragStart"
                 @open-editor="openCustomFilterEditor"
               />
             </q-tab-panel>
@@ -444,8 +388,8 @@ const {
               <PresetListPanel
                 :presets="presets"
                 :active-preset-id="activePresetId"
-                @load="loadPreset"
-                @remove="removePreset"
+                @load="presetMgr.loadPreset"
+                @remove="presetMgr.removePreset"
               />
             </q-tab-panel>
 
@@ -454,8 +398,8 @@ const {
               <ProcessListPanel
                 :process-list="processList"
                 :active-process-id="activeProcessId"
-                @load="onProcessDblClick"
-                @remove="removeProcess"
+                @load="processMgr.onProcessDblClick"
+                @remove="processMgr.removeProcess"
               />
             </q-tab-panel>
 
@@ -540,9 +484,9 @@ const {
               input-style="font-size: 12px; text-align: center"
               suffix="px"
               @update:model-value="nodeSizeInput = Number($event)"
-              @keydown.enter="applyNodeSizeAll"
+              @keydown.enter="graph.applyNodeSizeAll"
             />
-            <q-btn flat dense size="sm" label="적용" color="primary" @click="applyNodeSizeAll">
+            <q-btn flat dense size="sm" label="적용" color="primary" @click="graph.applyNodeSizeAll">
               <q-tooltip>입력한 크기를 전체 노드에 적용</q-tooltip>
             </q-btn>
 
@@ -560,7 +504,7 @@ const {
             >
               <q-tooltip>전체 노드 초기화</q-tooltip>
             </q-btn>
-            <q-btn flat dense size="sm" icon="account_tree" label="정렬" @click="relayout()">
+            <q-btn flat dense size="sm" icon="account_tree" label="정렬" @click="graph.relayout()">
               <q-tooltip>자동 레이아웃</q-tooltip>
             </q-btn>
             <q-btn
@@ -572,7 +516,7 @@ const {
               label="처리 수정"
               color="primary"
               :disabled="!cHasFilterNodes || !oOrigin.fileId"
-              @click="openUpdateProcessDialog"
+              @click="processMgr.openUpdateProcessDialog"
             >
               <q-tooltip>처리 데이터 수정</q-tooltip>
             </q-btn>
@@ -584,7 +528,7 @@ const {
               label="처리 저장"
               color="primary"
               :disabled="!cHasFilterNodes || !oOrigin.fileId"
-              @click="openSaveProcessDialog"
+              @click="processMgr.openSaveProcessDialog"
             >
               <q-tooltip>처리 데이터 저장</q-tooltip>
             </q-btn>
@@ -597,7 +541,7 @@ const {
               label="Preset 수정"
               color="secondary"
               :disabled="!cHasFilterNodes"
-              @click="openUpdatePresetDialog"
+              @click="presetMgr.openUpdatePresetDialog"
             />
             <q-btn
               flat
@@ -607,22 +551,22 @@ const {
               label="Preset 저장"
               color="secondary"
               :disabled="!cHasFilterNodes"
-              @click="openSavePresetDialog"
+              @click="presetMgr.openSavePresetDialog"
             />
           </div>
 
           <input
-            ref="originalInputRef"
+            :ref="(el) => (originImage.originalInputRef.value = el as HTMLInputElement)"
             type="file"
             accept="image/*"
             class="hidden"
-            @change="onOriginalInputChange"
+            @change="originImage.onOriginalInputChange"
           />
 
           <!-- vue-flow 캔버스 + 파라미터 패널 -->
           <div class="col row min-h-0 overflow-hidden">
             <!-- 캔버스 -->
-            <div class="col" @dragover="onCanvasDragOver" @drop="onCanvasDrop">
+            <div class="col" @dragover="graph.onCanvasDragOver" @drop="onCanvasDrop">
               <VueFlow
                 v-model:nodes="nodes"
                 v-model:edges="edges"
@@ -632,9 +576,9 @@ const {
                 :selection-key-code="'Shift'"
                 :multi-selection-key-code="'Shift'"
                 class="flow-canvas"
-                @connect="onConnect"
-                @node-click="onNodeClick"
-                @pane-click="onPaneClick"
+                @connect="graph.onConnect"
+                @node-click="graph.onNodeClick"
+                @pane-click="graph.onPaneClick"
               >
                 <!-- 커스텀 노드 이벤트 핸들링 -->
                 <template #node-filter="nodeProps">
@@ -645,12 +589,12 @@ const {
                     "
                     :zoomed="cZoomedNodeIds.has(nodeProps.id)"
                     @remove="removeFilterNode"
-                    @toggle-enabled="toggleEnabled"
+                    @toggle-enabled="graph.toggleEnabled"
                     @change-filter="onChangeFilter"
-                    @zoom="onNodeZoom"
-                    @download="onNodeDownload"
-                    @copy-chain="onCopyChain"
-                    @resize="onNodeResize"
+                    @zoom="zoomPopup.onNodeZoom"
+                    @download="zoomPopup.onNodeDownload"
+                    @copy-chain="zoomPopup.onCopyChain"
+                    @resize="graph.onNodeResize"
                   />
                 </template>
                 <template #node-source="nodeProps">
@@ -661,11 +605,11 @@ const {
                       selectedNodeId === nodeProps.id || cSelectedNodeIds.has(nodeProps.id)
                     "
                     @pick-existing="showImageGallery = true"
-                    @drop-file="onDropFile"
+                    @drop-file="originImage.onDropFile"
                     @clear-image="setOriginalFile(null)"
-                    @zoom="onNodeZoom"
+                    @zoom="zoomPopup.onNodeZoom"
                     @crop="onSourceCrop"
-                    @resize="onNodeResize"
+                    @resize="graph.onNodeResize"
                   />
                 </template>
 
@@ -703,14 +647,14 @@ const {
       :is-editing="isEditingPreset"
       :initial-name="presetDialogName"
       :initial-description="presetDialogDescription"
-      @confirm="onConfirmPreset"
+      @confirm="presetMgr.onConfirmPreset"
     />
 
     <ProcessSaveDialog
       v-model="showSaveProcessDialog"
       :is-editing="isEditingProcess"
       :initial-name="processDialogName"
-      @confirm="onConfirmProcess"
+      @confirm="processMgr.onConfirmProcess"
     />
 
     <CustomFilterEditorDialog
@@ -722,7 +666,7 @@ const {
     <ImageGalleryDialog
       v-model="showImageGallery"
       :initial-file="droppedFile"
-      @select="onSelectExistingImage"
+      @select="originImage.onSelectExistingImage"
       @update:model-value="!$event && (droppedFile = null)"
     />
 
@@ -747,8 +691,8 @@ const {
       :file-id="oOrigin.fileId"
       :node-steps="popup.nodeSteps"
       :node-id="popup.nodeId"
-      @close="closeZoomPopup(popup.id)"
-      @apply-to-canvas="onApplyPreviewToCanvas(popup.nodeId, $event)"
+      @close="zoomPopup.closeZoomPopup(popup.id)"
+      @apply-to-canvas="zoomPopup.onApplyPreviewToCanvas(popup.nodeId, $event)"
     />
   </q-page>
 </template>

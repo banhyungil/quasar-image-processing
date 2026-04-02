@@ -1,6 +1,6 @@
 import { useEventListener } from '@vueuse/core';
 
-/** 드래그 리사이즈 로직을 제공하는 composable. useEventListener로 메모리 누수 방지 */
+/** 드래그 리사이즈 로직을 제공하는 composable. */
 export function useNodeResize(
   nodeWidth: Ref<number>,
   nodeThumbHeight: Ref<number>,
