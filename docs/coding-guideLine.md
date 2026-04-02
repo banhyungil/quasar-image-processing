@@ -34,7 +34,8 @@
   - ex. filesApi.ts
 - api 함수 호출은 namespace import를 기본으로 한다.
 - namespace import를 사용하는 경우 함수명에는 resource명을 중복해서 넣지 않는다.
-  - 권장: `filesApi.getList()`, `filesApi.getById()`, `filesApi.create()`
+  - 권장: `filesApi.getList()`, `filesApi.getById()`, `
+filesApi.create()`
   - 비권장: `filesApi.getFileList()`, `filesApi.getFileById()`, `filesApi.createFile()`
 
 ```typescript
@@ -143,20 +144,20 @@ const dPlace = _.keyBy(places, 'placeId');_
 
 ### 약어 테이블
 
-| 약어 | 원형 |
-|------|------|
-| Mgr | Manager |
-| Sel | Selected |
-| Nm | Name |
-| Prc | Processing |
-| Osd | OpenSeadragon |
-| Btn | Button |
-| Img | Image |
-| Param | Parameter |
-| Props | Properties |
-| Ref | Reference |
-| Res | Response |
-| Req | Request |
+| 약어  | 원형          |
+| ----- | ------------- |
+| Mgr   | Manager       |
+| Sel   | Selected      |
+| Nm    | Name          |
+| Prc   | Processing    |
+| Osd   | OpenSeadragon |
+| Btn   | Button        |
+| Img   | Image         |
+| Param | Parameter     |
+| Props | Properties    |
+| Ref   | Reference     |
+| Res   | Response      |
+| Req   | Request       |
 
 ## css
 
@@ -168,3 +169,8 @@ const dPlace = _.keyBy(places, 'placeId');_
 ### 로딩표시
 
 - 비동기 로직 시 오래 걸리는 작업은 q-innter_loading 컴포넌트를 사용한다
+
+## TSDoc
+
+- 함수 작성시에는 tsdoc을 반드시 작성해준다.
+- parameter는 상태 처리가 복잡한 경우만 명시해준다.

@@ -56,7 +56,7 @@ function toggleParamPanel(nodeId: string, isOpen: boolean = true) {
 // ── Composables ──────────────────────────────────────────────────────────
 
 // 공유 노드/엣지 ref — 순환 의존 해소
-const sharedNodes = ref<AppNode[]>([
+const nodes = ref<AppNode[]>([
   {
     id: SOURCE_NODE_ID,
     type: 'source',
@@ -64,7 +64,7 @@ const sharedNodes = ref<AppNode[]>([
     data: { previewUrl: null, thumbnailUrl: null },
   },
 ]);
-const sharedEdges = ref<Edge[]>([]);
+const edges = ref<Edge[]>([]);
 
 // 지연 콜백: composable 간 순환 참조 해소용
 const thumbnailCallbacks = {
@@ -73,7 +73,7 @@ const thumbnailCallbacks = {
 };
 
 // 1. 원본 이미지
-const originImage = useOriginImage(sharedNodes, () => thumbnailCallbacks.processAllLeaves());
+const originImage = useOriginImage(nodes, () => thumbnailCallbacks.processAllLeaves());
 
 // 2. 그래프 (공유 nodes/edges 사용)
 const graph = useFilterGraph(
@@ -83,8 +83,8 @@ const graph = useFilterGraph(
     onProcessNodeThumbnail: (id) => thumbnailCallbacks.processNodeThumbnail(id),
     onProcessAllLeaves: () => thumbnailCallbacks.processAllLeaves(),
   },
-  sharedNodes,
-  sharedEdges,
+  nodes,
+  edges,
 );
 
 // 3. Crop 관리
@@ -95,8 +95,8 @@ const cropMgr = useCropManager(canvasFileId, canvasNodeSteps, canvasNodeId);
 
 // 4. 썸네일 프로세서
 const thumbnailProcessor = useThumbnailProcessor(
-  sharedNodes,
-  sharedEdges,
+  nodes,
+  edges,
   computed(() => originImage.oOrigin.value.fileId),
   cropMgr.activeCropId,
   graph.collectPathToNode,
@@ -109,8 +109,8 @@ thumbnailCallbacks.processAllLeaves = () => thumbnailProcessor.processAllLeaves(
 
 // 5. Preset 관리
 const presetMgr = usePresetMgr(
-  sharedNodes,
-  sharedEdges,
+  nodes,
+  edges,
   computed(() => originImage.oOrigin.value.imageUrl),
   graph.getDefaultParams,
   graph.relayout,
@@ -119,8 +119,8 @@ const presetMgr = usePresetMgr(
 
 // 6. Process 관리
 const processMgr = useProcessMgr(
-  sharedNodes,
-  sharedEdges,
+  nodes,
+  edges,
   computed(() => originImage.oOrigin.value.fileId),
   graph.getDefaultParams,
   (file) => originImage.setOriginalFile(file),
@@ -131,8 +131,8 @@ const processMgr = useProcessMgr(
 // 7. 줌 팝업
 const { addNodes, addEdges } = useVueFlow();
 const zoomPopup = useZoomPopup(
-  sharedNodes,
-  sharedEdges,
+  nodes,
+  edges,
   computed(() => originImage.oOrigin.value.fileId),
   cropMgr.activeCrop,
   thumbnailProcessor.buildStepsToNode,
@@ -279,7 +279,7 @@ function toggleHideIntermediateNodes() {
 // ── 파라미터 패널 computed ─────────────────────────────────────────────────
 const cSelNodeData = computed<ProcessNodeData | null>(() => {
   if (!optionPanelTarget.value) return null;
-  const n = sharedNodes.value.find((n) => n.id === optionPanelTarget.value);
+  const n = nodes.value.find((n) => n.id === optionPanelTarget.value);
   if (!n || n.type !== 'filter') return null;
   return n.data;
 });
@@ -289,7 +289,7 @@ function onParamApply(updated: ProcessNodeData) {
 }
 
 function onParamChange(parameters: Record<string, unknown>) {
-  thumbnailProcessor.onParamChange(parameters, optionPanelTarget.value);
+  void thumbnailProcessor.onParamChange(parameters, optionPanelTarget.value);
 }
 
 // ── 캔버스 초기화 래퍼 ────────────────────────────────────────────────────
@@ -335,8 +335,6 @@ onMounted(async () => {
 });
 
 // ── 편의용 alias / destructuring ─────────────────────────────────────────
-const nodes = sharedNodes;
-const edges = sharedEdges;
 const {
   selectedNodeId,
   cSelectedNodeIds,
