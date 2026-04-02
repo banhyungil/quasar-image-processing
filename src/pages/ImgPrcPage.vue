@@ -1,19 +1,12 @@
 <script setup lang="ts">
-import { useDebounceFn } from '@vueuse/core';
 import { VueFlow, useVueFlow } from '@vue-flow/core';
-import type { Node, Edge, Connection } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 
-import { PARAM_FIELDS, buildChainFilename } from 'src/constants/imgPrc';
-import type { FilterType } from 'src/types/imgPrcType';
-import * as presetsApi from 'src/apis/presetsApi';
-import type { PresetResponse } from 'src/apis/presetsApi';
-import * as processesApi from 'src/apis/processesApi';
-import type { ProcessResponse } from 'src/apis/processesApi';
 import * as filesApi from 'src/apis/filesApi';
-import type { TreeBatchStep, PreviewTempStep } from 'src/types/imgPrcType';
+import type { TreeBatchStep } from 'src/types/imgPrcType';
+import type { ProcessNodeData, SourceNodeData } from 'src/types/flowTypes';
 import { API_HOST } from 'src/boot/axios';
 
 import FilterNode from 'src/components/flow/FilterNode.vue';
@@ -29,347 +22,26 @@ import FilterListPanel from 'src/components/sidebar/FilterListPanel.vue';
 import PresetListPanel from 'src/components/sidebar/PresetListPanel.vue';
 import ProcessListPanel from 'src/components/sidebar/ProcessListPanel.vue';
 import CropListPanel from 'src/components/sidebar/CropListPanel.vue';
-import { useCropManager } from 'src/composables/useCropManager';
-import type { CustomFilter } from 'src/apis/customFiltersApi';
-import type {
-  ProcessNodeData,
-  SourceNodeData,
-  FlatStep,
-  AppNode,
-  SourceNode as SourceNodeType,
-} from 'src/types/flowTypes';
-import { stepsToFlow, flowToSteps } from 'src/utils/flowConverter';
-import { applyDagreLayout } from 'src/utils/flowLayout';
 import { useSettingsStore } from 'src/stores/settings-store';
+import { useCropManager } from 'src/composables/useCropManager';
+import { useFilterGraph, SOURCE_NODE_ID } from 'src/composables/useFilterGraph';
+import { useOriginImage } from 'src/composables/useOriginImage';
+import { useThumbnailProcessor } from 'src/composables/useThumbnailProcessor';
+import { usePresetMgr } from 'src/composables/usePresetMgr';
+import { useProcessMgr } from 'src/composables/useProcessMgr';
+import { useZoomPopup } from 'src/composables/useZoomPopup';
 import { useQuasar } from 'quasar';
+
+import type { Edge } from '@vue-flow/core';
+import type { AppNode } from 'src/types/flowTypes';
+import type { CustomFilter } from 'src/apis/customFiltersApi';
 
 const settingsStore = useSettingsStore();
 const $q = useQuasar();
 
-const SOURCE_NODE_ID = 'source';
-
-// ── vue-flow ───────────────────────────────────────────────────────────────
-const nodes = ref<AppNode[]>([
-  {
-    id: SOURCE_NODE_ID,
-    type: 'source',
-    position: { x: 0, y: 0 },
-    data: { previewUrl: null, thumbnailUrl: null },
-  },
-]);
-const edges = ref<Edge[]>([]);
-
-const { addNodes, addEdges, removeNodes, getSelectedNodes } = useVueFlow();
-
-// ── 노드 선택 ────────────────────────────────────────────────────────────
-const selectedNodeId = ref<string | null>(null);
-const cSelectedNodeIds = computed(() => new Set(getSelectedNodes.value.map((n) => n.id)));
-
-function onNodeClick({ node }: { node: Node }) {
-  // 동일 노드 재클릭 시 선택 해제
-  if (selectedNodeId.value === node.id && getSelectedNodes.value.length <= 1) {
-    selectedNodeId.value = null;
-    toggleParamPanel(node.id, false);
-    return;
-  }
-
-  // 마지막 클릭된 노드를 기준으로 파람 패널 표시
-  selectedNodeId.value = node.id;
-  if (node.type === 'filter') {
-    toggleParamPanel(node.id);
-  }
-}
-
-function onPaneClick() {
-  selectedNodeId.value = null;
-}
-
-// ── 사이드바 탭 ────────────────────────────────────────────────────────────
-const sidebarTab = ref<'filters' | 'presets' | 'processes' | 'crops'>('filters');
-const splitterSize = ref(20);
-
 // ── 파라미터 패널 ──────────────────────────────────────────────────────────
 const showOptionPanel = ref(false);
 const optionPanelTarget = ref<string | null>(null);
-
-// ── Preset ─────────────────────────────────────────────────────────────────
-const presets = ref<PresetResponse[]>([]);
-const activePresetId = ref<number | null>(null);
-const showSavePresetDialog = ref(false);
-const presetDialogName = ref('');
-const presetDialogDescription = ref('');
-
-// ── 처리목록 ───────────────────────────────────────────────────────────────
-const processList = ref<ProcessResponse[]>([]);
-const activeProcessId = ref<number | null>(null);
-
-// ── 원본 이미지 ────────────────────────────────────────────────────────────
-const oOrigin = ref<{
-  fileId: number | null;
-  imageUrl: string | null;
-  width: number | null;
-  height: number | null;
-}>({
-  fileId: null,
-  imageUrl: null,
-  width: null,
-  height: null,
-});
-const originalInputRef = ref<HTMLInputElement | null>(null);
-const showImageGallery = ref(false);
-const droppedFile = ref<File | null>(null);
-
-// ── Crop 관리 ────────────────────────────────────────────────────────────
-const canvasFileId = computed(() => oOrigin.value.fileId);
-const canvasNodeSteps = ref<TreeBatchStep[]>([]);
-const canvasNodeId = ref('source');
-const cropMgr = useCropManager(canvasFileId, canvasNodeSteps, canvasNodeId);
-
-const cOriginalThumbnailUrl = computed(() =>
-  oOrigin.value.fileId ? `${API_HOST}/api/files/thumbnail/${oOrigin.value.fileId}` : null,
-);
-
-const showCropDialog = ref(false);
-const cropDialogSrc = ref('');
-const cropDialogDziUrl = ref<string | undefined>(undefined);
-
-async function onSourceCrop() {
-  if (!oOrigin.value.fileId) return;
-  try {
-    const res = await filesApi.fetchOriginSizeUrl(oOrigin.value.fileId, [], 'source');
-    cropDialogDziUrl.value = res.dziUrl ? API_HOST + res.dziUrl : undefined;
-    cropDialogSrc.value = res.imageUrl ? API_HOST + res.imageUrl : (oOrigin.value.imageUrl ?? '');
-    showCropDialog.value = true;
-  } catch {
-    cropDialogSrc.value = oOrigin.value.imageUrl ?? '';
-    showCropDialog.value = true;
-  }
-}
-
-function onCanvasCropCreate() {
-  void onSourceCrop();
-}
-
-function updateSourceNodeImage(cropId: string | null) {
-  const sourceNode = nodes.value.find((n) => n.id === SOURCE_NODE_ID);
-  if (!sourceNode || sourceNode.type !== 'source') return;
-  const data = sourceNode.data as SourceNodeData;
-
-  if (cropId) {
-    const crop = cropMgr.cropList.value.find((c) => c.cropId === cropId);
-    if (crop) {
-      data.previewUrl = crop.nodeImageUrl;
-      data.thumbnailUrl = null;
-      data.width = crop.viewport.w;
-      data.height = crop.viewport.h;
-    }
-  } else {
-    data.previewUrl = oOrigin.value.imageUrl;
-    data.thumbnailUrl = oOrigin.value.fileId
-      ? `${API_HOST}/api/files/thumbnail/${oOrigin.value.fileId}`
-      : null;
-    data.width = oOrigin.value.width;
-    data.height = oOrigin.value.height;
-  }
-}
-
-function onSelectCrop(cropId: string) {
-  cropMgr.activeCropId.value = cropId;
-  updateSourceNodeImage(cropId);
-  processAllLeaves();
-}
-
-function onRemoveCrop(cropId: string) {
-  const wasActive = cropMgr.activeCropId.value === cropId;
-  cropMgr.removeCrop(cropId);
-  if (!wasActive) return;
-  if (cropMgr.cropList.value.length === 0) {
-    cropMgr.activeCropId.value = null;
-    updateSourceNodeImage(null);
-    processAllLeaves();
-  } else {
-    const nextCropId = cropMgr.cropList.value[0]!.cropId;
-    cropMgr.activeCropId.value = nextCropId;
-    updateSourceNodeImage(nextCropId);
-    processAllLeaves();
-  }
-}
-
-function onClearCrop() {
-  cropMgr.activeCropId.value = null;
-  updateSourceNodeImage(null);
-  processAllLeaves();
-}
-
-function toggleFullResolution() {
-  if (!settingsStore.isFullResolution) {
-    // 풀해상도 ON 시 사이즈 검증
-    const sourceNode = nodes.value.find((n) => n.id === SOURCE_NODE_ID);
-    if (sourceNode && sourceNode.type === 'source') {
-      const data = sourceNode.data as SourceNodeData;
-      if (data.previewUrl && !cropMgr.activeCropId.value) {
-        $q.notify({
-          type: 'warning',
-          message:
-            '풀해상도 모드: 대용량 이미지는 처리 시간이 길어질 수 있습니다. Crop을 사용하면 성능이 향상됩니다.',
-          timeout: 4000,
-        });
-      }
-    }
-  }
-  settingsStore.isFullResolution = !settingsStore.isFullResolution;
-  processAllLeaves();
-}
-
-function toggleHideIntermediateNodes() {
-  settingsStore.hideIntermediateNodes = !settingsStore.hideIntermediateNodes;
-  processAllLeaves();
-}
-
-// ── 노드 사이즈 ─────────────────────────────────────────────────────────
-const nodeSizeInput = ref<number>(settingsStore.nodeSize.width);
-
-function applyNodeSizeAll() {
-  const w = Math.max(120, nodeSizeInput.value);
-  const ratio = settingsStore.nodeSize.thumbHeight / settingsStore.nodeSize.width;
-  const h = Math.round(w * ratio);
-  for (const node of nodes.value) {
-    setNodeSize(node, w, h);
-  }
-}
-
-// ── 노드 리사이즈 ──────────────────────────────────────────────────────────
-function setNodeSize(node: Node, width: number, thumbHeight: number) {
-  if (node.type === 'filter') {
-    (node.data as ProcessNodeData).customWidth = width;
-    (node.data as ProcessNodeData).customThumbHeight = thumbHeight;
-  } else if (node.type === 'source') {
-    (node.data as SourceNodeData).customWidth = width;
-    (node.data as SourceNodeData).customThumbHeight = thumbHeight;
-  }
-}
-
-function onNodeResize(nodeId: string, width: number, thumbHeight: number) {
-  const node = nodes.value.find((n) => n.id === nodeId);
-  if (node) setNodeSize(node, width, thumbHeight);
-
-  // 다중 선택 리사이즈: 선택된 노드들에 동일 사이즈 적용
-  for (const sn of getSelectedNodes.value) {
-    if (sn.id !== nodeId) setNodeSize(sn, width, thumbHeight);
-  }
-}
-
-async function onCropViewport(viewport: { x: number; y: number; w: number; h: number }) {
-  if (!cropMgr.validateViewport(viewport)) return;
-  const crop = await cropMgr.createCrop(viewport);
-  if (crop) {
-    sidebarTab.value = 'crops';
-    cropMgr.activeCropId.value = crop.cropId;
-  }
-}
-
-function onDropFile(file: File) {
-  droppedFile.value = file;
-  showImageGallery.value = true;
-}
-
-/** 원본 이미지 설정 + 서버 업로드 (fileId 획득) */
-async function setOriginalFile(file: File | null) {
-  if (file == null) {
-    if (oOrigin.value.imageUrl) {
-      URL.revokeObjectURL(oOrigin.value.imageUrl);
-    }
-    oOrigin.value = { fileId: null, imageUrl: null, width: null, height: null };
-    cropMgr.cleanupAll();
-    if (originalInputRef.value) {
-      originalInputRef.value.value = '';
-    }
-  } else {
-    if (!file.type.startsWith('image/')) return;
-
-    if (oOrigin.value.imageUrl) {
-      URL.revokeObjectURL(oOrigin.value.imageUrl);
-    }
-    oOrigin.value.imageUrl = URL.createObjectURL(file);
-
-    // content hash 기반 중복 방지는 서버에서 처리
-    document.body.style.cursor = 'wait';
-    try {
-      const uploaded = await filesApi.create(file);
-      oOrigin.value.fileId = uploaded.id;
-      oOrigin.value.width = uploaded.width;
-      oOrigin.value.height = uploaded.height;
-    } catch (err) {
-      console.error('원본 이미지 업로드 실패:', err);
-    } finally {
-      document.body.style.cursor = 'default';
-    }
-  }
-  // 소스 노드 previewUrl 동기화
-  // type predicate로 반환노드타입 확정
-  const sourceNode = nodes.value.find((n): n is SourceNodeType => n.type === 'source');
-  if (sourceNode) {
-    sourceNode.data.previewUrl = oOrigin.value.imageUrl;
-    sourceNode.data.thumbnailUrl = oOrigin.value.fileId
-      ? `${API_HOST}/api/files/thumbnail/${oOrigin.value.fileId}`
-      : null;
-    sourceNode.data.width = oOrigin.value.width;
-    sourceNode.data.height = oOrigin.value.height;
-  }
-
-  processAllLeaves();
-}
-
-function onOriginalInputChange(event: Event) {
-  const input = event.target as HTMLInputElement;
-  void setOriginalFile(input.files?.[0] ?? null);
-}
-
-function onSelectExistingImage(tFile: {
-  id: number;
-  originNm: string;
-  path: string;
-  mimeType: string;
-  width?: number | null;
-  height?: number | null;
-}) {
-  oOrigin.value.fileId = tFile.id;
-  if (oOrigin.value.imageUrl) URL.revokeObjectURL(oOrigin.value.imageUrl);
-  oOrigin.value.imageUrl = `${API_HOST}/${tFile.path}`;
-  oOrigin.value.width = tFile.width ?? null;
-  oOrigin.value.height = tFile.height ?? null;
-
-  const sourceNode = nodes.value.find((n): n is SourceNodeType => n.type === 'source');
-  if (sourceNode) {
-    sourceNode.data.previewUrl = oOrigin.value.imageUrl;
-    sourceNode.data.thumbnailUrl = `${API_HOST}/api/files/thumbnail/${tFile.id}`;
-    sourceNode.data.width = oOrigin.value.width;
-    sourceNode.data.height = oOrigin.value.height;
-  }
-  processAllLeaves();
-}
-
-// ── 초기 데이터 로드 ───────────────────────────────────────────────────────
-onMounted(async () => {
-  await Promise.all([loadPresets(), loadProcessList()]);
-});
-
-async function loadPresets() {
-  const res = await presetsApi.fetchList();
-  presets.value = res.items;
-}
-
-async function loadProcessList() {
-  const res = await processesApi.fetchList();
-  processList.value = res.items;
-}
-
-// ── 파라미터 패널 ──────────────────────────────────────────────────────────
-function getDefaultParams(filterType: string): Record<string, unknown> {
-  const fields = PARAM_FIELDS[filterType];
-  if (!fields) return {};
-  return Object.fromEntries(fields.map((f) => [f.key, f.default]));
-}
 
 function toggleParamPanel(nodeId: string, isOpen: boolean = true) {
   if (isOpen) {
@@ -381,96 +53,100 @@ function toggleParamPanel(nodeId: string, isOpen: boolean = true) {
   }
 }
 
-const cSelNodeData = computed<ProcessNodeData | null>(() => {
-  if (!optionPanelTarget.value) return null;
-  const n = nodes.value.find((n) => n.id === optionPanelTarget.value);
-  if (!n || n.type !== 'filter') return null;
-  return n.data;
-});
+// ── Composables ──────────────────────────────────────────────────────────
 
-function onParamApply(updated: ProcessNodeData) {
-  if (!oOrigin.value.fileId || !optionPanelTarget.value) return;
-
-  // 파라미터를 노드에 반영
-  const node = nodes.value.find((n) => n.id === optionPanelTarget.value);
-  if (node && node.type === 'filter') {
-    node.data.parameters = { ...updated.parameters };
-  }
-
-  const descendants = collectDescendantLeaves(optionPanelTarget.value);
-  for (const leafId of descendants) {
-    void processNodeThumbnail(leafId);
-  }
-}
-
-// 파라미터 실시간 변경: debounce + abort
-let paramAbortController: AbortController | null = null;
-
-const onParamChange = useDebounceFn((parameters: Record<string, unknown>) => {
-  if (!oOrigin.value.fileId || !optionPanelTarget.value) return;
-
-  // 이전 요청 취소
-  paramAbortController?.abort();
-  paramAbortController = new AbortController();
-
-  // 파라미터를 노드에 반영
-  const node = nodes.value.find((n) => n.id === optionPanelTarget.value);
-  if (node && node.type === 'filter') {
-    node.data.parameters = { ...parameters };
-  }
-
-  const signal = paramAbortController.signal;
-  const descendants = collectDescendantLeaves(optionPanelTarget.value);
-  for (const leafId of descendants) {
-    void processNodeThumbnail(leafId, { signal });
-  }
-}, 200);
-
-// ── 노드 추가 (사이드바 클릭) ──────────────────────────────────────────────
-function addFilterNode(filterType: FilterType, label: string) {
-  const id = crypto.randomUUID();
-
-  // 부모 노드의 커스텀 사이즈 상속
-  const parentId = selectedNodeId.value ?? findLastLeaf();
-  const parentNode = nodes.value.find((n) => n.id === parentId);
-  const parentWidth = parentNode?.data?.customWidth;
-  const parentThumbHeight = parentNode?.data?.customThumbHeight;
-
-  const newNode: Node<ProcessNodeData> = {
-    id,
-    type: 'filter',
+// 공유 노드/엣지 ref — 순환 의존 해소
+const sharedNodes = ref<AppNode[]>([
+  {
+    id: SOURCE_NODE_ID,
+    type: 'source',
     position: { x: 0, y: 0 },
-    data: {
-      algorithmNm: filterType,
-      label,
-      enabled: true,
-      parameters: getDefaultParams(filterType),
-      imageUrl: null,
-      executionMs: null,
-      customWidth: parentWidth,
-      customThumbHeight: parentThumbHeight,
-    },
-  };
-  const newEdge: Edge = {
-    id: `e-${parentId}-${id}`,
-    source: parentId,
-    target: id,
-    animated: true,
-  };
+    data: { previewUrl: null, thumbnailUrl: null },
+  },
+]);
+const sharedEdges = ref<Edge[]>([]);
 
-  addNodes([newNode]);
-  addEdges([newEdge]);
-  toggleParamPanel(id);
+// 지연 콜백: composable 간 순환 참조 해소용
+const thumbnailCallbacks = {
+  processNodeThumbnail: (_nodeId: string) => {},
+  processAllLeaves: () => {},
+};
 
-  void nextTick(() => {
-    relayout();
-    if (oOrigin.value.fileId) {
-      void processNodeThumbnail(id);
-    }
-  });
-}
+// 1. 원본 이미지
+const originImage = useOriginImage(sharedNodes, () => thumbnailCallbacks.processAllLeaves());
 
-// ── 커스텀 필터 ─────────────────────────────────────────────────────────────
+// 2. 그래프 (공유 nodes/edges 사용)
+const graph = useFilterGraph(
+  computed(() => originImage.oOrigin.value.fileId),
+  {
+    onToggleParamPanel: toggleParamPanel,
+    onProcessNodeThumbnail: (id) => thumbnailCallbacks.processNodeThumbnail(id),
+    onProcessAllLeaves: () => thumbnailCallbacks.processAllLeaves(),
+  },
+  sharedNodes,
+  sharedEdges,
+);
+
+// 3. Crop 관리
+const canvasFileId = computed(() => originImage.oOrigin.value.fileId);
+const canvasNodeSteps = ref<TreeBatchStep[]>([]);
+const canvasNodeId = ref('source');
+const cropMgr = useCropManager(canvasFileId, canvasNodeSteps, canvasNodeId);
+
+// 4. 썸네일 프로세서
+const thumbnailProcessor = useThumbnailProcessor(
+  sharedNodes,
+  sharedEdges,
+  computed(() => originImage.oOrigin.value.fileId),
+  cropMgr.activeCropId,
+  graph.collectPathToNode,
+  graph.collectDescendantLeaves,
+);
+
+// 지연 콜백 연결
+thumbnailCallbacks.processNodeThumbnail = (id) => void thumbnailProcessor.processNodeThumbnail(id);
+thumbnailCallbacks.processAllLeaves = () => thumbnailProcessor.processAllLeaves();
+
+// 5. Preset 관리
+const presetMgr = usePresetMgr(
+  sharedNodes,
+  sharedEdges,
+  computed(() => originImage.oOrigin.value.imageUrl),
+  graph.getDefaultParams,
+  graph.relayout,
+  () => thumbnailProcessor.processAllLeaves(),
+);
+
+// 6. Process 관리
+const processMgr = useProcessMgr(
+  sharedNodes,
+  sharedEdges,
+  computed(() => originImage.oOrigin.value.fileId),
+  graph.getDefaultParams,
+  (file) => originImage.setOriginalFile(file),
+  graph.relayout,
+  () => thumbnailProcessor.processAllLeaves(),
+);
+
+// 7. 줌 팝업
+const { addNodes, addEdges } = useVueFlow();
+const zoomPopup = useZoomPopup(
+  sharedNodes,
+  sharedEdges,
+  computed(() => originImage.oOrigin.value.fileId),
+  cropMgr.activeCrop,
+  thumbnailProcessor.buildStepsToNode,
+  addNodes,
+  addEdges,
+  graph.relayout,
+  () => thumbnailProcessor.processAllLeaves(),
+);
+
+// ── 사이드바 ──────────────────────────────────────────────────────────────
+const sidebarTab = ref<'filters' | 'presets' | 'processes' | 'crops'>('filters');
+const splitterSize = ref(20);
+
+// ── 커스텀 필터 에디터 ─────────────────────────────────────────────────────
 const showCustomFilterEditor = ref(false);
 const editingCustomFilter = ref<CustomFilter | undefined>();
 const filterListPanelRef = ref<InstanceType<typeof FilterListPanel> | null>(null);
@@ -484,697 +160,247 @@ function onCustomFilterSaved() {
   filterListPanelRef.value?.loadCustomFilters();
 }
 
-function addCustomFilterNode(cf: CustomFilter) {
-  const id = crypto.randomUUID();
-  const paramDefs = Array.isArray(cf.params)
-    ? (cf.params as unknown as Array<{ key: string; default: unknown }>)
-    : [];
-  const defaultParams: Record<string, unknown> = {
-    filterId: cf.id,
-    ...Object.fromEntries(paramDefs.map((p) => [p.key, p.default])),
-  };
+// ── Crop 핸들러 ──────────────────────────────────────────────────────────
+const cOriginalThumbnailUrl = computed(() =>
+  originImage.oOrigin.value.fileId
+    ? `${API_HOST}/api/files/thumbnail/${originImage.oOrigin.value.fileId}`
+    : null,
+);
 
-  const newNode: Node<ProcessNodeData> = {
-    id,
-    type: 'filter',
-    position: { x: 0, y: 0 },
-    data: {
-      algorithmNm: 'custom' as FilterType,
-      label: cf.nm,
-      enabled: true,
-      parameters: defaultParams,
-      imageUrl: null,
-      executionMs: null,
-    },
-  };
+const showCropDialog = ref(false);
+const cropDialogSrc = ref('');
+const cropDialogDziUrl = ref<string | undefined>(undefined);
 
-  const parentId = selectedNodeId.value ?? findLastLeaf();
-  const newEdge: Edge = {
-    id: `e-${parentId}-${id}`,
-    source: parentId,
-    target: id,
-    animated: true,
-  };
-
-  addNodes([newNode]);
-  addEdges([newEdge]);
-  toggleParamPanel(id);
-
-  void nextTick(() => {
-    relayout();
-    if (oOrigin.value.fileId) {
-      void processNodeThumbnail(id);
-    }
-  });
-}
-
-/** 현재 그래프에서 outgoing edge가 없는 첫 번째 노드(리프) ID를 반환 */
-function findLastLeaf(): string {
-  const sources = new Set(edges.value.map((e) => e.source));
-  const allNodeIds = nodes.value.map((n) => n.id);
-  // source가 아닌 노드 = 리프
-  const leaves = allNodeIds.filter((id) => !sources.has(id));
-  // 리프가 없으면 source 노드에 연결
-  return leaves.length > 0 ? leaves[leaves.length - 1]! : SOURCE_NODE_ID;
-}
-
-// ── 썸네일 연산 ────────────────────────────────────────────────────────────
-
-/** 특정 노드까지의 경로(source→…→nodeId)에 대해 batch-tree API를 호출하여 썸네일을 갱신 */
-async function processNodeThumbnail(targetNodeId: string, options?: { signal?: AbortSignal }) {
-  const fileId = oOrigin.value.fileId;
-  if (!fileId) return;
-
-  // source → targetNodeId 경로에 있는 노드 수집
-  const pathNodeIds = collectPathToNode(targetNodeId);
-  const steps: TreeBatchStep[] = [];
-  const enabledIds = new Set<string>(); // 실제 연산에 포함된 노드 ID
-
-  for (const nodeId of pathNodeIds) {
-    const node = nodes.value.find((n) => n.id === nodeId);
-    if (!node || node.type !== 'filter') continue;
-    const data = node.data;
-
-    if (!data.enabled) {
-      continue;
-    }
-
-    // parentId: 경로상 직전 enabled 노드, 없으면 null(= source)
-    let parentId: string | null = null;
-    const parentEdge = edges.value.find((e) => e.target === nodeId);
-    let cursor = parentEdge?.source ?? null;
-    while (cursor && cursor !== SOURCE_NODE_ID) {
-      if (enabledIds.has(cursor)) {
-        parentId = cursor;
-        break;
-      }
-      const pe = edges.value.find((e) => e.target === cursor);
-      cursor = pe?.source ?? null;
-    }
-
-    enabledIds.add(nodeId);
-    steps.push({
-      nodeId,
-      filterType: data.algorithmNm,
-      parameters: { ...data.parameters },
-      parentId,
-    });
+async function onSourceCrop() {
+  if (!originImage.oOrigin.value.fileId) return;
+  try {
+    const res = await filesApi.fetchOriginSizeUrl(originImage.oOrigin.value.fileId, [], 'source');
+    cropDialogDziUrl.value = res.dziUrl ? API_HOST + res.dziUrl : undefined;
+    cropDialogSrc.value = res.imageUrl
+      ? API_HOST + res.imageUrl
+      : (originImage.oOrigin.value.imageUrl ?? '');
+    showCropDialog.value = true;
+  } catch {
+    cropDialogSrc.value = originImage.oOrigin.value.imageUrl ?? '';
+    showCropDialog.value = true;
   }
-  if (steps.length === 0) return;
+}
 
-  const thumbSize = settingsStore.isFullResolution
-    ? undefined
-    : settingsStore.nodeSize.thumbResolution;
+function onCanvasCropCreate() {
+  void onSourceCrop();
+}
 
-  const activeCropIdVal = cropMgr.activeCropId.value ?? undefined;
+function updateSourceNodeImage(cropId: string | null) {
+  const sourceNode = graph.nodes.value.find((n) => n.id === SOURCE_NODE_ID);
+  if (!sourceNode || sourceNode.type !== 'source') return;
+  const data = sourceNode.data as SourceNodeData;
 
-  // 중간 노드 숨기기 시 리프 노드만 이미지 반환 요청 (연산은 전체, 인코딩만 절약)
-  const leafIds = collectDescendantLeaves(SOURCE_NODE_ID);
-  const returnNodeIds = settingsStore.hideIntermediateNodes ? leafIds : undefined;
+  if (cropId) {
+    const crop = cropMgr.cropList.value.find((c) => c.cropId === cropId);
+    if (crop) {
+      data.previewUrl = crop.nodeImageUrl;
+      data.thumbnailUrl = null;
+      data.width = crop.viewport.w;
+      data.height = crop.viewport.h;
+    }
+  } else {
+    data.previewUrl = originImage.oOrigin.value.imageUrl;
+    data.thumbnailUrl = originImage.oOrigin.value.fileId
+      ? `${API_HOST}/api/files/thumbnail/${originImage.oOrigin.value.fileId}`
+      : null;
+    data.width = originImage.oOrigin.value.width;
+    data.height = originImage.oOrigin.value.height;
+  }
+}
 
-  const result = await filesApi.batchTreeProcessing(fileId, steps, {
-    thumbnailSize: thumbSize,
-    cropId: activeCropIdVal,
-    returnNodeIds,
-    signal: options?.signal,
-  });
+function onSelectCrop(cropId: string) {
+  cropMgr.activeCropId.value = cropId;
+  updateSourceNodeImage(cropId);
+  thumbnailProcessor.processAllLeaves();
+}
 
-  // 결과를 각 노드에 매핑 (백엔드에서 이미지 미반환 노드는 빈 문자열)
-  for (const nr of result.results) {
-    const node = nodes.value.find((n) => n.id === nr.nodeId);
-    if (node && node.type === 'filter') {
-      if (nr.imageUrl) {
-        node.data.imageUrl = nr.imageUrl.startsWith('data:') ? nr.imageUrl : API_HOST + nr.imageUrl;
-        node.data.executionMs = nr.executionMs;
-        node.data.imageWidth = nr.width;
-        node.data.imageHeight = nr.height;
-      } else {
-        node.data.imageUrl = null;
-        node.data.executionMs = null;
-        node.data.imageWidth = null;
-        node.data.imageHeight = null;
+function onRemoveCrop(cropId: string) {
+  const wasActive = cropMgr.activeCropId.value === cropId;
+  cropMgr.removeCrop(cropId);
+  if (!wasActive) return;
+  if (cropMgr.cropList.value.length === 0) {
+    cropMgr.activeCropId.value = null;
+    updateSourceNodeImage(null);
+    thumbnailProcessor.processAllLeaves();
+  } else {
+    const nextCrop = cropMgr.cropList.value[0];
+    if (!nextCrop) return;
+    cropMgr.activeCropId.value = nextCrop.cropId;
+    updateSourceNodeImage(nextCrop.cropId);
+    thumbnailProcessor.processAllLeaves();
+  }
+}
+
+function onClearCrop() {
+  cropMgr.activeCropId.value = null;
+  updateSourceNodeImage(null);
+  thumbnailProcessor.processAllLeaves();
+}
+
+async function onCropViewport(viewport: { x: number; y: number; w: number; h: number }) {
+  if (!cropMgr.validateViewport(viewport)) return;
+  const crop = await cropMgr.createCrop(viewport);
+  if (crop) {
+    sidebarTab.value = 'crops';
+    cropMgr.activeCropId.value = crop.cropId;
+  }
+}
+
+// ── 설정 토글 ──────────────────────────────────────────────────────────────
+function toggleFullResolution() {
+  if (!settingsStore.isFullResolution) {
+    const sourceNode = graph.nodes.value.find((n) => n.id === SOURCE_NODE_ID);
+    if (sourceNode && sourceNode.type === 'source') {
+      const data = sourceNode.data as SourceNodeData;
+      if (data.previewUrl && !cropMgr.activeCropId.value) {
+        $q.notify({
+          type: 'warning',
+          message:
+            '풀해상도 모드: 대용량 이미지는 처리 시간이 길어질 수 있습니다. Crop을 사용하면 성능이 향상됩니다.',
+          timeout: 4000,
+        });
       }
     }
   }
+  settingsStore.isFullResolution = !settingsStore.isFullResolution;
+  thumbnailProcessor.processAllLeaves();
 }
 
-/** source 노드에서 targetNodeId까지의 경로에 있는 filter 노드 ID를 순서대로 반환 */
-function collectPathToNode(targetNodeId: string): string[] {
-  const path: string[] = [];
-  let current: string | null = targetNodeId;
-  while (current && current !== SOURCE_NODE_ID) {
-    path.unshift(current);
-    const parentEdge = edges.value.find((e) => e.target === current);
-    current = parentEdge?.source ?? null;
-  }
-  return path;
+function toggleHideIntermediateNodes() {
+  settingsStore.hideIntermediateNodes = !settingsStore.hideIntermediateNodes;
+  thumbnailProcessor.processAllLeaves();
 }
 
-// ── 노드 삭제 ──────────────────────────────────────────────────────────────
+// ── 파라미터 패널 computed ─────────────────────────────────────────────────
+const cSelNodeData = computed<ProcessNodeData | null>(() => {
+  if (!optionPanelTarget.value) return null;
+  const n = sharedNodes.value.find((n) => n.id === optionPanelTarget.value);
+  if (!n || n.type !== 'filter') return null;
+  return n.data;
+});
+
+function onParamApply(updated: ProcessNodeData) {
+  thumbnailProcessor.onParamApply(updated, optionPanelTarget.value);
+}
+
+function onParamChange(parameters: Record<string, unknown>) {
+  thumbnailProcessor.onParamChange(parameters, optionPanelTarget.value);
+}
+
+// ── 캔버스 초기화 래퍼 ────────────────────────────────────────────────────
+function resetCanvas() {
+  graph.resetCanvas(originImage.oOrigin.value.imageUrl, originImage.oOrigin.value.fileId, API_HOST);
+  showOptionPanel.value = false;
+  optionPanelTarget.value = null;
+  presetMgr.activePresetId.value = null;
+  processMgr.activeProcessId.value = null;
+}
+
+// ── 노드 삭제 래퍼 (패널 닫기 포함) ─────────────────────────────────────────
 function removeFilterNode(nodeId: string) {
-  if (nodeId === SOURCE_NODE_ID) return;
   if (optionPanelTarget.value === nodeId) {
     showOptionPanel.value = false;
     optionPanelTarget.value = null;
   }
-
-  // 부모 엣지 찾기
-  const parentEdge = edges.value.find((e) => e.target === nodeId);
-  const parentId = parentEdge?.source ?? SOURCE_NODE_ID;
-
-  // 자식 엣지들 → 부모에 연결
-  const childEdges = edges.value.filter((e) => e.source === nodeId);
-  const newEdges: Edge[] = childEdges.map((ce) => ({
-    id: `e-${parentId}-${ce.target}`,
-    source: parentId,
-    target: ce.target,
-    animated: true,
-  }));
-
-  removeNodes([nodeId]);
-  addEdges(newEdges);
-
-  void nextTick(() => relayout());
+  graph.removeFilterNode(nodeId);
 }
 
-// ── enabled 토글 ───────────────────────────────────────────────────────────
-function toggleEnabled(nodeId: string) {
-  const node = nodes.value.find((n) => n.id === nodeId);
-  if (node && node.type === 'filter') {
-    node.data.enabled = !node.data.enabled;
-    if (oOrigin.value.fileId) {
-      // 해당 노드 + 하위 모든 리프 노드 재연산
-      const descendants = collectDescendantLeaves(nodeId);
-      for (const leafId of descendants) {
-        void processNodeThumbnail(leafId);
-      }
-    }
-  }
-}
-
-function onChangeFilter(nodeId: string, filterType: FilterType, label: string, filterId?: number) {
-  const node = nodes.value.find((n) => n.id === nodeId);
-  if (!node || node.type !== 'filter') return;
-  const data = node.data;
-  data.algorithmNm = filterType;
-  data.label = label;
-  data.parameters = getDefaultParams(filterType);
-  if (filterId) {
-    data.parameters.filterId = filterId;
-  }
-  data.imageUrl = null;
-  data.executionMs = null;
-
-  if (oOrigin.value.fileId) {
-    const descendants = collectDescendantLeaves(nodeId);
-    for (const leafId of descendants) {
-      void processNodeThumbnail(leafId);
-    }
-  }
-
-  // 파라미터 패널이 열려있으면 새 알고리즘의 파라미터로 갱신
-  if (optionPanelTarget.value === nodeId) {
+// ── 필터 변경 래퍼 (패널 갱신 포함) ─────────────────────────────────────────
+function onChangeFilter(...args: Parameters<typeof graph.onChangeFilter>) {
+  graph.onChangeFilter(...args);
+  if (optionPanelTarget.value === args[0]) {
     showOptionPanel.value = true;
   }
 }
 
-/** nodeId 자신 포함, 하위의 모든 리프 노드 ID를 반환 */
-function collectDescendantLeaves(nodeId: string): string[] {
-  const children = edges.value.filter((e) => e.source === nodeId).map((e) => e.target);
-  if (children.length === 0) return [nodeId];
-  const leaves: string[] = [];
-  for (const childId of children) {
-    leaves.push(...collectDescendantLeaves(childId));
-  }
-  return leaves;
-}
-
-// ── 엣지 연결 (드래그) ────────────────────────────────────────────────────
-function onConnect(connection: Connection) {
-  if (!connection.source || !connection.target) return;
-  // 순환 참조 방지
-  if (hasCycle(connection.source, connection.target)) return;
-
-  const newEdge: Edge = {
-    id: `e-${connection.source}-${connection.target}`,
-    source: connection.source,
-    target: connection.target,
-    animated: true,
-  };
-  addEdges([newEdge]);
-}
-
-function hasCycle(source: string, target: string): boolean {
-  // target에서 시작해서 source에 도달 가능하면 순환
-  const visited = new Set<string>();
-  const stack = [source];
-  while (stack.length > 0) {
-    const current = stack.pop()!;
-    if (current === target) return true;
-    if (visited.has(current)) continue;
-    visited.add(current);
-    for (const edge of edges.value) {
-      if (edge.target === current) {
-        stack.push(edge.source);
-      }
-    }
-  }
-  return false;
-}
-
-// ── 자동 레이아웃 ──────────────────────────────────────────────────────────
-function relayout() {
-  const layouted = applyDagreLayout(nodes.value, edges.value);
-  for (const ln of layouted) {
-    const node = nodes.value.find((n) => n.id === ln.id);
-    if (node) {
-      node.position = { ...ln.position };
-    }
-  }
-}
-
-// ── 사이드바 드래그 → 캔버스 드롭 ─────────────────────────────────────────
-function onSidebarDragStart(event: DragEvent, filterType: FilterType, label: string) {
-  if (!event.dataTransfer) return;
-  event.dataTransfer.setData('application/vueflow-filtertype', filterType);
-  event.dataTransfer.setData('application/vueflow-label', label);
-  event.dataTransfer.effectAllowed = 'move';
-}
-
-function onCanvasDragOver(event: DragEvent) {
-  event.preventDefault();
-  if (event.dataTransfer) {
-    event.dataTransfer.dropEffect = 'move';
-  }
-}
-
+// ── 캔버스 드롭 래퍼 ─────────────────────────────────────────────────────
 function onCanvasDrop(event: DragEvent) {
-  const filterType = event.dataTransfer?.getData('application/vueflow-filtertype') as
-    | FilterType
-    | undefined;
-  const label = event.dataTransfer?.getData('application/vueflow-label');
-  if (!filterType || !label) return;
-
-  if (filterType === 'custom') {
-    const filterId = event.dataTransfer?.getData('application/vueflow-filter-id');
-    if (filterId) {
-      // 커스텀 필터를 FilterListPanel의 목록에서 찾아 노드 추가
-      const cf = filterListPanelRef.value
-        ? (
-            filterListPanelRef.value as unknown as { customFilters: CustomFilter[] }
-          ).customFilters?.find((c: CustomFilter) => c.id === Number(filterId))
-        : undefined;
-      if (cf) addCustomFilterNode(cf);
-    }
-    return;
-  }
-
-  addFilterNode(filterType, label);
-}
-
-// ── 전체 노드 초기화 ─────────────────────────────────────────────────────
-function resetCanvas() {
-  nodes.value = [
-    {
-      id: SOURCE_NODE_ID,
-      type: 'source',
-      position: { x: 0, y: 0 },
-      data: {
-        previewUrl: oOrigin.value.imageUrl,
-        thumbnailUrl: oOrigin.value.fileId
-          ? `${API_HOST}/api/files/thumbnail/${oOrigin.value.fileId}`
-          : null,
-      },
-    },
-  ];
-  edges.value = [];
-  selectedNodeId.value = null;
-  showOptionPanel.value = false;
-  optionPanelTarget.value = null;
-  activePresetId.value = null;
-  activeProcessId.value = null;
-}
-
-// ── Preset CRUD ────────────────────────────────────────────────────────────
-const cHasFilterNodes = computed(() => nodes.value.some((n) => n.type === 'filter'));
-
-const isEditingPreset = ref(false);
-
-function openSavePresetDialog() {
-  isEditingPreset.value = false;
-  const active = presets.value.find((p) => p.id === activePresetId.value);
-  presetDialogName.value = active ? `${active.nm} copy` : '';
-  presetDialogDescription.value = active ? `${active.description}` : '';
-  showSavePresetDialog.value = true;
-}
-
-function openUpdatePresetDialog() {
-  if (!activePresetId.value) return;
-  isEditingPreset.value = true;
-  const active = presets.value.find((p) => p.id === activePresetId.value);
-  presetDialogName.value = active?.nm ?? '';
-  presetDialogDescription.value = active?.description ?? '';
-  showSavePresetDialog.value = true;
-}
-
-async function onConfirmPreset(name: string, description: string) {
-  const steps = flowToSteps(nodes.value, edges.value);
-  const stepPayload = steps.map((s, i) => ({
-    algorithmNm: s.algorithmNm,
-    stepOrder: i,
-    parameters: s.parameters,
-    clientId: s.id,
-    parentClientId: s.parentId,
-  }));
-
-  if (isEditingPreset.value && activePresetId.value) {
-    await presetsApi.update(activePresetId.value, {
-      nm: name,
-      description: description || null,
-      steps: stepPayload,
-    });
-  } else {
-    const created = await presetsApi.create({
-      nm: name,
-      description: description || null,
-      steps: stepPayload,
-    });
-    activePresetId.value = created.id;
-  }
-  showSavePresetDialog.value = false;
-  await loadPresets();
-}
-
-function loadPreset(preset: PresetResponse) {
-  activePresetId.value = preset.id;
-  const flatSteps: FlatStep[] = preset.steps.map((s) => ({
-    id: String(s.id),
-    parentId: s.parentId != null ? String(s.parentId) : null,
-    algorithmNm: s.algorithmNm,
-    stepOrder: s.stepOrder,
-    parameters: { ...getDefaultParams(s.algorithmNm), ...(s.parameters ?? {}) },
-    isEnabled: true,
-  }));
-  const flow = stepsToFlow(flatSteps, oOrigin.value.imageUrl);
-  nodes.value = flow.nodes;
-  edges.value = flow.edges;
-  void nextTick(() => {
-    relayout();
-    processAllLeaves();
+  graph.onCanvasDrop(event, (filterId) => {
+    return filterListPanelRef.value
+      ? (
+          filterListPanelRef.value as unknown as { customFilters: CustomFilter[] }
+        ).customFilters?.find((c: CustomFilter) => c.id === Number(filterId))
+      : undefined;
   });
 }
 
-async function removePreset(presetId: number) {
-  await presetsApi.remove(presetId);
-  if (activePresetId.value === presetId) {
-    activePresetId.value = null;
-  }
-  await loadPresets();
+// ── 초기 데이터 로드 ──────────────────────────────────────────────────────
+onMounted(async () => {
+  await Promise.all([presetMgr.loadPresets(), processMgr.loadProcessList()]);
+});
+
+// ── 편의용 alias / destructuring ─────────────────────────────────────────
+const nodes = sharedNodes;
+const edges = sharedEdges;
+const {
+  selectedNodeId,
+  cSelectedNodeIds,
+  cHasFilterNodes,
+  nodeSizeInput,
+  applyNodeSizeAll,
+  onNodeResize,
+  onNodeClick,
+  onPaneClick,
+  addFilterNode,
+  addCustomFilterNode,
+  onConnect,
+  relayout,
+  onSidebarDragStart,
+  onCanvasDragOver,
+  toggleEnabled,
+} = graph;
+const {
+  oOrigin,
+  originalInputRef,
+  showImageGallery,
+  droppedFile,
+  onOriginalInputChange,
+  onSelectExistingImage,
+  onDropFile,
+} = originImage;
+
+function setOriginalFile(file: File | null) {
+  return originImage.setOriginalFile(file, file == null ? () => cropMgr.cleanupAll() : undefined);
 }
-
-// ── 처리목록 → 캔버스 로드 ────────────────────────────────────────────────
-async function onProcessDblClick(process: ProcessResponse) {
-  activeProcessId.value = process.id;
-  const detail = await processesApi.fetchById(process.id);
-
-  // 원본 이미지를 서버에서 fetch → File 객체로 변환
-  if (detail.filePath) {
-    const res = await fetch(`${API_HOST}/${detail.filePath}`);
-    const blob = await res.blob();
-    const fileName = detail.filePath.split('/').pop() ?? 'image.png';
-    const file = new File([blob], fileName, { type: blob.type });
-
-    void setOriginalFile(file);
-  }
-
-  const flatSteps: FlatStep[] = detail.steps.map((s) => ({
-    id: String(s.id),
-    parentId: s.parentId != null ? String(s.parentId) : null,
-    algorithmNm: s.algorithmNm,
-    stepOrder: s.stepOrder,
-    parameters: { ...getDefaultParams(s.algorithmNm), ...(s.parameters ?? {}) },
-    isEnabled: s.isEnabled,
-    executionMs: s.executionMs ?? null,
-  }));
-
-  const flow = stepsToFlow(flatSteps, oOrigin.value.imageUrl);
-  nodes.value = flow.nodes;
-  edges.value = flow.edges;
-  void nextTick(() => {
-    relayout();
-    processAllLeaves();
-  });
-}
-
-/** 모든 리프 노드에 대해 썸네일 연산 실행 */
-function processAllLeaves() {
-  if (!oOrigin.value.fileId) return;
-  const leaves = collectDescendantLeaves(SOURCE_NODE_ID);
-  for (const leafId of leaves) {
-    void processNodeThumbnail(leafId);
-  }
-}
-
-// ── 처리 데이터 저장/수정/삭제 ────────────────────────────────────────────
-const showSaveProcessDialog = ref(false);
-const processDialogName = ref('');
-const isEditingProcess = ref(false);
-
-function openSaveProcessDialog() {
-  isEditingProcess.value = false;
-  const active = processList.value.find((p) => p.id === activeProcessId.value);
-  processDialogName.value = active ? `${active.nm} copy` : '';
-  showSaveProcessDialog.value = true;
-}
-
-function openUpdateProcessDialog() {
-  if (!activeProcessId.value) return;
-  isEditingProcess.value = true;
-  const active = processList.value.find((p) => p.id === activeProcessId.value);
-  processDialogName.value = active?.nm ?? '';
-  showSaveProcessDialog.value = true;
-}
-
-async function onConfirmProcess(name: string) {
-  if (!oOrigin.value.fileId) return;
-
-  const steps = flowToSteps(nodes.value, edges.value);
-  const stepPayload = steps.map((s, i) => ({
-    algorithmNm: s.algorithmNm,
-    stepOrder: i,
-    parameters: s.parameters,
-    isEnabled: s.isEnabled ?? true,
-    clientId: s.id,
-    parentClientId: s.parentId,
-  }));
-
-  if (isEditingProcess.value && activeProcessId.value) {
-    await processesApi.update(activeProcessId.value, {
-      nm: name,
-      steps: stepPayload,
-    });
-  } else {
-    const fileId = oOrigin.value.fileId;
-    const created = await processesApi.create({
-      nm: name,
-      fileId,
-      steps: stepPayload,
-    });
-    activeProcessId.value = created.id;
-  }
-  showSaveProcessDialog.value = false;
-  await loadProcessList();
-}
-
-async function removeProcess(processId: number) {
-  await processesApi.remove(processId);
-  if (activeProcessId.value === processId) {
-    activeProcessId.value = null;
-  }
-  await loadProcessList();
-}
-
-// ── 이미지 확대 팝업 (모달리스, 복수) ─────────────────────────────────────────
-interface ZoomPopup {
-  id: string;
-  nodeId: string;
-  src: string;
-  dziUrl?: string;
-  title: string;
-  loading?: boolean;
-  nodeSteps: TreeBatchStep[];
-}
-const zoomPopups = ref<ZoomPopup[]>([]);
-const cZoomedNodeIds = computed(() => new Set(zoomPopups.value.map((p) => p.nodeId)));
-
-function closeZoomPopup(popupId: string) {
-  zoomPopups.value = zoomPopups.value.filter((p) => p.id !== popupId);
-}
-
-/** 확대 팝업에서 임시 필터를 캔버스 노드에 반영 */
-function onApplyPreviewToCanvas(parentNodeId: string, steps: PreviewTempStep[]) {
-  for (const step of steps) {
-    const id = crypto.randomUUID();
-    const newNode: Node<ProcessNodeData> = {
-      id,
-      type: 'filter',
-      position: { x: 0, y: 0 },
-      data: {
-        algorithmNm: step.filterType,
-        label: step.filterType,
-        enabled: true,
-        parameters: { ...(step.parameters ?? {}) },
-        imageUrl: null,
-        executionMs: null,
-      },
-    };
-    const newEdge: Edge = {
-      id: `e-${parentNodeId}-${id}`,
-      source: parentNodeId,
-      target: id,
-      animated: true,
-    };
-    addNodes([newNode]);
-    addEdges([newEdge]);
-    parentNodeId = id; // 다음 step은 이 노드의 하위에
-  }
-  void nextTick(() => {
-    relayout();
-    processAllLeaves();
-  });
-}
-
-/**
- * 확대 이미지 표시
- * 확대 이미지 표시시에는 원본 해상도로 표시
- *
- * @param nodeId
- */
-/** 타겟 노드까지의 steps를 구축한다 (zoom, download 공용). */
-function buildStepsToNode(nodeId: string): TreeBatchStep[] {
-  const pathNodeIds = collectPathToNode(nodeId);
-  const steps: TreeBatchStep[] = [];
-  const enabledIds = new Set<string>();
-
-  for (const nid of pathNodeIds) {
-    const node = nodes.value.find((n) => n.id === nid);
-    if (!node || node.type !== 'filter') continue;
-    if (!node.data.enabled) continue;
-
-    let parentId: string | null = null;
-    const parentEdge = edges.value.find((e) => e.target === nid);
-    let cursor = parentEdge?.source ?? null;
-    while (cursor && cursor !== SOURCE_NODE_ID) {
-      if (enabledIds.has(cursor)) {
-        parentId = cursor;
-        break;
-      }
-      const pe = edges.value.find((e) => e.target === cursor);
-      cursor = pe?.source ?? null;
-    }
-
-    enabledIds.add(nid);
-    steps.push({
-      nodeId: nid,
-      filterType: node.data.algorithmNm,
-      parameters: { ...node.data.parameters },
-      parentId,
-    });
-  }
-  return steps;
-}
-
-async function onNodeZoom(nodeId: string) {
-  if (zoomPopups.value.some((p) => p.nodeId === nodeId)) return;
-
-  if (!oOrigin.value.fileId) return;
-
-  const isSource = nodeId === SOURCE_NODE_ID;
-  const activeCrop = cropMgr.activeCrop.value;
-
-  // Crop 선택 시 source 노드 확대 → crop 이미지 사용
-  if (isSource && activeCrop) {
-    zoomPopups.value.push({
-      id: crypto.randomUUID(),
-      nodeId,
-      title: `Crop: ${activeCrop.label}`,
-      nodeSteps: [],
-      src: activeCrop.nodeImageUrl,
-    });
-    return;
-  }
-
-  const steps = isSource ? [] : buildStepsToNode(nodeId);
-  if (!isSource && steps.length === 0) return;
-  if (!oOrigin.value.fileId) return;
-
-  $q.loading.show({ message: '처리 중...' });
-  const cropIdVal = activeCrop?.cropId;
-  const result = await filesApi
-    .fetchOriginSizeUrl(
-      oOrigin.value.fileId,
-      steps,
-      nodeId,
-      cropIdVal ? { cropId: cropIdVal } : undefined,
-    )
-    .finally(() => $q.loading.hide())
-    .catch(() => null);
-  if (!result) return;
-
-  const node = nodes.value.find((n) => n.id === nodeId);
-  const filterData = node?.type === 'filter' ? node.data : null;
-  const oUrl = (() => {
-    const obj: { src: string; dziUrl?: string } = { src: '', dziUrl: undefined };
-    if (result.imageUrl) obj.src = API_HOST + result.imageUrl;
-    else if (result.dziUrl) obj.dziUrl = API_HOST + result.dziUrl;
-    return obj;
-  })();
-
-  zoomPopups.value.push({
-    id: crypto.randomUUID(),
-    nodeId,
-    title: isSource ? '원본 이미지' : (filterData?.label ?? '처리 결과'),
-    nodeSteps: steps,
-    ...oUrl,
-  });
-}
-
-async function onNodeDownload(nodeId: string) {
-  if (!oOrigin.value.fileId) return;
-
-  const steps = buildStepsToNode(nodeId);
-  if (steps.length === 0) return;
-
-  const blob = await filesApi.downloadNodeImage(oOrigin.value.fileId, steps, nodeId);
-  const filterTypes = steps.map((s) => s.filterType);
-  const chainSuffix = buildChainFilename(filterTypes);
-  const baseName = 'image';
-
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${baseName}_${chainSuffix}.png`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-async function onCopyChain(nodeId: string) {
-  const steps = buildStepsToNode(nodeId);
-  if (steps.length === 0) return;
-
-  const lines = steps.map((s, i) => {
-    const fields = PARAM_FIELDS[s.filterType];
-    const paramStr = fields
-      ?.map((f) => {
-        const v = s.parameters?.[f.key] ?? f.default;
-        return `${f.label}=${JSON.stringify(v)}`;
-      })
-      .join(', ');
-    return `${i + 1}. ${s.filterType}${paramStr ? ` (${paramStr})` : ''}`;
-  });
-
-  await navigator.clipboard.writeText(lines.join('\n'));
-}
+const {
+  presets,
+  activePresetId,
+  showSavePresetDialog,
+  presetDialogName,
+  presetDialogDescription,
+  isEditingPreset,
+  loadPreset,
+  removePreset,
+  openSavePresetDialog,
+  openUpdatePresetDialog,
+  onConfirmPreset,
+} = presetMgr;
+const {
+  processList,
+  activeProcessId,
+  showSaveProcessDialog,
+  processDialogName,
+  isEditingProcess,
+  onProcessDblClick,
+  removeProcess,
+  openSaveProcessDialog,
+  openUpdateProcessDialog,
+  onConfirmProcess,
+} = processMgr;
+const {
+  zoomPopups,
+  cZoomedNodeIds,
+  closeZoomPopup,
+  onApplyPreviewToCanvas,
+  onNodeZoom,
+  onNodeDownload,
+  onCopyChain,
+} = zoomPopup;
 </script>
 
 <template>

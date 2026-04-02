@@ -19,7 +19,6 @@
 
 ## 타입 관리
 
-- `api.d.ts`는 OpenAPI 자동 생성 파일로 참조용으로만 사용
 - 프론트 타입은 `src/types/` 하위에 직접 정의
 
 ## Plan 관리 규칙
@@ -35,6 +34,20 @@
 ## 수정 규칙
 
 - `npx vue-tsc --noEmit`를 실행하여 0 errors를 확인할 것
-- 코드 수정 후에는 docs/updates 하위에 업데이트 내용을 자연어로 간략하게 정리한다.
+- 코드 수정 후에는 Notion에 정리한다.
   - 문서 수정은 제외하고 기록
-- `제목_YYMMDD:HH` 으로 헤더를 설정하고 하위에 관련 수정내용을 정리한다.
+
+### Notion 정리 지침
+
+- 데이터 소스 ID: `336705ff-d265-80a6-860d-000b6e9262ad`
+- 속성 매핑:
+  - `제목` (Title): 작업 제목
+  - `선택` (Select): **Front** (이 프로젝트는 항상 Front)
+  - `작업 유형` (Multi-select): feature / refactoring / bugfix / config / test / style / docs
+  - `상태` (Status): 시작 전 / 진행 중 / 완료
+  - `시작일` (Date): 작업 시작일
+- 페이지 아이콘: 작업 유형에 따라 지정
+  - feature: ✨ / refactoring: ♻️ / bugfix: 🐛 / config: ⚙️ / test: 🧪 / style: 🎨 / docs: 📝
+  - Multi-select 시 첫 번째 유형 기준
+- 본문: 배경(왜), 변경 내용, 결과를 간결하게 작성
+- 작업 단위는 하루가 아니라 "의미 단위" — 하루에 2건이면 2페이지, 이틀 걸렸으면 1페이지

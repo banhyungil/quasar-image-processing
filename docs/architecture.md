@@ -36,17 +36,11 @@ src/
 ├── stores/
 │   └── index.ts             # Pinia 스토어 설정
 ├── types/                   # 타입 집합
-│   └── api.d.ts             # openapi-typescript 자동 생성 타입
 └── App.vue                  # 루트 컴포넌트
 ```
 
 ## 타입 관리
 
-1. API 타입 관리
-
-- `src/types/api.d.ts`: openapi-typescript로 자동 생성. **직접 수정 금지**
-  - `npm run gen:types`
-
-2. 일반 타입 관리
+1. 일반 타입 관리
 
 - <파일이름>Type.ts 형식으로 타입관리.

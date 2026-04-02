@@ -51,16 +51,6 @@ export function useCropManager(
     return true;
   }
 
-  function computeViewportStatus(
-    viewportSize: { w: number; h: number } | null,
-  ): 'ok' | 'too-small' | 'too-large' {
-    if (!viewportSize) return 'ok';
-    const pixels = viewportSize.w * viewportSize.h;
-    if (pixels < MIN_CROP_PIXELS) return 'too-small';
-    if (pixels > MAX_CROP_PIXELS) return 'too-large';
-    return 'ok';
-  }
-
   async function createCrop(viewport: Viewport): Promise<CropItem | null> {
     if (!fileId.value || !validateViewport(viewport)) return null;
 
@@ -104,7 +94,6 @@ export function useCropManager(
     activeCropId,
     activeCrop,
     validateViewport,
-    computeViewportStatus,
     createCrop,
     removeCrop,
     cleanupAll,

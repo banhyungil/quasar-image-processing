@@ -103,7 +103,6 @@ function cancelSelection() {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function onCanvasDrag(e: any) {
-  console.log('onCanvasDrag');
   const orig: MouseEvent | undefined = e.originalEvent;
   if (!orig || !selStart || !container.value) return;
   e.preventDefaultAction = true;
@@ -124,7 +123,6 @@ function onCanvasDrag(e: any) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function onCanvasKey(e: any) {
-  console.log('onCanvasKey');
   const orig: KeyboardEvent | undefined = e.originalEvent;
   if (orig?.key === 'Escape') {
     e.preventDefaultAction = true;
@@ -134,7 +132,6 @@ function onCanvasKey(e: any) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function onCanvasRelease(e: any) {
-  console.log('onCanvasRelease');
   const orig: MouseEvent | undefined = e.originalEvent;
   if (!selStart || !viewer) {
     cancelSelection();
@@ -201,7 +198,6 @@ onMounted(() => {
   viewer.addHandler('canvas-press', (e) => {
     const orig = e.originalEvent as PointerEvent;
     if (orig?.shiftKey) {
-      console.log('Shift+드래그 시작');
       onSelectionStart(orig);
       return;
     }

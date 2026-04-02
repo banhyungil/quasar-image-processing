@@ -17,7 +17,7 @@
 
 - composable
   - side effect logic이 있을 수 있음. 대신 unMounted hook에서 해제 하는 과정을 꼭 포함시킬것. 메모리 누수를 방지하기 위함.
-  - watch는 unMounted hook에서 자동으로 해제됨. 그러나 Event는 해제가 안되므로 unMounted에서 꼭 해제하도록
+  - watch는 unMounted hook에서 자동으로 해제됨. 그러나 Event는 해제가 안되므로 unMounted에서 꼭 해제. (vueuse-useEventListener 사용)
   - setup root scope에서 선언해야 된다. 그렇지 않으면 component lifecycle hook을 주입받을 수 없음(onMounted, unMounted 등과 같은 hook 사용 불가능)
   - setup root scope에서 사용하더라도. watch immediate가 발동하면 setup process가 종료된다. watch immediate가 선언된 composable은 사용시 제일 마지막에 사용하도록 한다.
 
@@ -140,6 +140,23 @@ const dPlace = _.keyBy(places, 'placeId');_
 ### 변수
 
 - selected -> sel
+
+### 약어 테이블
+
+| 약어 | 원형 |
+|------|------|
+| Mgr | Manager |
+| Sel | Selected |
+| Nm | Name |
+| Prc | Processing |
+| Osd | OpenSeadragon |
+| Btn | Button |
+| Img | Image |
+| Param | Parameter |
+| Props | Properties |
+| Ref | Reference |
+| Res | Response |
+| Req | Request |
 
 ## css
 

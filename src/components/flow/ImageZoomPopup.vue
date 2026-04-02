@@ -7,7 +7,7 @@ import type { TreeBatchStep, PreviewTempStep } from 'src/types/imgPrcType';
 import OsdViewer from './OsdViewer.vue';
 import TimelineViewer from './TimelineViewer.vue';
 import ZoomSidePanel from './ZoomSidePanel.vue';
-import { useCropManager } from 'src/composables/useCropManager';
+import { useCropManager, computeViewportStatus } from 'src/composables/useCropManager';
 import { usePreviewManager, type TempStep } from 'src/composables/usePreviewManager';
 
 const settingsStore = useSettingsStore();
@@ -78,7 +78,7 @@ const selectedStepId = ref<string | null>(null);
 
 const previewMgr = usePreviewManager(fileIdRef, cropMgr.activeCrop, tempSteps);
 
-const cViewportStatus = computed(() => cropMgr.computeViewportStatus(viewportSize.value));
+const cViewportStatus = computed(() => computeViewportStatus(viewportSize.value));
 
 // ── ESC 키 ───────────────────────────────────────────────────────────────────
 function onKeyDown(e: KeyboardEvent) {
