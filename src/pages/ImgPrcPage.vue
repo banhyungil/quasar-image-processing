@@ -193,7 +193,7 @@ function onCanvasCropCreate() {
 function updateSourceNodeImage(cropId: string | null) {
   const sourceNode = graph.nodes.value.find((n) => n.id === SOURCE_NODE_ID);
   if (!sourceNode || sourceNode.type !== 'source') return;
-  const data = sourceNode.data as SourceNodeData;
+  const data = sourceNode.data;
 
   if (cropId) {
     const crop = cropMgr.cropList.value.find((c) => c.cropId === cropId);
@@ -256,7 +256,7 @@ function toggleFullResolution() {
   if (!settingsStore.isFullResolution) {
     const sourceNode = graph.nodes.value.find((n) => n.id === SOURCE_NODE_ID);
     if (sourceNode && sourceNode.type === 'source') {
-      const data = sourceNode.data as SourceNodeData;
+      const data = sourceNode.data;
       if (data.previewUrl && !cropMgr.activeCropId.value) {
         $q.notify({
           type: 'warning',
