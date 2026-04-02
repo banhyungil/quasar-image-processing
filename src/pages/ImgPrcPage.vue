@@ -136,7 +136,7 @@ const cropDialogDziUrl = ref<string | undefined>(undefined);
 async function onSourceCrop() {
   if (!oOrigin.value.fileId) return;
   try {
-    const res = await filesApi.getOriginSizeUrl(oOrigin.value.fileId, [], 'source');
+    const res = await filesApi.fetchOriginSizeUrl(oOrigin.value.fileId, [], 'source');
     cropDialogDziUrl.value = res.dziUrl ? API_HOST + res.dziUrl : undefined;
     cropDialogSrc.value = res.imageUrl ? API_HOST + res.imageUrl : (oOrigin.value.imageUrl ?? '');
     showCropDialog.value = true;
@@ -295,7 +295,7 @@ async function setOriginalFile(file: File | null) {
     // content hash 기반 중복 방지는 서버에서 처리
     document.body.style.cursor = 'wait';
     try {
-      const uploaded = await filesApi.uploadFile(file);
+      const uploaded = await filesApi.create(file);
       oOrigin.value.fileId = uploaded.id;
       oOrigin.value.width = uploaded.width;
       oOrigin.value.height = uploaded.height;
@@ -355,12 +355,12 @@ onMounted(async () => {
 });
 
 async function loadPresets() {
-  const res = await presetApi.getPresets();
+  const res = await presetApi.fetchList();
   presets.value = res.items;
 }
 
 async function loadProcessList() {
-  const res = await processApi.getProcesses();
+  const res = await processApi.fetchList();
   processList.value = res.items;
 }
 
@@ -848,13 +848,13 @@ async function onConfirmPreset(name: string, description: string) {
   }));
 
   if (isEditingPreset.value && activePresetId.value) {
-    await presetApi.updatePreset(activePresetId.value, {
+    await presetApi.update(activePresetId.value, {
       nm: name,
       description: description || null,
       steps: stepPayload,
     });
   } else {
-    const created = await presetApi.createPreset({
+    const created = await presetApi.create({
       nm: name,
       description: description || null,
       steps: stepPayload,
@@ -885,7 +885,7 @@ function loadPreset(preset: PresetResponse) {
 }
 
 async function removePreset(presetId: number) {
-  await presetApi.deletePreset(presetId);
+  await presetApi.remove(presetId);
   if (activePresetId.value === presetId) {
     activePresetId.value = null;
   }
@@ -895,7 +895,7 @@ async function removePreset(presetId: number) {
 // ── 처리목록 → 캔버스 로드 ────────────────────────────────────────────────
 async function onProcessDblClick(process: ProcessResponse) {
   activeProcessId.value = process.id;
-  const detail = await processApi.getProcess(process.id);
+  const detail = await processApi.fetchById(process.id);
 
   // 원본 이미지를 서버에서 fetch → File 객체로 변환
   if (detail.filePath) {
@@ -969,13 +969,13 @@ async function onConfirmProcess(name: string) {
   }));
 
   if (isEditingProcess.value && activeProcessId.value) {
-    await processApi.updateProcess(activeProcessId.value, {
+    await processApi.update(activeProcessId.value, {
       nm: name,
       steps: stepPayload,
     });
   } else {
     const fileId = oOrigin.value.fileId;
-    const created = await processApi.createProcess({
+    const created = await processApi.create({
       nm: name,
       fileId,
       steps: stepPayload,
@@ -987,7 +987,7 @@ async function onConfirmProcess(name: string) {
 }
 
 async function removeProcess(processId: number) {
-  await processApi.deleteProcess(processId);
+  await processApi.remove(processId);
   if (activeProcessId.value === processId) {
     activeProcessId.value = null;
   }
@@ -1111,7 +1111,7 @@ async function onNodeZoom(nodeId: string) {
   $q.loading.show({ message: '처리 중...' });
   const cropIdVal = activeCrop?.cropId;
   const result = await filesApi
-    .getOriginSizeUrl(
+    .fetchOriginSizeUrl(
       oOrigin.value.fileId,
       steps,
       nodeId,

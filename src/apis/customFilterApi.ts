@@ -13,30 +13,27 @@ export type {
   CustomFilterListResponse,
 } from 'src/types/customFilterType';
 
-export async function getCustomFilters(): Promise<CustomFilterListResponse> {
+export async function fetchList(): Promise<CustomFilterListResponse> {
   const res = await api.get<CustomFilterListResponse>('/custom-filters');
   return res.data;
 }
 
-export async function getCustomFilter(id: number): Promise<CustomFilter> {
+export async function fetchById(id: number): Promise<CustomFilter> {
   const res = await api.get<CustomFilter>(`/custom-filters/${id}`);
   return res.data;
 }
 
-export async function createCustomFilter(body: CustomFilterCreate): Promise<CustomFilter> {
+export async function create(body: CustomFilterCreate): Promise<CustomFilter> {
   const res = await api.post<CustomFilter>('/custom-filters', body);
   return res.data;
 }
 
-export async function updateCustomFilter(
-  id: number,
-  body: CustomFilterUpdate,
-): Promise<CustomFilter> {
+export async function update(id: number, body: CustomFilterUpdate): Promise<CustomFilter> {
   const res = await api.put<CustomFilter>(`/custom-filters/${id}`, body);
   return res.data;
 }
 
-export async function deleteCustomFilter(id: number): Promise<void> {
+export async function remove(id: number): Promise<void> {
   await api.delete(`/custom-filters/${id}`);
 }
 

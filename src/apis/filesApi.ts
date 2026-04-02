@@ -19,7 +19,7 @@ import type {
 
 // ── 파일 CRUD ────────────────────────────────────────────────────────────────
 
-export async function getFiles(
+export async function fetchList(
   options: GetProcessingImageOptions & {
     search?: string;
     minSize?: number;
@@ -39,15 +39,15 @@ export async function getFiles(
   return res.data;
 }
 
-export async function deleteFile(fileId: number): Promise<void> {
+export async function remove(fileId: number): Promise<void> {
   await api.delete(`/files/${fileId}`);
 }
 
-export async function renameFile(fileId: number, originNm: string): Promise<void> {
+export async function update(fileId: number, originNm: string): Promise<void> {
   await api.patch(`/files/${fileId}`, { originNm });
 }
 
-export async function uploadFile(file: File | Blob): Promise<FileUploadResponse> {
+export async function create(file: File | Blob): Promise<FileUploadResponse> {
   const form = new FormData();
   form.append('file', file);
 
@@ -76,7 +76,12 @@ export async function saveProcessingImage(options: SavePrcImageOptions) {
 export async function batchTreeProcessing(
   fileId: number,
   steps: TreeBatchStep[],
-  options?: { thumbnailSize?: number; cropId?: string; returnNodeIds?: string[]; signal?: AbortSignal },
+  options?: {
+    thumbnailSize?: number;
+    cropId?: string;
+    returnNodeIds?: string[];
+    signal?: AbortSignal;
+  },
 ): Promise<TreeBatchResult> {
   const form = new FormData();
   form.append('fileId', String(fileId));
@@ -178,13 +183,13 @@ export async function applyCropAll(
   return res.data;
 }
 
-export async function deleteCrop(fileId: number, cropId: string): Promise<void> {
+export async function removeCrop(fileId: number, cropId: string): Promise<void> {
   await api.delete(`/files/crop/${fileId}/${cropId}`);
 }
 
 // ── DZI / 다운로드 ───────────────────────────────────────────────────────────
 
-export async function getOriginSizeUrl(
+export async function fetchOriginSizeUrl(
   fileId: number,
   steps: TreeBatchStep[],
   nodeId: string,
@@ -232,9 +237,7 @@ export async function scanLocalDir(
   return res.data;
 }
 
-export async function registerLocalFiles(
-  paths: string[],
-): Promise<LocalRegisterResponse> {
+export async function registerLocalFiles(paths: string[]): Promise<LocalRegisterResponse> {
   const res = await api.post<LocalRegisterResponse>('/files/local/register', {
     files: paths.map((path) => ({ path })),
   });

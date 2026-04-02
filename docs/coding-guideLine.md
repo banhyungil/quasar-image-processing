@@ -24,7 +24,48 @@
 ## api 사용
 
 - api 함수 사용시에는 api 파일명을 namespace로 사용한다
-  - ex. presetApi.getPreset()
+  - 이때 전체 import 및 alias를 사용해서 namespace를 사용한다.
+
+## Structure Naming Convention
+
+### api
+
+- <resource>Api
+  - ex. filesApi.ts
+- api 함수 호출은 namespace import를 기본으로 한다.
+- namespace import를 사용하는 경우 함수명에는 resource명을 중복해서 넣지 않는다.
+  - 권장: `filesApi.getList()`, `filesApi.getById()`, `filesApi.create()`
+  - 비권장: `filesApi.getFileList()`, `filesApi.getFileById()`, `filesApi.createFile()`
+
+```typescript
+import * as filesApi from 'src/apis/filesApi';
+
+filesApi.fetchList()
+
+// filesApi.ts
+export function fetchList() {...}
+export function fetchById() {...}
+export function create() {...}
+export function update() {...}
+export function remove() {...}
+```
+
+### Components
+
+1. Layout
+
+- <이름>Layout.vue
+
+2. Page
+
+- <이름>Page.vue
+
+3. 공통 컴포넌트
+
+- basic-components 폴더 하위
+- B<이름>.vue
+
+4.
 
 ## Naming
 

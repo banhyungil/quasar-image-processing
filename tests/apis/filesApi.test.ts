@@ -31,17 +31,17 @@ vi.mock('src/boot/axios', () => ({
 }));
 
 import {
-  getFiles,
-  deleteFile,
-  renameFile,
-  uploadFile,
+  fetchList,
+  remove,
+  update,
+  create,
   saveProcessingImage,
   batchTreeProcessing,
   createCrop,
   applyCrop,
   applyCropAll,
-  deleteCrop,
-  getOriginSizeUrl,
+  removeCrop,
+  fetchOriginSizeUrl,
   downloadNodeImage,
 } from 'src/apis/filesApi';
 
@@ -58,7 +58,7 @@ describe('파일 CRUD', () => {
     const mockData = { items: [], hasMore: false, nextCursorUploadedAt: null, nextCursorId: null };
     mockGet.mockResolvedValue({ data: mockData });
 
-    const result = await getFiles({ search: 'test', minSize: 100 });
+    const result = await fetchList({ search: 'test', minSize: 100 });
 
     /**
      * mockGet 함수 호출 인자를 검증한다.
@@ -79,7 +79,7 @@ describe('파일 CRUD', () => {
   it('DELETE /files/{id} — deleteFile', async () => {
     mockDelete.mockResolvedValue({});
 
-    await deleteFile(123);
+    await remove(123);
 
     expect(mockDelete).toHaveBeenCalledWith('/files/123');
   });
@@ -88,7 +88,7 @@ describe('파일 CRUD', () => {
   it('PATCH /files/{id} — renameFile', async () => {
     mockPatch.mockResolvedValue({});
 
-    await renameFile(123, 'new-name.png');
+    await update(123, 'new-name.png');
 
     expect(mockPatch).toHaveBeenCalledWith('/files/123', { originNm: 'new-name.png' });
   });
@@ -107,7 +107,7 @@ describe('파일 CRUD', () => {
     mockPost.mockResolvedValue({ data: mockResponse });
 
     const file = new File(['test'], 'test.png', { type: 'image/png' });
-    const result = await uploadFile(file);
+    const result = await create(file);
 
     expect(mockPost).toHaveBeenCalledWith(
       '/files/upload',
@@ -313,7 +313,7 @@ describe('Crop', () => {
   it('DELETE /files/crop/{fId}/{cId} — deleteCrop', async () => {
     mockDelete.mockResolvedValue({});
 
-    await deleteCrop(123, 'crop-1');
+    await removeCrop(123, 'crop-1');
 
     expect(mockDelete).toHaveBeenCalledWith('/files/crop/123/crop-1');
   });
@@ -328,7 +328,7 @@ describe('DZI / 다운로드', () => {
     mockPost.mockResolvedValue({ data: mockResponse });
 
     const steps = [{ nodeId: 'n1', filterType: 'blur' as const, parameters: {}, parentId: null }];
-    const result = await getOriginSizeUrl(123, steps, 'n1');
+    const result = await fetchOriginSizeUrl(123, steps, 'n1');
 
     expect(mockPost).toHaveBeenCalledWith(
       '/files/dzi/123',
@@ -348,7 +348,7 @@ describe('DZI / 다운로드', () => {
     const mockResponse = { dziUrl: '/uploads/cache/test.dzi', imageUrl: null };
     mockPost.mockResolvedValue({ data: mockResponse });
 
-    const result = await getOriginSizeUrl(123, [], 'source');
+    const result = await fetchOriginSizeUrl(123, [], 'source');
 
     expect(result.dziUrl).toBe('/uploads/cache/test.dzi');
     expect(result.imageUrl).toBeNull();

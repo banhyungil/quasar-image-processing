@@ -64,12 +64,7 @@ export function useCropManager(
   async function createCrop(viewport: Viewport): Promise<CropItem | null> {
     if (!fileId.value || !validateViewport(viewport)) return null;
 
-    const result = await filesApi.createCrop(
-      fileId.value,
-      nodeSteps.value,
-      nodeId.value,
-      viewport,
-    );
+    const result = await filesApi.createCrop(fileId.value, nodeSteps.value, nodeId.value, viewport);
     const newCrop: CropItem = {
       cropId: result.cropId,
       nodeImageUrl: API_HOST + result.nodeImageUrl,
@@ -86,7 +81,7 @@ export function useCropManager(
     const crop = cropList.value.find((c) => c.cropId === cropIdToRemove);
     if (!crop) return;
     if (fileId.value) {
-      void filesApi.deleteCrop(fileId.value, cropIdToRemove);
+      void filesApi.removeCrop(fileId.value, cropIdToRemove);
     }
     cropList.value = cropList.value.filter((c) => c.cropId !== cropIdToRemove);
     if (activeCropId.value === cropIdToRemove) {
@@ -97,7 +92,7 @@ export function useCropManager(
   function cleanupAll() {
     for (const crop of cropList.value) {
       if (fileId.value) {
-        void filesApi.deleteCrop(fileId.value, crop.cropId);
+        void filesApi.removeCrop(fileId.value, crop.cropId);
       }
     }
     cropList.value = [];

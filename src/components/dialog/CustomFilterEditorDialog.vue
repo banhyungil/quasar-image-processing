@@ -84,9 +84,9 @@ async function onSave() {
 
     let saved: CustomFilter;
     if (isEditing.value && props.customFilter) {
-      saved = await customFilterApi.updateCustomFilter(props.customFilter.id, body);
+      saved = await customFilterApi.update(props.customFilter.id, body);
     } else {
-      saved = await customFilterApi.createCustomFilter(body);
+      saved = await customFilterApi.create(body);
     }
     emit('saved', saved);
     show.value = false;

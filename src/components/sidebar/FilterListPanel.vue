@@ -25,12 +25,12 @@ const emit = defineEmits<{
 const customFilters = ref<CustomFilter[]>([]);
 
 async function loadCustomFilters() {
-  const res = await customFilterApi.getCustomFilters();
+  const res = await customFilterApi.fetchList();
   customFilters.value = res.items;
 }
 
 async function onDeleteCustomFilter(id: number) {
-  await customFilterApi.deleteCustomFilter(id);
+  await customFilterApi.remove(id);
   customFilters.value = customFilters.value.filter((cf) => cf.id !== id);
 }
 

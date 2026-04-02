@@ -18,9 +18,7 @@ export type {
   GetProcessesOptions,
 } from 'src/types/processType';
 
-export async function getProcesses(
-  options: GetProcessesOptions = {},
-): Promise<ProcessListResponse> {
+export async function fetchList(options: GetProcessesOptions = {}): Promise<ProcessListResponse> {
   const res = await api.get<ProcessListResponse>('/processes', {
     params: {
       fileId: options.fileId ?? undefined,
@@ -29,24 +27,21 @@ export async function getProcesses(
   return res.data;
 }
 
-export async function getProcess(processId: number): Promise<ProcessResponse> {
+export async function fetchById(processId: number): Promise<ProcessResponse> {
   const res = await api.get<ProcessResponse>(`/processes/${processId}`);
   return res.data;
 }
 
-export async function createProcess(body: ProcessCreate): Promise<ProcessResponse> {
+export async function create(body: ProcessCreate): Promise<ProcessResponse> {
   const res = await api.post<ProcessResponse>('/processes', body);
   return res.data;
 }
 
-export async function updateProcess(
-  processId: number,
-  body: ProcessUpdate,
-): Promise<ProcessResponse> {
+export async function update(processId: number, body: ProcessUpdate): Promise<ProcessResponse> {
   const res = await api.put<ProcessResponse>(`/processes/${processId}`, body);
   return res.data;
 }
 
-export async function deleteProcess(processId: number): Promise<void> {
+export async function remove(processId: number): Promise<void> {
   await api.delete(`/processes/${processId}`);
 }
