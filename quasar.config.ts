@@ -106,7 +106,7 @@ export default defineConfig((/* ctx */) => {
     devServer: {
       // https: true,
       open: false, // opens browser window automatically
-      port: import.meta.env.VITE_PORT,
+      port: Number(process.env.VITE_PORT ?? 3000),
       proxy: {
         '/uploads': {
           target: 'http://127.0.0.1:8000',
