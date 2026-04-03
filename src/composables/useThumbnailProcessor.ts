@@ -4,11 +4,10 @@ import type { Edge } from '@vue-flow/core';
 import * as filesApi from 'src/apis/filesApi';
 import type { TreeBatchStep } from 'src/types/imgPrcType';
 import type { AppNode, ProcessNodeData } from 'src/types/flowTypes';
-import { PARAM_FIELDS, buildChainFilename } from 'src/constants/imgPrc';
 import { API_HOST } from 'src/boot/axios';
 import { useSettingsStore } from 'src/stores/settings-store';
 
-import { SOURCE_NODE_ID } from './useFilterGraph';
+import { collectDescendantLeaves, collectPathToNode, SOURCE_NODE_ID } from './useFilterGraph';
 
 /** 노드 썸네일 연산, 파라미터 변경 debounce + abort, step 구축을 관리하는 composable */
 export function useThumbnailProcessor({
@@ -16,15 +15,11 @@ export function useThumbnailProcessor({
   edges,
   oOriginFileId,
   activeCropId,
-  collectPathToNode,
-  collectDescendantLeaves,
 }: {
   nodes: Ref<AppNode[]>;
   edges: Ref<Edge[]>;
   oOriginFileId: Ref<number | null>;
   activeCropId: Ref<string | null>;
-  collectPathToNode: (targetNodeId: string) => string[];
-  collectDescendantLeaves: (nodeId: string) => string[];
 }) {
   const settingsStore = useSettingsStore();
 
@@ -35,7 +30,7 @@ export function useThumbnailProcessor({
     const fileId = oOriginFileId.value;
     if (!fileId) return;
 
-    const pathNodeIds = collectPathToNode(targetNodeId);
+    const pathNodeIds = collectPathToNode(targetNodeId, edges.value);
     const steps: TreeBatchStep[] = [];
     const enabledIds = new Set<string>();
 
@@ -74,7 +69,7 @@ export function useThumbnailProcessor({
 
     const activeCropIdVal = activeCropId.value ?? undefined;
 
-    const leafIds = collectDescendantLeaves(SOURCE_NODE_ID);
+    const leafIds = collectDescendantLeaves(SOURCE_NODE_ID, edges.value);
     const returnNodeIds = settingsStore.hideIntermediateNodes ? leafIds : undefined;
 
     const result = await filesApi.batchTreeProcessing(fileId, steps, {
@@ -88,7 +83,9 @@ export function useThumbnailProcessor({
       const node = nodes.value.find((n) => n.id === nr.nodeId);
       if (node && node.type === 'filter') {
         if (nr.imageUrl) {
-          node.data.imageUrl = nr.imageUrl.startsWith('data:') ? nr.imageUrl : API_HOST + nr.imageUrl;
+          node.data.imageUrl = nr.imageUrl.startsWith('data:')
+            ? nr.imageUrl
+            : API_HOST + nr.imageUrl;
           node.data.executionMs = nr.executionMs;
           node.data.imageWidth = nr.width;
           node.data.imageHeight = nr.height;
@@ -105,7 +102,7 @@ export function useThumbnailProcessor({
   /** 모든 리프 노드에 대해 썸네일 연산 실행 */
   function processAllLeaves() {
     if (!oOriginFileId.value) return;
-    const leaves = collectDescendantLeaves(SOURCE_NODE_ID);
+    const leaves = collectDescendantLeaves(SOURCE_NODE_ID, edges.value);
     for (const leafId of leaves) {
       void processNodeThumbnail(leafId);
     }
@@ -113,7 +110,7 @@ export function useThumbnailProcessor({
 
   /** 타겟 노드까지의 steps를 구축한다 (zoom, download 공용). */
   function buildStepsToNode(nodeId: string): TreeBatchStep[] {
-    const pathNodeIds = collectPathToNode(nodeId);
+    const pathNodeIds = collectPathToNode(nodeId, edges.value);
     const steps: TreeBatchStep[] = [];
     const enabledIds = new Set<string>();
 
@@ -146,10 +143,7 @@ export function useThumbnailProcessor({
   }
 
   /** 파라미터 적용 (Apply 버튼) */
-  function onParamApply(
-    updated: ProcessNodeData,
-    optionPanelTarget: string | null,
-  ) {
+  function onParamApply(updated: ProcessNodeData, optionPanelTarget: string | null) {
     if (!oOriginFileId.value || !optionPanelTarget) return;
 
     const node = nodes.value.find((n) => n.id === optionPanelTarget);
@@ -157,7 +151,7 @@ export function useThumbnailProcessor({
       node.data.parameters = { ...updated.parameters };
     }
 
-    const descendants = collectDescendantLeaves(optionPanelTarget);
+    const descendants = collectDescendantLeaves(optionPanelTarget, edges.value);
     for (const leafId of descendants) {
       void processNodeThumbnail(leafId);
     }
@@ -177,7 +171,7 @@ export function useThumbnailProcessor({
       }
 
       const signal = paramAbortController.signal;
-      const descendants = collectDescendantLeaves(optionPanelTarget);
+      const descendants = collectDescendantLeaves(optionPanelTarget, edges.value);
       for (const leafId of descendants) {
         void processNodeThumbnail(leafId, { signal });
       }

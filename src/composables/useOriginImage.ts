@@ -12,13 +12,7 @@ export interface OriginData {
 }
 
 /** 원본 이미지 업로드/선택/초기화 및 source 노드 동기화를 관리하는 composable */
-export function useOriginImage({
-  nodes,
-  onProcessAllLeaves,
-}: {
-  nodes: Ref<AppNode[]>;
-  onProcessAllLeaves: () => void;
-}) {
+export function useOriginImage({ nodes }: { nodes: Ref<AppNode[]> }) {
   const $q = useQuasar();
 
   const oOrigin = ref<OriginData>({
@@ -45,13 +39,13 @@ export function useOriginImage({
   }
 
   /** 원본 이미지 설정 + 서버 업로드 (fileId 획득) */
-  async function setOriginalFile(file: File | null, cropCleanup?: () => void) {
+  async function setOriginalFile(file: File | null) {
     if (file == null) {
       if (oOrigin.value.imageUrl) {
         URL.revokeObjectURL(oOrigin.value.imageUrl);
       }
       oOrigin.value = { fileId: null, imageUrl: null, width: null, height: null };
-      cropCleanup?.();
+
       if (originalInputRef.value) {
         originalInputRef.value.value = '';
       }
@@ -77,7 +71,6 @@ export function useOriginImage({
       }
     }
     syncSourceNode();
-    onProcessAllLeaves();
   }
 
   /** file input의 change 이벤트 핸들러 */
@@ -87,7 +80,7 @@ export function useOriginImage({
   }
 
   /** 갤러리에서 기존 이미지를 선택하여 원본으로 설정 */
-  function onSelectExistingImage(tFile: {
+  function selectUploadedImage(tFile: {
     id: number;
     originNm: string;
     path: string;
@@ -108,7 +101,6 @@ export function useOriginImage({
       sourceNode.data.width = oOrigin.value.width;
       sourceNode.data.height = oOrigin.value.height;
     }
-    onProcessAllLeaves();
   }
 
   /** 드래그 앤 드롭된 파일을 갤러리 다이얼로그로 전달 */
@@ -124,7 +116,7 @@ export function useOriginImage({
     droppedFile,
     setOriginalFile,
     onOriginalInputChange,
-    onSelectExistingImage,
+    selectUploadedImage,
     onDropFile,
   };
 }

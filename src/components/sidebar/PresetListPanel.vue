@@ -7,7 +7,7 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'load', preset: PresetRes): void;
+  (e: 'select', preset: PresetRes): void;
   (e: 'remove', presetId: number): void;
 }>();
 </script>
@@ -24,7 +24,7 @@ const emit = defineEmits<{
         class="row items-center no-wrap q-pa-xs q-mb-xs rounded-borders preset-item"
         :class="activePresetId === preset.id ? 'bg-light-blue-1' : 'bg-grey-1'"
       >
-        <div class="col text-body2 ellipsis cursor-pointer" @click="emit('load', preset)">
+        <div class="col text-body2 ellipsis cursor-pointer" @click="emit('select', preset)">
           {{ preset.nm }}
         </div>
         <q-btn

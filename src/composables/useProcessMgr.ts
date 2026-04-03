@@ -12,16 +12,10 @@ export function useProcessMgr({
   nodes,
   edges,
   oOriginFileId,
-  setOriginalFile,
-  relayout,
-  processAllLeaves,
 }: {
   nodes: Ref<AppNode[]>;
   edges: Ref<Edge[]>;
   oOriginFileId: Ref<number | null>;
-  setOriginalFile: (file: File | null, cropCleanup?: () => void) => Promise<void>;
-  relayout: () => void;
-  processAllLeaves: () => void;
 }) {
   const processList = ref<ProcessRes[]>([]);
   const activeProcessId = ref<number | null>(null);
@@ -36,16 +30,16 @@ export function useProcessMgr({
   }
 
   /** 처리 더블클릭 시 원본 이미지 + steps를 캔버스에 로드 */
-  async function onProcessDblClick(process: ProcessRes) {
+  async function selectProcess(process: ProcessRes): Promise<File | null> {
     activeProcessId.value = process.id;
     const detail = await processesApi.fetchById(process.id);
+    let file: File | null = null;
 
     if (detail.filePath) {
       const res = await fetch(`${API_HOST}/${detail.filePath}`);
       const blob = await res.blob();
       const fileName = detail.filePath.split('/').pop() ?? 'image.png';
-      const file = new File([blob], fileName, { type: blob.type });
-      void setOriginalFile(file);
+      file = new File([blob], fileName, { type: blob.type });
     }
 
     const flatSteps: FlatStep[] = detail.steps.map((s) => ({
@@ -61,10 +55,8 @@ export function useProcessMgr({
     const flow = stepsToFlow(flatSteps, null);
     nodes.value = flow.nodes;
     edges.value = flow.edges;
-    void nextTick(() => {
-      relayout();
-      processAllLeaves();
-    });
+
+    return file;
   }
 
   /** 새 처리 저장 다이얼로그를 열고 초기값 설정 */
@@ -132,7 +124,7 @@ export function useProcessMgr({
     processDialogName,
     isEditingProcess,
     loadProcessList,
-    onProcessDblClick,
+    selectProcess,
     openSaveProcessDialog,
     openUpdateProcessDialog,
     onConfirmProcess,

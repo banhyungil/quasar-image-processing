@@ -8,7 +8,7 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'load', process: ProcessRes): void;
+  (e: 'select', process: ProcessRes): void;
   (e: 'remove', processId: number): void;
 }>();
 </script>
@@ -33,7 +33,7 @@ const emit = defineEmits<{
           />
           <q-icon v-else name="image" color="grey-5" />
         </q-avatar>
-        <div class="col cursor-pointer" @dblclick="emit('load', proc)">
+        <div class="col cursor-pointer" @dblclick="emit('select', proc)">
           <div class="text-body2 ellipsis">{{ proc.nm }}</div>
           <div class="text-caption text-grey-6">
             {{ proc.steps.length }}단계

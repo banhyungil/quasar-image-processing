@@ -186,7 +186,7 @@ export function useFilterGraph({
     if (node && node.type === 'filter') {
       node.data.enabled = !node.data.enabled;
       if (oOriginFileId.value) {
-        const descendants = collectDescendantLeaves(nodeId);
+        const descendants = _collectDescendantLeaves(nodeId);
         for (const leafId of descendants) {
           callbacks.processNodeThumbnail(leafId);
         }
@@ -215,7 +215,7 @@ export function useFilterGraph({
     data.executionMs = null;
 
     if (oOriginFileId.value) {
-      const descendants = collectDescendantLeaves(nodeId);
+      const descendants = _collectDescendantLeaves(nodeId);
       for (const leafId of descendants) {
         callbacks.processNodeThumbnail(leafId);
       }
@@ -231,27 +231,13 @@ export function useFilterGraph({
     return leaves.length > 0 ? leaves[leaves.length - 1]! : SOURCE_NODE_ID;
   }
 
-  /** source → targetNodeId 경로의 filter 노드 ID를 순서대로 반환 */
-  function collectPathToNode(targetNodeId: string): string[] {
-    const pathList: string[] = [];
-    let current: string | null = targetNodeId;
-    while (current && current !== SOURCE_NODE_ID) {
-      pathList.unshift(current);
-      const parentEdge = edges.value.find((e) => e.target === current);
-      current = parentEdge?.source ?? null;
-    }
-    return pathList;
-  }
+  // function _collectPathToNode(targetNodeId: string): string[] {
+  //   return collectPathToNode(targetNodeId, edges.value);
+  // }
 
   /** nodeId 포함 하위 모든 리프 노드 ID를 재귀 수집 */
-  function collectDescendantLeaves(nodeId: string): string[] {
-    const children = edges.value.filter((e) => e.source === nodeId).map((e) => e.target);
-    if (children.length === 0) return [nodeId];
-    const leaves: string[] = [];
-    for (const childId of children) {
-      leaves.push(...collectDescendantLeaves(childId));
-    }
-    return leaves;
+  function _collectDescendantLeaves(nodeId: string): string[] {
+    return collectDescendantLeaves(nodeId, edges.value);
   }
 
   // ── 엣지 연결 ──────────────────────────────────────────────────────────────
@@ -410,8 +396,6 @@ export function useFilterGraph({
     toggleEnabled,
     onChangeFilter,
     findLastLeaf,
-    collectPathToNode,
-    collectDescendantLeaves,
     onConnect,
     hasCycle,
     relayout,
@@ -423,4 +407,27 @@ export function useFilterGraph({
     onCanvasDragOver,
     onCanvasDrop,
   };
+}
+
+/** source → targetNodeId 경로의 filter 노드 ID를 순서대로 반환 */
+export function collectPathToNode(targetNodeId: string, edges: Edge[]): string[] {
+  const pathList: string[] = [];
+  let current: string | null = targetNodeId;
+  while (current && current !== SOURCE_NODE_ID) {
+    pathList.unshift(current);
+    const parentEdge = edges.find((e) => e.target === current);
+    current = parentEdge?.source ?? null;
+  }
+  return pathList;
+}
+
+/** nodeId 포함 하위 모든 리프 노드 ID를 재귀 수집 */
+export function collectDescendantLeaves(nodeId: string, edges: Edge[]): string[] {
+  const children = edges.filter((e) => e.source === nodeId).map((e) => e.target);
+  if (children.length === 0) return [nodeId];
+  const leaves: string[] = [];
+  for (const childId of children) {
+    leaves.push(...collectDescendantLeaves(childId, edges));
+  }
+  return leaves;
 }

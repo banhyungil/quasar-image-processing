@@ -5,7 +5,7 @@ import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 
 import * as filesApi from 'src/apis/filesApi';
-import type { TreeBatchStep } from 'src/types/imgPrcType';
+import type { TFile, TreeBatchStep } from 'src/types/imgPrcType';
 import type { ProcessNodeData } from 'src/types/flowTypes';
 import { API_HOST } from 'src/boot/axios';
 
@@ -66,31 +66,11 @@ const nodes = ref<AppNode[]>([
 ]);
 const edges = ref<Edge[]>([]);
 
-// 지연 콜백: composable 간 순환 참조 해소용
-const thumbnailCallbacks = {
-  processNodeThumbnail: (_nodeId: string) => {},
-  processAllLeaves: () => {},
-};
-
 // 1. 원본 이미지
 const originImage = useOriginImage({
   nodes,
-  onProcessAllLeaves: () => thumbnailCallbacks.processAllLeaves(),
 });
 const { oOrigin, showImageGallery, droppedFile } = originImage;
-
-// 2. 그래프 (공유 nodes/edges 사용)
-const graph = useFilterGraph({
-  oOriginFileId: computed(() => oOrigin.value.fileId),
-  callbacks: {
-    toggleParamPanel,
-    processNodeThumbnail: (_) => {},
-    processAllLeaves: () => {},
-  },
-  nodes,
-  edges,
-});
-const { selectedNodeId, cSelectedNodeIds, cHasFilterNodes, nodeSizeInput } = graph;
 
 // 3. Crop 관리
 const canvasFileId = computed(() => oOrigin.value.fileId);
@@ -104,13 +84,20 @@ const thumbnailProcessor = useThumbnailProcessor({
   edges,
   oOriginFileId: computed(() => oOrigin.value.fileId),
   activeCropId: cropMgr.activeCropId,
-  collectPathToNode: graph.collectPathToNode,
-  collectDescendantLeaves: graph.collectDescendantLeaves,
 });
 
-// 지연 콜백 연결
-thumbnailCallbacks.processNodeThumbnail = (id) => void thumbnailProcessor.processNodeThumbnail(id);
-thumbnailCallbacks.processAllLeaves = () => thumbnailProcessor.processAllLeaves();
+// 2. 그래프 (공유 nodes/edges 사용)
+const graph = useFilterGraph({
+  oOriginFileId: computed(() => oOrigin.value.fileId),
+  callbacks: {
+    toggleParamPanel,
+    processNodeThumbnail: (nodeId) => void thumbnailProcessor.processNodeThumbnail(nodeId),
+    processAllLeaves: thumbnailProcessor.processAllLeaves,
+  },
+  nodes,
+  edges,
+});
+const { selectedNodeId, cSelectedNodeIds, cHasFilterNodes, nodeSizeInput } = graph;
 
 // 5. Preset 관리
 const presetMgr = usePresetMgr({
@@ -339,6 +326,11 @@ function onCanvasDrop(event: DragEvent) {
   });
 }
 
+function onSelectUploadedImage(tFile: TFile) {
+  originImage.selectUploadedImage(tFile);
+  thumbnailProcessor.processAllLeaves();
+}
+
 /** 초기 데이터 로드 ────────────────────────────────────────────────────── */
 onMounted(async () => {
   await Promise.all([presetMgr.loadPresets(), processMgr.loadProcessList()]);
@@ -346,7 +338,17 @@ onMounted(async () => {
 
 /** 원본 초기화 래퍼 (crop cleanup 포함) ───────────────────────────────── */
 function setOriginalFile(file: File | null) {
-  return originImage.setOriginalFile(file, file == null ? () => cropMgr.cleanupAll() : undefined);
+  void originImage.setOriginalFile(file);
+  thumbnailProcessor.processAllLeaves();
+  if (file == null) {
+    cropMgr.cleanupAll();
+  }
+}
+
+async function onSelectProcess(process: ProcessRes) {
+  const file = await processMgr.selectProcess(process);
+  setOriginalFile(file);
+  graph.relayout();
 }
 </script>
 
@@ -403,7 +405,7 @@ function setOriginalFile(file: File | null) {
               <ProcessListPanel
                 :process-list="processList"
                 :active-process-id="activeProcessId"
-                @load="processMgr.onProcessDblClick"
+                @select="onSelectProcess"
                 @remove="processMgr.removeProcess"
               />
             </q-tab-panel>
@@ -678,7 +680,7 @@ function setOriginalFile(file: File | null) {
     <ImageGalleryDialog
       v-model="showImageGallery"
       :initial-file="droppedFile"
-      @select="originImage.onSelectExistingImage"
+      @select="onSelectUploadedImage"
       @update:model-value="!$event && (droppedFile = null)"
     />
 
