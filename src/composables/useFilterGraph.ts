@@ -3,12 +3,7 @@ import type { Node, Edge, Connection } from '@vue-flow/core';
 
 import { PARAM_FIELDS } from 'src/constants/imgPrc';
 import type { FilterType } from 'src/types/imgPrcType';
-import type {
-  ProcessNodeData,
-  SourceNodeData,
-  AppNode,
-  SourceNode as SourceNodeType,
-} from 'src/types/flowTypes';
+import type { ProcessNodeData, SourceNodeData, AppNode } from 'src/types/flowTypes';
 import { applyDagreLayout } from 'src/utils/flowLayout';
 import { useSettingsStore } from 'src/stores/settings-store';
 
@@ -17,31 +12,38 @@ import type { CustomFilter } from 'src/apis/customFiltersApi';
 export const SOURCE_NODE_ID = 'source';
 
 export interface FilterGraphCallbacks {
-  onToggleParamPanel: (nodeId: string, isOpen?: boolean) => void;
-  onProcessNodeThumbnail: (nodeId: string) => void;
-  onProcessAllLeaves: () => void;
+  toggleParamPanel: (nodeId: string, isOpen?: boolean) => void;
+  processNodeThumbnail: (nodeId: string) => void;
+  processAllLeaves: () => void;
 }
 
 /** 노드/엣지 CRUD, 그래프 알고리즘, 레이아웃, 드래그드롭을 관리하는 composable */
-export function useFilterGraph(
-  oOriginFileId: Ref<number | null>,
-  callbacks: FilterGraphCallbacks,
-  externalNodes?: Ref<AppNode[]>,
-  externalEdges?: Ref<Edge[]>,
-) {
+export function useFilterGraph({
+  oOriginFileId,
+  callbacks,
+  nodes: externalNodes,
+  edges: externalEdges,
+}: {
+  oOriginFileId: Ref<number | null>;
+  callbacks: FilterGraphCallbacks;
+  nodes?: Ref<AppNode[]>;
+  edges?: Ref<Edge[]>;
+}) {
   const settingsStore = useSettingsStore();
 
   const { addNodes, addEdges, removeNodes, getSelectedNodes } = useVueFlow();
 
   // ── 노드/엣지 (외부 제공 또는 내부 생성) ────────────────────────────────────
-  const nodes = externalNodes ?? ref<AppNode[]>([
-    {
-      id: SOURCE_NODE_ID,
-      type: 'source',
-      position: { x: 0, y: 0 },
-      data: { previewUrl: null, thumbnailUrl: null },
-    },
-  ]);
+  const nodes =
+    externalNodes ??
+    ref<AppNode[]>([
+      {
+        id: SOURCE_NODE_ID,
+        type: 'source',
+        position: { x: 0, y: 0 },
+        data: { previewUrl: null, thumbnailUrl: null },
+      },
+    ]);
   const edges = externalEdges ?? ref<Edge[]>([]);
 
   // ── 노드 선택 ──────────────────────────────────────────────────────────────
@@ -52,13 +54,13 @@ export function useFilterGraph(
   function onNodeClick({ node }: { node: Node }) {
     if (selectedNodeId.value === node.id && getSelectedNodes.value.length <= 1) {
       selectedNodeId.value = null;
-      callbacks.onToggleParamPanel(node.id, false);
+      callbacks.toggleParamPanel(node.id, false);
       return;
     }
 
     selectedNodeId.value = node.id;
     if (node.type === 'filter') {
-      callbacks.onToggleParamPanel(node.id);
+      callbacks.toggleParamPanel(node.id);
     }
   }
 
@@ -108,12 +110,12 @@ export function useFilterGraph(
 
     addNodes([newNode]);
     addEdges([newEdge]);
-    callbacks.onToggleParamPanel(id);
+    callbacks.toggleParamPanel(id);
 
     void nextTick(() => {
       relayout();
       if (oOriginFileId.value) {
-        callbacks.onProcessNodeThumbnail(id);
+        callbacks.processNodeThumbnail(id);
       }
     });
   }
@@ -153,12 +155,12 @@ export function useFilterGraph(
 
     addNodes([newNode]);
     addEdges([newEdge]);
-    callbacks.onToggleParamPanel(id);
+    callbacks.toggleParamPanel(id);
 
     void nextTick(() => {
       relayout();
       if (oOriginFileId.value) {
-        callbacks.onProcessNodeThumbnail(id);
+        callbacks.processNodeThumbnail(id);
       }
     });
   }
@@ -194,7 +196,7 @@ export function useFilterGraph(
       if (oOriginFileId.value) {
         const descendants = collectDescendantLeaves(nodeId);
         for (const leafId of descendants) {
-          callbacks.onProcessNodeThumbnail(leafId);
+          callbacks.processNodeThumbnail(leafId);
         }
       }
     }
@@ -202,7 +204,12 @@ export function useFilterGraph(
 
   // ── 필터 변경 ──────────────────────────────────────────────────────────────
   /** 노드의 필터 타입을 변경하고 하위 리프 재연산 트리거 */
-  function onChangeFilter(nodeId: string, filterType: FilterType, label: string, filterId?: number) {
+  function onChangeFilter(
+    nodeId: string,
+    filterType: FilterType,
+    label: string,
+    filterId?: number,
+  ) {
     const node = nodes.value.find((n) => n.id === nodeId);
     if (!node || node.type !== 'filter') return;
     const data = node.data;
@@ -218,7 +225,7 @@ export function useFilterGraph(
     if (oOriginFileId.value) {
       const descendants = collectDescendantLeaves(nodeId);
       for (const leafId of descendants) {
-        callbacks.onProcessNodeThumbnail(leafId);
+        callbacks.processNodeThumbnail(leafId);
       }
     }
   }
@@ -234,14 +241,14 @@ export function useFilterGraph(
 
   /** source → targetNodeId 경로의 filter 노드 ID를 순서대로 반환 */
   function collectPathToNode(targetNodeId: string): string[] {
-    const path: string[] = [];
+    const pathList: string[] = [];
     let current: string | null = targetNodeId;
     while (current && current !== SOURCE_NODE_ID) {
-      path.unshift(current);
+      pathList.unshift(current);
       const parentEdge = edges.value.find((e) => e.target === current);
       current = parentEdge?.source ?? null;
     }
-    return path;
+    return pathList;
   }
 
   /** nodeId 포함 하위 모든 리프 노드 ID를 재귀 수집 */
@@ -369,7 +376,10 @@ export function useFilterGraph(
   }
 
   /** 캔버스에 드롭된 필터를 노드로 추가. 커스텀 필터는 resolveCustomFilter로 조회 */
-  function onCanvasDrop(event: DragEvent, resolveCustomFilter?: (filterId: string) => CustomFilter | undefined) {
+  function onCanvasDrop(
+    event: DragEvent,
+    resolveCustomFilter?: (filterId: string) => CustomFilter | undefined,
+  ) {
     const filterType = event.dataTransfer?.getData('application/vueflow-filtertype') as
       | FilterType
       | undefined;

@@ -39,21 +39,21 @@ import type { CustomFilter } from 'src/apis/customFiltersApi';
 const settingsStore = useSettingsStore();
 const $q = useQuasar();
 
-// ── 파라미터 패널 ──────────────────────────────────────────────────────────
-const showOptionPanel = ref(false);
-const optionPanelTarget = ref<string | null>(null);
+/** 파라미터 패널 ────────────────────────────────────────────────────────── */
+const showParamPanel = ref(false);
+const paramPanelTarget = ref<string | null>(null);
 
 function toggleParamPanel(nodeId: string, isOpen: boolean = true) {
   if (isOpen) {
-    optionPanelTarget.value = nodeId;
-    showOptionPanel.value = true;
+    paramPanelTarget.value = nodeId;
+    showParamPanel.value = true;
   } else {
-    showOptionPanel.value = false;
-    optionPanelTarget.value = null;
+    showParamPanel.value = false;
+    paramPanelTarget.value = null;
   }
 }
 
-// ── Composables ──────────────────────────────────────────────────────────
+/** Composables ────────────────────────────────────────────────────────── */
 
 // 공유 노드/엣지 ref — 순환 의존 해소
 const nodes = ref<AppNode[]>([
@@ -73,20 +73,23 @@ const thumbnailCallbacks = {
 };
 
 // 1. 원본 이미지
-const originImage = useOriginImage(nodes, () => thumbnailCallbacks.processAllLeaves());
-const { oOrigin, originalInputRef, showImageGallery, droppedFile } = originImage;
+const originImage = useOriginImage({
+  nodes,
+  onProcessAllLeaves: () => thumbnailCallbacks.processAllLeaves(),
+});
+const { oOrigin, showImageGallery, droppedFile } = originImage;
 
 // 2. 그래프 (공유 nodes/edges 사용)
-const graph = useFilterGraph(
-  computed(() => oOrigin.value.fileId),
-  {
-    onToggleParamPanel: toggleParamPanel,
-    onProcessNodeThumbnail: (id) => thumbnailCallbacks.processNodeThumbnail(id),
-    onProcessAllLeaves: () => thumbnailCallbacks.processAllLeaves(),
+const graph = useFilterGraph({
+  oOriginFileId: computed(() => oOrigin.value.fileId),
+  callbacks: {
+    toggleParamPanel,
+    processNodeThumbnail: (_) => {},
+    processAllLeaves: () => {},
   },
   nodes,
   edges,
-);
+});
 const { selectedNodeId, cSelectedNodeIds, cHasFilterNodes, nodeSizeInput } = graph;
 
 // 3. Crop 관리
@@ -96,62 +99,70 @@ const canvasNodeId = ref('source');
 const cropMgr = useCropManager(canvasFileId, canvasNodeSteps, canvasNodeId);
 
 // 4. 썸네일 프로세서
-const thumbnailProcessor = useThumbnailProcessor(
+const thumbnailProcessor = useThumbnailProcessor({
   nodes,
   edges,
-  computed(() => oOrigin.value.fileId),
-  cropMgr.activeCropId,
-  graph.collectPathToNode,
-  graph.collectDescendantLeaves,
-);
+  oOriginFileId: computed(() => oOrigin.value.fileId),
+  activeCropId: cropMgr.activeCropId,
+  collectPathToNode: graph.collectPathToNode,
+  collectDescendantLeaves: graph.collectDescendantLeaves,
+});
 
 // 지연 콜백 연결
 thumbnailCallbacks.processNodeThumbnail = (id) => void thumbnailProcessor.processNodeThumbnail(id);
 thumbnailCallbacks.processAllLeaves = () => thumbnailProcessor.processAllLeaves();
 
 // 5. Preset 관리
-const presetMgr = usePresetMgr(
+const presetMgr = usePresetMgr({
   nodes,
   edges,
-  computed(() => oOrigin.value.imageUrl),
-  graph.getDefaultParams,
-  graph.relayout,
-  () => thumbnailProcessor.processAllLeaves(),
-);
-const { presets, activePresetId, showSavePresetDialog, presetDialogName, presetDialogDescription, isEditingPreset } = presetMgr;
+  oOriginImageUrl: computed(() => oOrigin.value.imageUrl),
+  getDefaultParams: graph.getDefaultParams,
+  relayout: graph.relayout,
+  processAllLeaves: () => thumbnailProcessor.processAllLeaves(),
+});
+const {
+  presets,
+  activePresetId,
+  showSavePresetDialog,
+  presetDialogName,
+  presetDialogDescription,
+  isEditingPreset,
+} = presetMgr;
 
 // 6. Process 관리
-const processMgr = useProcessMgr(
+const processMgr = useProcessMgr({
   nodes,
   edges,
-  computed(() => oOrigin.value.fileId),
-  graph.getDefaultParams,
-  (file) => originImage.setOriginalFile(file),
-  graph.relayout,
-  () => thumbnailProcessor.processAllLeaves(),
-);
-const { processList, activeProcessId, showSaveProcessDialog, processDialogName, isEditingProcess } = processMgr;
+  oOriginFileId: computed(() => oOrigin.value.fileId),
+  getDefaultParams: graph.getDefaultParams,
+  setOriginalFile: (file) => originImage.setOriginalFile(file),
+  relayout: graph.relayout,
+  processAllLeaves: () => thumbnailProcessor.processAllLeaves(),
+});
+const { processList, activeProcessId, showSaveProcessDialog, processDialogName, isEditingProcess } =
+  processMgr;
 
 // 7. 줌 팝업
 const { addNodes, addEdges } = useVueFlow();
-const zoomPopup = useZoomPopup(
+const zoomPopup = useZoomPopup({
   nodes,
   edges,
-  computed(() => oOrigin.value.fileId),
-  cropMgr.activeCrop,
-  thumbnailProcessor.buildStepsToNode,
+  oOriginFileId: computed(() => oOrigin.value.fileId),
+  activeCrop: cropMgr.activeCrop,
+  buildStepsToNode: thumbnailProcessor.buildStepsToNode,
   addNodes,
   addEdges,
-  graph.relayout,
-  () => thumbnailProcessor.processAllLeaves(),
-);
+  relayout: graph.relayout,
+  processAllLeaves: () => thumbnailProcessor.processAllLeaves(),
+});
 const { zoomPopups, cZoomedNodeIds } = zoomPopup;
 
-// ── 사이드바 ──────────────────────────────────────────────────────────────
+/**사이드바 ────────────────────────────────────────────────────────────── */
 const sidebarTab = ref<'filters' | 'presets' | 'processes' | 'crops'>('filters');
 const splitterSize = ref(20);
 
-// ── 커스텀 필터 에디터 ─────────────────────────────────────────────────────
+/** 커스텀 필터 에디터 ───────────────────────────────────────────────────── */
 const showCustomFilterEditor = ref(false);
 const editingCustomFilter = ref<CustomFilter | undefined>();
 const filterListPanelRef = ref<InstanceType<typeof FilterListPanel> | null>(null);
@@ -165,11 +176,9 @@ function onCustomFilterSaved() {
   filterListPanelRef.value?.loadCustomFilters();
 }
 
-// ── Crop 핸들러 ──────────────────────────────────────────────────────────
+/** Crop 핸들러 ────────────────────────────────────────────────────────── */
 const cOriginalThumbnailUrl = computed(() =>
-  oOrigin.value.fileId
-    ? `${API_HOST}/api/files/thumbnail/${oOrigin.value.fileId}`
-    : null,
+  oOrigin.value.fileId ? `${API_HOST}/api/files/thumbnail/${oOrigin.value.fileId}` : null,
 );
 
 const showCropDialog = ref(false);
@@ -181,9 +190,7 @@ async function onSourceCrop() {
   try {
     const res = await filesApi.fetchOriginSizeUrl(oOrigin.value.fileId, [], 'source');
     cropDialogDziUrl.value = res.dziUrl ? API_HOST + res.dziUrl : undefined;
-    cropDialogSrc.value = res.imageUrl
-      ? API_HOST + res.imageUrl
-      : (oOrigin.value.imageUrl ?? '');
+    cropDialogSrc.value = res.imageUrl ? API_HOST + res.imageUrl : (oOrigin.value.imageUrl ?? '');
     showCropDialog.value = true;
   } catch {
     cropDialogSrc.value = oOrigin.value.imageUrl ?? '';
@@ -256,7 +263,7 @@ async function onCropViewport(viewport: { x: number; y: number; w: number; h: nu
   }
 }
 
-// ── 설정 토글 ──────────────────────────────────────────────────────────────
+/**설정 토글 ────────────────────────────────────────────────────────────── */
 function toggleFullResolution() {
   if (!settingsStore.isFullResolution) {
     const sourceNode = graph.nodes.value.find((n) => n.id === SOURCE_NODE_ID);
@@ -281,49 +288,49 @@ function toggleHideIntermediateNodes() {
   thumbnailProcessor.processAllLeaves();
 }
 
-// ── 파라미터 패널 computed ─────────────────────────────────────────────────
+/** 파라미터 패널 computed ───────────────────────────────────────────────── */
 const cSelNodeData = computed<ProcessNodeData | null>(() => {
-  if (!optionPanelTarget.value) return null;
-  const n = nodes.value.find((n) => n.id === optionPanelTarget.value);
+  if (!paramPanelTarget.value) return null;
+  const n = nodes.value.find((n) => n.id === paramPanelTarget.value);
   if (!n || n.type !== 'filter') return null;
   return n.data;
 });
 
 function onParamApply(updated: ProcessNodeData) {
-  thumbnailProcessor.onParamApply(updated, optionPanelTarget.value);
+  thumbnailProcessor.onParamApply(updated, paramPanelTarget.value);
 }
 
 function onParamChange(parameters: Record<string, unknown>) {
-  void thumbnailProcessor.onParamChange(parameters, optionPanelTarget.value);
+  void thumbnailProcessor.onParamChange(parameters, paramPanelTarget.value);
 }
 
-// ── 캔버스 초기화 래퍼 ────────────────────────────────────────────────────
+/** 캔버스 초기화 래퍼 ────────────────────────────────────────────────────*/
 function resetCanvas() {
   graph.resetCanvas(oOrigin.value.imageUrl, oOrigin.value.fileId, API_HOST);
-  showOptionPanel.value = false;
-  optionPanelTarget.value = null;
+  showParamPanel.value = false;
+  paramPanelTarget.value = null;
   activePresetId.value = null;
   activeProcessId.value = null;
 }
 
-// ── 노드 삭제 래퍼 (패널 닫기 포함) ─────────────────────────────────────────
+/** 노드 삭제 래퍼 (패널 닫기 포함) ───────────────────────────────────────── */
 function removeFilterNode(nodeId: string) {
-  if (optionPanelTarget.value === nodeId) {
-    showOptionPanel.value = false;
-    optionPanelTarget.value = null;
+  if (paramPanelTarget.value === nodeId) {
+    showParamPanel.value = false;
+    paramPanelTarget.value = null;
   }
   graph.removeFilterNode(nodeId);
 }
 
-// ── 필터 변경 래퍼 (패널 갱신 포함) ─────────────────────────────────────────
+/** 필터 변경 래퍼 (패널 갱신 포함) ───────────────────────────────────────── */
 function onChangeFilter(...args: Parameters<typeof graph.onChangeFilter>) {
   graph.onChangeFilter(...args);
-  if (optionPanelTarget.value === args[0]) {
-    showOptionPanel.value = true;
+  if (paramPanelTarget.value === args[0]) {
+    showParamPanel.value = true;
   }
 }
 
-// ── 캔버스 드롭 래퍼 ─────────────────────────────────────────────────────
+/** 캔버스 드롭 래퍼 ───────────────────────────────────────────────────── */
 function onCanvasDrop(event: DragEvent) {
   graph.onCanvasDrop(event, (filterId) => {
     return filterListPanelRef.value
@@ -334,12 +341,12 @@ function onCanvasDrop(event: DragEvent) {
   });
 }
 
-// ── 초기 데이터 로드 ──────────────────────────────────────────────────────
+/** 초기 데이터 로드 ────────────────────────────────────────────────────── */
 onMounted(async () => {
   await Promise.all([presetMgr.loadPresets(), processMgr.loadProcessList()]);
 });
 
-// ── 원본 초기화 래퍼 (crop cleanup 포함) ─────────────────────────────────
+/** 원본 초기화 래퍼 (crop cleanup 포함) ───────────────────────────────── */
 function setOriginalFile(file: File | null) {
   return originImage.setOriginalFile(file, file == null ? () => cropMgr.cleanupAll() : undefined);
 }
@@ -486,7 +493,14 @@ function setOriginalFile(file: File | null) {
               @update:model-value="nodeSizeInput = Number($event)"
               @keydown.enter="graph.applyNodeSizeAll"
             />
-            <q-btn flat dense size="sm" label="적용" color="primary" @click="graph.applyNodeSizeAll">
+            <q-btn
+              flat
+              dense
+              size="sm"
+              label="적용"
+              color="primary"
+              @click="graph.applyNodeSizeAll"
+            >
               <q-tooltip>입력한 크기를 전체 노드에 적용</q-tooltip>
             </q-btn>
 
@@ -620,16 +634,16 @@ function setOriginalFile(file: File | null) {
             <!-- 파라미터 패널 (우측 슬라이드) -->
             <transition name="slide-option">
               <ParamPanel
-                v-show="showOptionPanel"
+                v-show="showParamPanel"
                 :node-data="cSelNodeData ?? undefined"
                 :custom-filters="(filterListPanelRef as any)?.customFilters"
-                @close="showOptionPanel = false"
+                @close="showParamPanel = false"
                 @apply="onParamApply"
                 @change="onParamChange"
                 @change-filter="
                   (filterType, label, filterId) =>
-                    optionPanelTarget &&
-                    onChangeFilter(optionPanelTarget, filterType, label, filterId)
+                    paramPanelTarget &&
+                    onChangeFilter(paramPanelTarget, filterType, label, filterId)
                 "
               />
             </transition>

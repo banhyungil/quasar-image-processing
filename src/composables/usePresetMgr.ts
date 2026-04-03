@@ -6,14 +6,21 @@ import type { AppNode, FlatStep } from 'src/types/flowTypes';
 import { stepsToFlow, flowToSteps } from 'src/utils/flowConverter';
 
 /** Preset CRUD(목록 조회, 로드, 저장, 수정, 삭제)를 관리하는 composable */
-export function usePresetMgr(
-  nodes: Ref<AppNode[]>,
-  edges: Ref<Edge[]>,
-  oOriginImageUrl: Ref<string | null>,
-  getDefaultParams: (filterType: string) => Record<string, unknown>,
-  relayout: () => void,
-  processAllLeaves: () => void,
-) {
+export function usePresetMgr({
+  nodes,
+  edges,
+  oOriginImageUrl,
+  getDefaultParams,
+  relayout,
+  processAllLeaves,
+}: {
+  nodes: Ref<AppNode[]>;
+  edges: Ref<Edge[]>;
+  oOriginImageUrl: Ref<string | null>;
+  getDefaultParams: (filterType: string) => Record<string, unknown>;
+  relayout: () => void;
+  processAllLeaves: () => void;
+}) {
   const presets = ref<PresetRes[]>([]);
   const activePresetId = ref<number | null>(null);
   const showSavePresetDialog = ref(false);

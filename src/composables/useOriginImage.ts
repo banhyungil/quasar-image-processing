@@ -4,8 +4,6 @@ import { API_HOST } from 'src/boot/axios';
 import type { AppNode, SourceNode as SourceNodeType } from 'src/types/flowTypes';
 import { useQuasar } from 'quasar';
 
-import { SOURCE_NODE_ID } from './useFilterGraph';
-
 export interface OriginData {
   fileId: number | null;
   imageUrl: string | null;
@@ -14,10 +12,13 @@ export interface OriginData {
 }
 
 /** 원본 이미지 업로드/선택/초기화 및 source 노드 동기화를 관리하는 composable */
-export function useOriginImage(
-  nodes: Ref<AppNode[]>,
-  onProcessAllLeaves: () => void,
-) {
+export function useOriginImage({
+  nodes,
+  onProcessAllLeaves,
+}: {
+  nodes: Ref<AppNode[]>;
+  onProcessAllLeaves: () => void;
+}) {
   const $q = useQuasar();
 
   const oOrigin = ref<OriginData>({

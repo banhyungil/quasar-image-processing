@@ -21,17 +21,27 @@ export interface ZoomPopup {
 }
 
 /** 이미지 확대 팝업(모달리스, 복수), 다운로드, 체인 복사를 관리하는 composable */
-export function useZoomPopup(
-  nodes: Ref<AppNode[]>,
-  edges: Ref<Edge[]>,
-  oOriginFileId: Ref<number | null>,
-  activeCrop: Ref<CropItem | null>,
-  buildStepsToNode: (nodeId: string) => TreeBatchStep[],
-  addNodes: (nodes: Node[]) => void,
-  addEdges: (edges: Edge[]) => void,
-  relayout: () => void,
-  processAllLeaves: () => void,
-) {
+export function useZoomPopup({
+  nodes,
+  edges,
+  oOriginFileId,
+  activeCrop,
+  buildStepsToNode,
+  addNodes,
+  addEdges,
+  relayout,
+  processAllLeaves,
+}: {
+  nodes: Ref<AppNode[]>;
+  edges: Ref<Edge[]>;
+  oOriginFileId: Ref<number | null>;
+  activeCrop: Ref<CropItem | null>;
+  buildStepsToNode: (nodeId: string) => TreeBatchStep[];
+  addNodes: (nodes: Node[]) => void;
+  addEdges: (edges: Edge[]) => void;
+  relayout: () => void;
+  processAllLeaves: () => void;
+}) {
   const $q = useQuasar();
 
   const zoomPopups = ref<ZoomPopup[]>([]);

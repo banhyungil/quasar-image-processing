@@ -11,14 +11,21 @@ import { useSettingsStore } from 'src/stores/settings-store';
 import { SOURCE_NODE_ID } from './useFilterGraph';
 
 /** 노드 썸네일 연산, 파라미터 변경 debounce + abort, step 구축을 관리하는 composable */
-export function useThumbnailProcessor(
-  nodes: Ref<AppNode[]>,
-  edges: Ref<Edge[]>,
-  oOriginFileId: Ref<number | null>,
-  activeCropId: Ref<string | null>,
-  collectPathToNode: (targetNodeId: string) => string[],
-  collectDescendantLeaves: (nodeId: string) => string[],
-) {
+export function useThumbnailProcessor({
+  nodes,
+  edges,
+  oOriginFileId,
+  activeCropId,
+  collectPathToNode,
+  collectDescendantLeaves,
+}: {
+  nodes: Ref<AppNode[]>;
+  edges: Ref<Edge[]>;
+  oOriginFileId: Ref<number | null>;
+  activeCropId: Ref<string | null>;
+  collectPathToNode: (targetNodeId: string) => string[];
+  collectDescendantLeaves: (nodeId: string) => string[];
+}) {
   const settingsStore = useSettingsStore();
 
   let paramAbortController: AbortController | null = null;
