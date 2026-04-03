@@ -2,6 +2,7 @@ import type { Edge } from '@vue-flow/core';
 
 import * as presetsApi from 'src/apis/presetsApi';
 import type { PresetRes } from 'src/apis/presetsApi';
+import { getDefaultParams } from 'src/constants/imgPrc';
 import type { AppNode, FlatStep } from 'src/types/flowTypes';
 import { stepsToFlow, flowToSteps } from 'src/utils/flowConverter';
 
@@ -10,14 +11,12 @@ export function usePresetMgr({
   nodes,
   edges,
   oOriginImageUrl,
-  getDefaultParams,
   relayout,
   processAllLeaves,
 }: {
   nodes: Ref<AppNode[]>;
   edges: Ref<Edge[]>;
   oOriginImageUrl: Ref<string | null>;
-  getDefaultParams: (filterType: string) => Record<string, unknown>;
   relayout: () => void;
   processAllLeaves: () => void;
 }) {

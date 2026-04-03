@@ -117,7 +117,6 @@ const presetMgr = usePresetMgr({
   nodes,
   edges,
   oOriginImageUrl: computed(() => oOrigin.value.imageUrl),
-  getDefaultParams: graph.getDefaultParams,
   relayout: graph.relayout,
   processAllLeaves: () => thumbnailProcessor.processAllLeaves(),
 });
@@ -135,7 +134,6 @@ const processMgr = useProcessMgr({
   nodes,
   edges,
   oOriginFileId: computed(() => oOrigin.value.fileId),
-  getDefaultParams: graph.getDefaultParams,
   setOriginalFile: (file) => originImage.setOriginalFile(file),
   relayout: graph.relayout,
   processAllLeaves: () => thumbnailProcessor.processAllLeaves(),

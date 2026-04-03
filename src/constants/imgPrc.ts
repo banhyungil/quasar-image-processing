@@ -93,6 +93,13 @@ export function buildChainFilename(filterTypes: string[]): string {
   return `${abbrs[0]}_${abbrs[1]}_+${mid}_${abbrs[abbrs.length - 1]}`;
 }
 
+/** PARAM_FIELDS에서 필터 타입에 맞는 기본 파라미터 객체를 생성 */
+export function getDefaultParams(filterType: string): Record<string, unknown> {
+  const fields = PARAM_FIELDS[filterType];
+  if (!fields) return {};
+  return Object.fromEntries(fields.map((f) => [f.key, f.default]));
+}
+
 // 파라미터 필드 정의
 export interface ParamFieldDef {
   key: string;

@@ -1,7 +1,7 @@
 import { useVueFlow } from '@vue-flow/core';
 import type { Node, Edge, Connection } from '@vue-flow/core';
 
-import { PARAM_FIELDS } from 'src/constants/imgPrc';
+import { getDefaultParams } from 'src/constants/imgPrc';
 import type { FilterType } from 'src/types/imgPrcType';
 import type { ProcessNodeData, SourceNodeData, AppNode } from 'src/types/flowTypes';
 import { applyDagreLayout } from 'src/utils/flowLayout';
@@ -66,14 +66,6 @@ export function useFilterGraph({
 
   function onPaneClick() {
     selectedNodeId.value = null;
-  }
-
-  // ── 파라미터 기본값 ─────────────────────────────────────────────────────────
-  /** PARAM_FIELDS에서 필터 타입에 맞는 기본 파라미터 객체를 생성 */
-  function getDefaultParams(filterType: string): Record<string, unknown> {
-    const fields = PARAM_FIELDS[filterType];
-    if (!fields) return {};
-    return Object.fromEntries(fields.map((f) => [f.key, f.default]));
   }
 
   // ── 노드 추가 ──────────────────────────────────────────────────────────────

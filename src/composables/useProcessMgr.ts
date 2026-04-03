@@ -5,13 +5,13 @@ import type { ProcessRes } from 'src/apis/processesApi';
 import type { AppNode, FlatStep } from 'src/types/flowTypes';
 import { stepsToFlow, flowToSteps } from 'src/utils/flowConverter';
 import { API_HOST } from 'src/boot/axios';
+import { getDefaultParams } from 'src/constants/imgPrc';
 
 /** Process CRUD(목록 조회, 로드, 저장, 수정, 삭제)를 관리하는 composable */
 export function useProcessMgr({
   nodes,
   edges,
   oOriginFileId,
-  getDefaultParams,
   setOriginalFile,
   relayout,
   processAllLeaves,
@@ -19,7 +19,6 @@ export function useProcessMgr({
   nodes: Ref<AppNode[]>;
   edges: Ref<Edge[]>;
   oOriginFileId: Ref<number | null>;
-  getDefaultParams: (filterType: string) => Record<string, unknown>;
   setOriginalFile: (file: File | null, cropCleanup?: () => void) => Promise<void>;
   relayout: () => void;
   processAllLeaves: () => void;
