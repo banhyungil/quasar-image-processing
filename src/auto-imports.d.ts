@@ -8,6 +8,9 @@ export {}
 declare global {
   const EffectScope: typeof import('vue').EffectScope
   const NODE_SIZE_PRESETS: typeof import('./stores/settings-store').NODE_SIZE_PRESETS
+  const SOURCE_NODE_ID: typeof import('./composables/useFilterGraph').SOURCE_NODE_ID
+  const collectDescendantLeaves: typeof import('./composables/useFilterGraph').collectDescendantLeaves
+  const collectPathToNode: typeof import('./composables/useFilterGraph').collectPathToNode
   const computeViewportStatus: typeof import('./composables/useCropManager').computeViewportStatus
   const computed: typeof import('vue').computed
   const createApp: typeof import('vue').createApp
@@ -63,16 +66,23 @@ declare global {
   const useCropManager: typeof import('./composables/useCropManager').useCropManager
   const useCssModule: typeof import('vue').useCssModule
   const useCssVars: typeof import('vue').useCssVars
+  const useFilterGraph: typeof import('./composables/useFilterGraph').useFilterGraph
   const useId: typeof import('vue').useId
   const useLink: typeof import('vue-router').useLink
   const useModel: typeof import('vue').useModel
+  const useNodeResize: typeof import('./composables/useNodeResize').useNodeResize
+  const useOriginImage: typeof import('./composables/useOriginImage').useOriginImage
   const useParamCompletion: typeof import('./composables/useParamCompletion').useParamCompletion
+  const usePresetMgr: typeof import('./composables/usePresetMgr').usePresetMgr
   const usePreviewManager: typeof import('./composables/usePreviewManager').usePreviewManager
+  const useProcessMgr: typeof import('./composables/useProcessMgr').useProcessMgr
   const useRoute: typeof import('vue-router').useRoute
   const useRouter: typeof import('vue-router').useRouter
   const useSettingsStore: typeof import('./stores/settings-store').useSettingsStore
   const useSlots: typeof import('vue').useSlots
   const useTemplateRef: typeof import('vue').useTemplateRef
+  const useThumbnailProcessor: typeof import('./composables/useThumbnailProcessor').useThumbnailProcessor
+  const useZoomPopup: typeof import('./composables/useZoomPopup').useZoomPopup
   const watch: typeof import('vue').watch
   const watchEffect: typeof import('vue').watchEffect
   const watchPostEffect: typeof import('vue').watchPostEffect
@@ -87,8 +97,17 @@ declare global {
   export type { CropItem } from './composables/useCropManager'
   import('./composables/useCropManager')
   // @ts-ignore
+  export type { FilterGraphCallbacks } from './composables/useFilterGraph'
+  import('./composables/useFilterGraph')
+  // @ts-ignore
+  export type { OriginData } from './composables/useOriginImage'
+  import('./composables/useOriginImage')
+  // @ts-ignore
   export type { TempStep } from './composables/usePreviewManager'
   import('./composables/usePreviewManager')
+  // @ts-ignore
+  export type { ZoomPopup } from './composables/useZoomPopup'
+  import('./composables/useZoomPopup')
   // @ts-ignore
   export type { PiniaCustomProperties } from './stores/index'
   import('./stores/index')

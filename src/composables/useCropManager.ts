@@ -1,7 +1,7 @@
 import { useQuasar } from 'quasar';
 import * as filesApi from 'src/apis/filesApi';
 import type { TreeBatchStep, Viewport } from 'src/types/imgPrcType';
-import { API_HOST } from 'src/boot/axios';
+import { API_BASE_URL } from 'src/boot/axios';
 
 export interface CropItem {
   cropId: string;
@@ -60,7 +60,7 @@ export function useCropManager(
     const result = await filesApi.createCrop(fileId.value, nodeSteps.value, nodeId.value, viewport);
     const newCrop: CropItem = {
       cropId: result.cropId,
-      nodeImageUrl: API_HOST + result.nodeImageUrl,
+      nodeImageUrl: API_BASE_URL + result.nodeImageUrl,
       processedImageUrl: null,
       viewport,
       label: `Crop ${cropList.value.length + 1}`,

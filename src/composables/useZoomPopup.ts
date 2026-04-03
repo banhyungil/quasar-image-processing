@@ -4,7 +4,7 @@ import * as filesApi from 'src/apis/filesApi';
 import type { TreeBatchStep, PreviewTempStep } from 'src/types/imgPrcType';
 import type { AppNode, ProcessNodeData } from 'src/types/flowTypes';
 import { PARAM_FIELDS, buildChainFilename } from 'src/constants/imgPrc';
-import { API_HOST } from 'src/boot/axios';
+import { API_BASE_URL } from 'src/boot/axios';
 import { useQuasar } from 'quasar';
 
 import { SOURCE_NODE_ID } from './useFilterGraph';
@@ -23,7 +23,6 @@ export interface ZoomPopup {
 /** 이미지 확대 팝업(모달리스, 복수), 다운로드, 체인 복사를 관리하는 composable */
 export function useZoomPopup({
   nodes,
-  edges,
   oOriginFileId,
   activeCrop,
   buildStepsToNode,
@@ -33,7 +32,6 @@ export function useZoomPopup({
   processAllLeaves,
 }: {
   nodes: Ref<AppNode[]>;
-  edges: Ref<Edge[]>;
   oOriginFileId: Ref<number | null>;
   activeCrop: Ref<CropItem | null>;
   buildStepsToNode: (nodeId: string) => TreeBatchStep[];
@@ -125,8 +123,8 @@ export function useZoomPopup({
     const filterData = node?.type === 'filter' ? node.data : null;
     const oUrl = (() => {
       const obj: { src: string; dziUrl?: string } = { src: '', dziUrl: undefined };
-      if (result.imageUrl) obj.src = API_HOST + result.imageUrl;
-      else if (result.dziUrl) obj.dziUrl = API_HOST + result.dziUrl;
+      if (result.imageUrl) obj.src = API_BASE_URL + result.imageUrl;
+      else if (result.dziUrl) obj.dziUrl = API_BASE_URL + result.dziUrl;
       return obj;
     })();
 

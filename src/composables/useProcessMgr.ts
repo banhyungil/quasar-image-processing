@@ -4,7 +4,7 @@ import * as processesApi from 'src/apis/processesApi';
 import type { ProcessRes } from 'src/apis/processesApi';
 import type { AppNode, FlatStep } from 'src/types/flowTypes';
 import { stepsToFlow, flowToSteps } from 'src/utils/flowConverter';
-import { API_HOST } from 'src/boot/axios';
+import { api, API_BASE_URL } from 'src/boot/axios';
 import { getDefaultParams } from 'src/constants/imgPrc';
 
 /** Process CRUD(목록 조회, 로드, 저장, 수정, 삭제)를 관리하는 composable */
@@ -36,10 +36,9 @@ export function useProcessMgr({
     let file: File | null = null;
 
     if (detail.filePath) {
-      const res = await fetch(`${API_HOST}/${detail.filePath}`);
-      const blob = await res.blob();
+      const res = await api.get<Blob>(`${API_BASE_URL}/${detail.filePath}`, { responseType: 'blob' });
       const fileName = detail.filePath.split('/').pop() ?? 'image.png';
-      file = new File([blob], fileName, { type: blob.type });
+      file = new File([res.data], fileName, { type: res.data.type });
     }
 
     const flatSteps: FlatStep[] = detail.steps.map((s) => ({

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ProcessRes } from 'src/apis/processesApi';
-import { API_HOST } from 'src/boot/axios';
+import { API_BASE_URL } from 'src/boot/axios';
 
 defineProps<{
   processList: ProcessRes[];
@@ -28,7 +28,7 @@ const emit = defineEmits<{
         <q-avatar square size="40px" class="q-mr-xs" style="flex-shrink: 0">
           <img
             v-if="proc.filePath"
-            :src="`${API_HOST}/${proc.filePath}`"
+            :src="`${API_BASE_URL}/${proc.filePath}`"
             style="object-fit: cover"
           />
           <q-icon v-else name="image" color="grey-5" />

@@ -15,8 +15,8 @@ declare module 'vue' {
 // good idea to move this instance creation inside of the
 // "export default () => {}" function below (which runs individually
 // for each client)
-export const API_HOST = import.meta.env.VITE_API_HOST ?? 'http://127.0.0.1:8000';
-const api = axios.create({ baseURL: `${API_HOST}/api` });
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000';
+const api = axios.create({ baseURL: `${API_BASE_URL}/api` });
 
 // 백엔드 에러 응답 타입
 interface AppErrorRes {

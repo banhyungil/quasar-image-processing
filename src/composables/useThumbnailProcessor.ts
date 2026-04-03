@@ -4,7 +4,7 @@ import type { Edge } from '@vue-flow/core';
 import * as filesApi from 'src/apis/filesApi';
 import type { TreeBatchStep } from 'src/types/imgPrcType';
 import type { AppNode, ProcessNodeData } from 'src/types/flowTypes';
-import { API_HOST } from 'src/boot/axios';
+import { API_BASE_URL } from 'src/boot/axios';
 import { useSettingsStore } from 'src/stores/settings-store';
 
 import { collectDescendantLeaves, collectPathToNode, SOURCE_NODE_ID } from './useFilterGraph';
@@ -85,7 +85,7 @@ export function useThumbnailProcessor({
         if (nr.imageUrl) {
           node.data.imageUrl = nr.imageUrl.startsWith('data:')
             ? nr.imageUrl
-            : API_HOST + nr.imageUrl;
+            : API_BASE_URL + nr.imageUrl;
           node.data.executionMs = nr.executionMs;
           node.data.imageWidth = nr.width;
           node.data.imageHeight = nr.height;

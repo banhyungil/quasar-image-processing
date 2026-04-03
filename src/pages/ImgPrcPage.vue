@@ -7,7 +7,7 @@ import '@vue-flow/core/dist/theme-default.css';
 import * as filesApi from 'src/apis/filesApi';
 import type { TFile, TreeBatchStep } from 'src/types/imgPrcType';
 import type { ProcessNodeData } from 'src/types/flowTypes';
-import { API_HOST } from 'src/boot/axios';
+import { API_BASE_URL } from 'src/boot/axios';
 
 import FilterNode from 'src/components/flow/FilterNode.vue';
 import SourceNode from 'src/components/flow/SourceNode.vue';
@@ -35,6 +35,7 @@ import { useQuasar } from 'quasar';
 import type { Edge } from '@vue-flow/core';
 import type { AppNode } from 'src/types/flowTypes';
 import type { CustomFilter } from 'src/apis/customFiltersApi';
+import type { ProcessRes } from 'src/apis/processesApi';
 
 const settingsStore = useSettingsStore();
 const $q = useQuasar();
@@ -121,9 +122,6 @@ const processMgr = useProcessMgr({
   nodes,
   edges,
   oOriginFileId: computed(() => oOrigin.value.fileId),
-  setOriginalFile: (file) => originImage.setOriginalFile(file),
-  relayout: graph.relayout,
-  processAllLeaves: () => thumbnailProcessor.processAllLeaves(),
 });
 const { processList, activeProcessId, showSaveProcessDialog, processDialogName, isEditingProcess } =
   processMgr;
@@ -132,7 +130,6 @@ const { processList, activeProcessId, showSaveProcessDialog, processDialogName, 
 const { addNodes, addEdges } = useVueFlow();
 const zoomPopup = useZoomPopup({
   nodes,
-  edges,
   oOriginFileId: computed(() => oOrigin.value.fileId),
   activeCrop: cropMgr.activeCrop,
   buildStepsToNode: thumbnailProcessor.buildStepsToNode,
@@ -163,7 +160,7 @@ function onCustomFilterSaved() {
 
 /** Crop 핸들러 ────────────────────────────────────────────────────────── */
 const cOriginalThumbnailUrl = computed(() =>
-  oOrigin.value.fileId ? `${API_HOST}/api/files/thumbnail/${oOrigin.value.fileId}` : null,
+  oOrigin.value.fileId ? `${API_BASE_URL}/api/files/thumbnail/${oOrigin.value.fileId}` : null,
 );
 
 const showCropDialog = ref(false);
@@ -174,8 +171,10 @@ async function onSourceCrop() {
   if (!oOrigin.value.fileId) return;
   try {
     const res = await filesApi.fetchOriginSizeUrl(oOrigin.value.fileId, [], 'source');
-    cropDialogDziUrl.value = res.dziUrl ? API_HOST + res.dziUrl : undefined;
-    cropDialogSrc.value = res.imageUrl ? API_HOST + res.imageUrl : (oOrigin.value.imageUrl ?? '');
+    cropDialogDziUrl.value = res.dziUrl ? API_BASE_URL + res.dziUrl : undefined;
+    cropDialogSrc.value = res.imageUrl
+      ? API_BASE_URL + res.imageUrl
+      : (oOrigin.value.imageUrl ?? '');
     showCropDialog.value = true;
   } catch {
     cropDialogSrc.value = oOrigin.value.imageUrl ?? '';
@@ -203,7 +202,7 @@ function updateSourceNodeImage(cropId: string | null) {
   } else {
     data.previewUrl = oOrigin.value.imageUrl;
     data.thumbnailUrl = oOrigin.value.fileId
-      ? `${API_HOST}/api/files/thumbnail/${oOrigin.value.fileId}`
+      ? `${API_BASE_URL}/api/files/thumbnail/${oOrigin.value.fileId}`
       : null;
     data.width = oOrigin.value.width;
     data.height = oOrigin.value.height;
@@ -291,7 +290,7 @@ function onParamChange(parameters: Record<string, unknown>) {
 
 /** 캔버스 초기화 래퍼 ────────────────────────────────────────────────────*/
 function resetCanvas() {
-  graph.resetCanvas(oOrigin.value.imageUrl, oOrigin.value.fileId, API_HOST);
+  graph.resetCanvas(oOrigin.value.imageUrl, oOrigin.value.fileId, API_BASE_URL);
   showParamPanel.value = false;
   paramPanelTarget.value = null;
   activePresetId.value = null;

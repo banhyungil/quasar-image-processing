@@ -1,5 +1,5 @@
 import * as filesApi from 'src/apis/filesApi';
-import { API_HOST } from 'src/boot/axios';
+import { API_BASE_URL } from 'src/boot/axios';
 
 import type { AppNode, SourceNode as SourceNodeType } from 'src/types/flowTypes';
 import { useQuasar } from 'quasar';
@@ -31,7 +31,7 @@ export function useOriginImage({ nodes }: { nodes: Ref<AppNode[]> }) {
     if (sourceNode) {
       sourceNode.data.previewUrl = oOrigin.value.imageUrl;
       sourceNode.data.thumbnailUrl = oOrigin.value.fileId
-        ? `${API_HOST}/api/files/thumbnail/${oOrigin.value.fileId}`
+        ? `${API_BASE_URL}/api/files/thumbnail/${oOrigin.value.fileId}`
         : null;
       sourceNode.data.width = oOrigin.value.width;
       sourceNode.data.height = oOrigin.value.height;
@@ -90,14 +90,14 @@ export function useOriginImage({ nodes }: { nodes: Ref<AppNode[]> }) {
   }) {
     oOrigin.value.fileId = tFile.id;
     if (oOrigin.value.imageUrl) URL.revokeObjectURL(oOrigin.value.imageUrl);
-    oOrigin.value.imageUrl = `${API_HOST}/${tFile.path}`;
+    oOrigin.value.imageUrl = `${API_BASE_URL}/${tFile.path}`;
     oOrigin.value.width = tFile.width ?? null;
     oOrigin.value.height = tFile.height ?? null;
 
     const sourceNode = nodes.value.find((n): n is SourceNodeType => n.type === 'source');
     if (sourceNode) {
       sourceNode.data.previewUrl = oOrigin.value.imageUrl;
-      sourceNode.data.thumbnailUrl = `${API_HOST}/api/files/thumbnail/${tFile.id}`;
+      sourceNode.data.thumbnailUrl = `${API_BASE_URL}/api/files/thumbnail/${tFile.id}`;
       sourceNode.data.width = oOrigin.value.width;
       sourceNode.data.height = oOrigin.value.height;
     }
