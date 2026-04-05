@@ -39,15 +39,18 @@
 
 ### Notion 정리 지침
 
+- DB: 개발 > 프로젝트 > 프로젝트 작업
 - 데이터 소스 ID: `336705ff-d265-80a6-860d-000b6e9262ad`
 - 속성 매핑:
   - `제목` (Title): 작업 제목
-  - `선택` (Select): **Front** (이 프로젝트는 항상 Front)
-  - `작업 유형` (Multi-select): feature / refactoring / bugfix / config / test / style / docs
-  - `상태` (Status): 시작 전 / 진행 중 / 완료
+  - `프로젝트 정보` (Relation): `["https://www.notion.so/338705ffd26581038b9af26c8b47688e"]` (image-processing Frontend)
+  - `작업 유형` (Multi-select): plan / feature / refactoring / bugfix / config / test / style / docs
+  - `상태` (Status): 요청전 / 요청 / 승인대기 / 승인 / 완료
   - `시작일` (Date): 작업 시작일
+  - `Git Branch명` (Text): 작업 브랜치명 (있는 경우)
+  - `PR URL` (URL): PR 링크 (있는 경우)
 - 페이지 아이콘: 작업 유형에 따라 지정
-  - feature: ✨ / refactoring: ♻️ / bugfix: 🐛 / config: ⚙️ / test: 🧪 / style: 🎨 / docs: 📝
+  - plan: 📋 / feature: ✨ / refactoring: ♻️ / bugfix: 🐛 / config: ⚙️ / test: 🧪 / style: 🎨 / docs: 📝
   - Multi-select 시 첫 번째 유형 기준
 - 본문: 배경(왜), 변경 내용, 결과를 간결하게 작성
 - 작업 단위는 하루가 아니라 "의미 단위" — 하루에 2건이면 2페이지, 이틀 걸렸으면 1페이지
