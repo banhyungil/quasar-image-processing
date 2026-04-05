@@ -1,4 +1,7 @@
 import { defineConfig } from '@playwright/test';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: '.env' });
 
 export default defineConfig({
   testDir: './e2e',
@@ -8,11 +11,11 @@ export default defineConfig({
   //   reuseExistingServer: true,
   // },
   use: {
-    baseURL: `http://localhost:3000`,
+    baseURL: `http://localhost:${process.env.VITE_PORT}`,
     viewport: { width: 1920, height: 1080 },
     trace: 'retain-on-failure', // 실패시에 trace 가록
     video: 'on', // 실패시에 영상 가록
     screenshot: 'on', // 매 테스트마다 스크린샷 촬영
-    launchOptions: { slowMo: 1000 },
+    launchOptions: { slowMo: 300 },
   },
 });

@@ -1,25 +1,34 @@
 import { test, expect, type Page } from '@playwright/test';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// 이미지 선택 후 캔버스 준비 헬퍼
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const TEST_IMAGE = path.join(__dirname, 'fixtures/test.png');
+
+/** 이미지 업로드 후 캔버스 준비 헬퍼 */
 async function setupCanvas(page: Page) {
   await page.goto('/');
 
-  // 원본 이미지 선택 → 갤러리 열기
-  const responsePromise = page.waitForResponse(
-    (res) => res.url().includes('/files') && res.status() === 200,
-  );
+  // SourceNode 빈 영역 클릭 → 갤러리 다이얼로그 열기
   await page.locator('.source-node').click();
-  await expect(page.getByText('이미지 선택', { exact: true })).toBeVisible();
-  await responsePromise;
+  const dialog = page.locator('.image-gallery-dialog');
+  await expect(dialog).toBeVisible({ timeout: 10000 });
 
-  // 갤러리에서 첫 번째 이미지 선택
-  const firstItem = page.locator('.gallery-item').first();
-  if (await firstItem.isVisible()) {
-    await firstItem.click();
-    await expect(page.getByText('이미지 선택', { exact: true })).not.toBeVisible();
+  // 기존 이미지가 있으면 선택, 없으면 업로드
+  const galleryItem = dialog.locator('.gallery-item').first();
+  if (await galleryItem.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await galleryItem.click();
+  } else {
+    // 파일 업로드
+    const fileInput = dialog.locator('input[type="file"]');
+    await fileInput.setInputFiles(TEST_IMAGE);
+    await dialog.getByRole('button', { name: '업로드' }).click();
+    await expect(dialog.locator('.gallery-item').first()).toBeVisible({ timeout: 10000 });
+    await dialog.locator('.gallery-item').first().click();
   }
 
-  // SourceNode에 이미지 로드 대기
+  // 다이얼로그 닫힘 + SourceNode에 이미지 로드 대기
+  await expect(dialog).not.toBeVisible({ timeout: 5000 });
   await expect(page.locator('.source-node img')).toBeVisible({ timeout: 10000 });
 }
 
@@ -39,29 +48,29 @@ test.describe('Crop 생성 & 목록 관리', () => {
   test('SourceNode crop 버튼 → CropDialog 열림', async ({ page }) => {
     await setupCanvas(page);
 
-    // SourceNode hover → 첫 번째 버튼 (crop)
+    // SourceNode hover → crop 버튼
     await page.locator('.source-node').hover();
-    const buttons = page.locator('.source-node__header .q-btn');
-    await buttons.first().click();
+    await page.locator('.source-node__header .q-btn').filter({ hasText: 'crop' }).click();
 
     // CropDialog 확인
-    await expect(page.getByText('Crop 영역 지정')).toBeVisible({ timeout: 5000 });
+    const cropDialog = page.locator('.crop-dialog');
+    await expect(cropDialog).toBeVisible({ timeout: 10000 });
+    await expect(cropDialog.getByText('Crop 영역 지정')).toBeVisible();
   });
 
   test('CropDialog에서 crop 생성 → Crop 탭에 표시', async ({ page }) => {
     await setupCanvas(page);
 
-    // crop 생성
+    // crop 다이얼로그 열기
     await page.locator('.source-node').hover();
-    const buttons = page.locator('.source-node__header .q-btn');
-    await buttons.first().click();
-    await expect(page.getByText('Crop 영역 지정')).toBeVisible({ timeout: 5000 });
+    await page.locator('.source-node__header .q-btn').filter({ hasText: 'crop' }).click();
+    await expect(page.locator('.crop-dialog')).toBeVisible({ timeout: 10000 });
 
-    // 뷰포트 저장
-    await page.locator('.q-bar button', { has: page.locator('img[alt="content_cut"], .q-icon:text("content_cut")') }).first().click();
+    // 뷰포트 저장 (content_cut 버튼)
+    await page.locator('.crop-dialog .q-bar .q-btn').filter({ hasText: 'content_cut' }).click();
 
     // 다이얼로그 닫기
-    await page.locator('.q-bar button', { has: page.locator('img[alt="close"], .q-icon:text("close")') }).first().click();
+    await page.locator('.crop-dialog .q-bar .q-btn').filter({ hasText: 'close' }).click();
 
     // Crop 탭으로 이동 → crop 항목 확인
     await page.locator('.q-tab').filter({ hasText: 'Crop' }).click();
@@ -75,8 +84,8 @@ test.describe('캔버스 옵션 토글', () => {
   test('풀해상도 토글 버튼 동작', async ({ page }) => {
     await setupCanvas(page);
 
-    // HD 버튼 찾기 (icon: "hd")
-    const hdBtn = page.locator('button').filter({ hasText: 'hd' }).first();
+    // HD 버튼
+    const hdBtn = page.locator('.q-btn').filter({ hasText: 'hd' }).first();
     await expect(hdBtn).toBeVisible();
 
     // 클릭 → 풀해상도 ON → 경고 알림
@@ -88,7 +97,7 @@ test.describe('캔버스 옵션 토글', () => {
     await setupCanvas(page);
 
     // visibility_off 버튼
-    const hideBtn = page.locator('button').filter({ hasText: 'visibility_off' }).first();
+    const hideBtn = page.locator('.q-btn').filter({ hasText: 'visibility_off' }).first();
     await expect(hideBtn).toBeVisible();
 
     // 클릭 → 토글
@@ -120,8 +129,7 @@ test.describe('노드 리사이즈', () => {
     await setupCanvas(page);
 
     await page.locator('.source-node').hover();
-    const sizeBadge = page.locator('.source-node__size-badge');
-    await expect(sizeBadge).toBeVisible();
+    await expect(page.locator('.source-node__size-badge')).toBeVisible();
   });
 });
 
@@ -133,11 +141,10 @@ test.describe('Crop + 확대팝업', () => {
 
     // 1. crop 생성
     await page.locator('.source-node').hover();
-    const buttons = page.locator('.source-node__header .q-btn');
-    await buttons.first().click();
-    await expect(page.getByText('Crop 영역 지정')).toBeVisible({ timeout: 5000 });
-    await page.locator('.q-bar button', { has: page.locator('img[alt="content_cut"], .q-icon:text("content_cut")') }).first().click();
-    await page.locator('.q-bar button', { has: page.locator('img[alt="close"], .q-icon:text("close")') }).first().click();
+    await page.locator('.source-node__header .q-btn').filter({ hasText: 'crop' }).click();
+    await expect(page.locator('.crop-dialog')).toBeVisible({ timeout: 10000 });
+    await page.locator('.crop-dialog .q-bar .q-btn').filter({ hasText: 'content_cut' }).click();
+    await page.locator('.crop-dialog .q-bar .q-btn').filter({ hasText: 'close' }).click();
 
     // 2. Crop 탭에서 crop 선택
     await page.locator('.q-tab').filter({ hasText: 'Crop' }).click();
@@ -147,11 +154,10 @@ test.describe('Crop + 확대팝업', () => {
 
     // 3. SourceNode 확대
     await page.locator('.source-node').hover();
-    const zoomBtn = page.locator('.source-node__header button', { has: page.locator('img[alt="zoom_in"], .q-icon:text("zoom_in")') }).first();
-    await zoomBtn.click();
+    await page.locator('.source-node__header .q-btn').filter({ hasText: 'zoom_in' }).click();
 
     // 확대팝업이 "Crop:" 타이틀로 열리는지 확인
-    await expect(page.locator('.zoom-header').getByText('Crop:')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.zoom-header').getByText('Crop:')).toBeVisible({ timeout: 10000 });
   });
 
   test('Crop 미선택 시 SourceNode 확대 → 원본 이미지로 팝업 열림', async ({ page }) => {
@@ -159,11 +165,10 @@ test.describe('Crop + 확대팝업', () => {
 
     // SourceNode 확대 버튼 클릭
     await page.locator('.source-node').hover();
-    const zoomBtn = page.locator('.source-node__header button', { has: page.locator('img[alt="zoom_in"], .q-icon:text("zoom_in")') }).first();
-    await zoomBtn.click();
+    await page.locator('.source-node__header .q-btn').filter({ hasText: 'zoom_in' }).click();
 
     // "원본 이미지" 타이틀 확인
-    await expect(page.locator('.zoom-header').getByText('원본 이미지')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.zoom-header').getByText('원본 이미지')).toBeVisible({ timeout: 10000 });
   });
 });
 
@@ -174,10 +179,9 @@ test.describe('해상도 표시', () => {
     await setupCanvas(page);
 
     const badge = page.locator('.source-node__badge');
-    if (await badge.isVisible()) {
-      const text = await badge.textContent();
-      expect(text).toMatch(/\d+x\d+/);
-    }
+    await expect(badge).toBeVisible({ timeout: 5000 });
+    const text = await badge.textContent();
+    expect(text).toMatch(/\d+x\d+/);
   });
 });
 

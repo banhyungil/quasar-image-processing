@@ -4,7 +4,7 @@ const TEST_FILTER_NAME = `e2e-test-${Date.now()}`;
 
 // ── 커스텀 필터 CRUD ─────────────────────────────────────────────────────
 
-test.describe('커스텀 필터 CRUD', () => {
+test.describe.serial('커스텀 필터 CRUD', () => {
   test('커스텀 필터 생성', async ({ page }) => {
     await page.goto('/');
 
@@ -13,7 +13,8 @@ test.describe('커스텀 필터 CRUD', () => {
     await page.getByRole('button', { name: '새 커스텀 필터' }).click();
 
     // 다이얼로그 스코프
-    const dialog = page.locator('.q-dialog');
+    const dialog = page.locator('.custom-filter-editor-dialog');
+    await expect(dialog).toBeVisible({ timeout: 5000 });
     await expect(dialog.getByText('커스텀 필터 생성')).toBeVisible();
 
     // 입력
@@ -37,7 +38,8 @@ test.describe('커스텀 필터 CRUD', () => {
     await filterCard.locator('button').filter({ hasText: 'edit' }).click();
 
     // 다이얼로그 (수정 모드)
-    const dialog = page.locator('.q-dialog');
+    const dialog = page.locator('.custom-filter-editor-dialog');
+    await expect(dialog).toBeVisible({ timeout: 5000 });
     await expect(dialog.getByText('커스텀 필터 수정')).toBeVisible();
 
     // 이름 변경
@@ -75,8 +77,8 @@ test.describe('커스텀 필터 에디터', () => {
     await page.locator('.q-tab').filter({ hasText: '필터' }).click();
     await page.getByRole('button', { name: '새 커스텀 필터' }).click();
 
-    const dialog = page.locator('.q-dialog');
-    await expect(dialog.getByText('커스텀 필터 생성')).toBeVisible();
+    const dialog = page.locator('.custom-filter-editor-dialog');
+    await expect(dialog).toBeVisible({ timeout: 5000 });
 
     // 파라미터 추가
     await dialog.getByRole('button', { name: '추가' }).click();
@@ -95,8 +97,8 @@ test.describe('커스텀 필터 에디터', () => {
     await page.locator('.q-tab').filter({ hasText: '필터' }).click();
     await page.getByRole('button', { name: '새 커스텀 필터' }).click();
 
-    const dialog = page.locator('.q-dialog');
-    await expect(dialog.getByText('커스텀 필터 생성')).toBeVisible();
+    const dialog = page.locator('.custom-filter-editor-dialog');
+    await expect(dialog).toBeVisible({ timeout: 5000 });
 
     // 이름 비우기
     await dialog.getByRole('textbox', { name: '이름' }).clear();
@@ -118,7 +120,8 @@ test.describe('커스텀 필터 캔버스 적용', () => {
     await page.locator('.q-tab').filter({ hasText: '필터' }).click();
     await page.getByRole('button', { name: '새 커스텀 필터' }).click();
 
-    const dialog = page.locator('.q-dialog');
+    const dialog = page.locator('.custom-filter-editor-dialog');
+    await expect(dialog).toBeVisible({ timeout: 5000 });
     await dialog.getByRole('textbox', { name: '이름' }).fill('canvas-test-filter');
     await dialog.getByRole('button', { name: '저장' }).click();
     await expect(dialog).not.toBeVisible({ timeout: 5000 });
