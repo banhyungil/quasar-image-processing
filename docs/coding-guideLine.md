@@ -108,8 +108,8 @@ export function remove() {...}
 
 ### Boolean
 
-- `is`, `has`, `show` prefix 사용
-- 예) isFullResolution, hasChanges, showDialog
+- `is`, `has`, `show`, `use` prefix 사용
+- 예) isFullResolution, hasChanges, showDialog, useThumbnail
 
 ### Computed
 
