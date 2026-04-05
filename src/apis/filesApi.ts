@@ -228,11 +228,12 @@ export async function downloadNodeImage(
 
 export async function scanLocalDir(
   dirPath: string,
-  options?: { recursive?: boolean },
+  options?: { recursive?: boolean; useThumbnail?: boolean },
 ): Promise<LocalScanRes> {
   const res = await api.post<LocalScanRes>('/files/local/scan', {
     dirPath,
     recursive: options?.recursive ?? false,
+    useThumbnail: options?.useThumbnail ?? true,
   });
   return res.data;
 }

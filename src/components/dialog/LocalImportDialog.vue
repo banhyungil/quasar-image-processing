@@ -14,6 +14,7 @@ const emit = defineEmits<{
 // ── 상태 ────────────────────────────────────────────────────────────────────
 const dirPath = ref('');
 const recursive = ref(false);
+const useThumbnail = ref(true);
 const scanning = ref(false);
 const registering = ref(false);
 const scannedItems = ref<LocalFileInfo[]>([]);
@@ -32,7 +33,7 @@ async function onScan() {
   selectedPaths.value.clear();
 
   try {
-    const res = await filesApi.scanLocalDir(trimmed, { recursive: recursive.value });
+    const res = await filesApi.scanLocalDir(trimmed, { recursive: recursive.value, useThumbnail: useThumbnail.value });
     scannedItems.value = res.items;
 
     // 미등록 파일만 자동 선택
@@ -128,6 +129,7 @@ function formatSize(bytes: number): string {
             @keyup.enter="onScan"
           />
           <q-checkbox v-model="recursive" label="하위 폴더" dense />
+          <q-checkbox v-model="useThumbnail" label="썸네일 표시" dense />
           <q-btn
             label="스캔"
             color="primary"
