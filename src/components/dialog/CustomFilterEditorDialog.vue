@@ -3,12 +3,17 @@ import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import type { CustomFilter } from 'src/apis/customFiltersApi';
 import * as customFiltersApi from 'src/apis/customFiltersApi';
 import type { ParamFieldDef } from 'src/constants/imgPrc';
+import type { AppNode } from 'src/types/flowTypes';
+import CustomFilterPreviewPanel from './CustomFilterPreviewPanel.vue';
 
 const show = defineModel<boolean>({ required: true });
 
 const props = defineProps<{
   customFilter?: CustomFilter;
+  canvasNodes?: AppNode[];
 }>();
+
+const showPreviewPanel = ref(false);
 
 const emit = defineEmits<{
   (e: 'saved', filter: CustomFilter): void;
@@ -99,12 +104,28 @@ async function onSave() {
 </script>
 
 <template>
-  <q-dialog class="custom-filter-editor-dialog" v-model="show" maximized transition-show="slide-up" transition-hide="slide-down">
+  <q-dialog
+    class="custom-filter-editor-dialog"
+    v-model="show"
+    maximized
+    transition-show="slide-up"
+    transition-hide="slide-down"
+  >
     <q-card class="column">
       <!-- 헤더 -->
       <q-card-section class="row items-center q-pb-none">
         <div class="text-h6">{{ isEditing ? '커스텀 필터 수정' : '커스텀 필터 생성' }}</div>
         <q-space />
+        <q-btn
+          flat
+          round
+          dense
+          icon="science"
+          :color="showPreviewPanel ? 'primary' : undefined"
+          @click="showPreviewPanel = !showPreviewPanel"
+        >
+          <q-tooltip>테스트 미리보기</q-tooltip>
+        </q-btn>
         <q-btn v-close-popup flat round dense icon="close" />
       </q-card-section>
 
@@ -114,137 +135,168 @@ async function onSave() {
         <q-input v-model="description" label="설명 (선택)" outlined dense class="col" />
       </q-card-section>
 
-      <!-- 코드 에디터 -->
-      <q-card-section class="column q-py-none" style="flex: 1 1 60%; min-height: 200px">
-        <pre
-          class="fn-signature q-mb-xs"
-          style="flex-shrink: 0"
-        ><span class="text-grey-6"># 사용 가능 모듈: cv2, np (numpy), math</span>
+      <!-- 본문: 좌우 분할 -->
+      <div class="row col" style="min-height: 0; overflow: hidden">
+        <!-- 왼쪽: 코드 에디터 + 파라미터 정의 -->
+        <div
+          :class="showPreviewPanel ? 'col-7' : 'col-12'"
+          class="column"
+          style="min-height: 0; transition: all 0.3s ease"
+        >
+          <!-- 코드 에디터 -->
+          <q-card-section class="column q-py-none" style="flex: 1 1 60%; min-height: 200px">
+            <pre
+              class="fn-signature q-mb-xs"
+              style="flex-shrink: 0"
+            ><span class="text-grey-6"># 사용 가능 모듈: cv2, np (numpy), math</span>
 def <strong>{{ nm.trim() || 'filter_name' }}</strong>(image: np.ndarray, params: dict) -> np.ndarray:
     <span class="text-grey-6"># image : BGR uint8 원본 이미지</span>
     <span class="text-grey-6"># params: 파라미터 dict — params.get('key', default)</span>
-    <span class="text-grey-6"># return: result (np.ndarray, uint8)</span></pre>
-        <div class="editor-wrapper col" @keydown.stop>
-          <VueMonacoEditor
-            v-model:value="code"
-            language="python"
-            theme="vs"
-            @mount="onEditorMount"
-            :options="{
-              minimap: { enabled: false },
-              fontSize: 14,
-              lineNumbers: 'on',
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-              tabSize: 4,
-            }"
-          />
+    <span class="text-grey-6"># return: result (np.ndarray, uint8)</span>
+    <span class="text-grey-6"># result에 반환값을 대입해주세요 return문 금지</span></pre>
+            <div class="editor-wrapper col" @keydown.stop>
+              <VueMonacoEditor
+                v-model:value="code"
+                language="python"
+                theme="vs"
+                @mount="onEditorMount"
+                :options="{
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  lineNumbers: 'on',
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                  tabSize: 4,
+                }"
+              />
+            </div>
+          </q-card-section>
+
+          <!-- 파라미터 정의 -->
+          <q-card-section
+            class="q-py-sm"
+            style="max-height: 250px; overflow-y: auto; flex-shrink: 0"
+          >
+            <div class="row items-center q-mb-xs">
+              <div class="text-subtitle2">파라미터 정의</div>
+              <q-space />
+              <q-btn
+                flat
+                dense
+                size="sm"
+                icon="add"
+                label="추가"
+                color="primary"
+                @click="addParamDef"
+              />
+            </div>
+
+            <q-markup-table
+              v-if="paramDefs.length > 0"
+              flat
+              bordered
+              dense
+              separator="cell"
+              class="param-table"
+            >
+              <thead>
+                <tr>
+                  <th>key</th>
+                  <th>label</th>
+                  <th>type</th>
+                  <th>default</th>
+                  <th>min</th>
+                  <th>max</th>
+                  <th>step</th>
+                  <th style="width: 40px"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(p, idx) in paramDefs" :key="idx">
+                  <td><q-input v-model="p.key" dense borderless input-class="text-caption" /></td>
+                  <td><q-input v-model="p.label" dense borderless input-class="text-caption" /></td>
+                  <td>
+                    <q-select
+                      v-model="p.type"
+                      :options="['number', 'select']"
+                      dense
+                      borderless
+                      options-dense
+                      class="text-caption"
+                    />
+                  </td>
+                  <td>
+                    <q-input
+                      v-model.number="p.default"
+                      type="number"
+                      dense
+                      borderless
+                      input-class="text-caption"
+                    />
+                  </td>
+                  <td>
+                    <q-input
+                      v-model.number="p.min"
+                      type="number"
+                      dense
+                      borderless
+                      input-class="text-caption"
+                    />
+                  </td>
+                  <td>
+                    <q-input
+                      v-model.number="p.max"
+                      type="number"
+                      dense
+                      borderless
+                      input-class="text-caption"
+                    />
+                  </td>
+                  <td>
+                    <q-input
+                      v-model.number="p.step"
+                      type="number"
+                      dense
+                      borderless
+                      input-class="text-caption"
+                    />
+                  </td>
+                  <td class="text-center">
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      size="xs"
+                      icon="delete"
+                      color="negative"
+                      @click="removeParamDef(idx)"
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </q-markup-table>
+
+            <div v-else class="text-caption text-grey-5 text-center q-pa-sm">
+              파라미터가 없습니다
+            </div>
+          </q-card-section>
         </div>
-      </q-card-section>
 
-      <!-- 파라미터 정의 -->
-      <q-card-section class="q-py-sm" style="max-height: 250px; overflow-y: auto; flex-shrink: 0">
-        <div class="row items-center q-mb-xs">
-          <div class="text-subtitle2">파라미터 정의</div>
-          <q-space />
-          <q-btn
-            flat
-            dense
-            size="sm"
-            icon="add"
-            label="추가"
-            color="primary"
-            @click="addParamDef"
-          />
-        </div>
-
-        <q-markup-table
-          v-if="paramDefs.length > 0"
-          flat
-          bordered
-          dense
-          separator="cell"
-          class="param-table"
-        >
-          <thead>
-            <tr>
-              <th>key</th>
-              <th>label</th>
-              <th>type</th>
-              <th>default</th>
-              <th>min</th>
-              <th>max</th>
-              <th>step</th>
-              <th style="width: 40px"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(p, idx) in paramDefs" :key="idx">
-              <td><q-input v-model="p.key" dense borderless input-class="text-caption" /></td>
-              <td><q-input v-model="p.label" dense borderless input-class="text-caption" /></td>
-              <td>
-                <q-select
-                  v-model="p.type"
-                  :options="['number', 'select']"
-                  dense
-                  borderless
-                  options-dense
-                  class="text-caption"
-                />
-              </td>
-              <td>
-                <q-input
-                  v-model.number="p.default"
-                  type="number"
-                  dense
-                  borderless
-                  input-class="text-caption"
-                />
-              </td>
-              <td>
-                <q-input
-                  v-model.number="p.min"
-                  type="number"
-                  dense
-                  borderless
-                  input-class="text-caption"
-                />
-              </td>
-              <td>
-                <q-input
-                  v-model.number="p.max"
-                  type="number"
-                  dense
-                  borderless
-                  input-class="text-caption"
-                />
-              </td>
-              <td>
-                <q-input
-                  v-model.number="p.step"
-                  type="number"
-                  dense
-                  borderless
-                  input-class="text-caption"
-                />
-              </td>
-              <td class="text-center">
-                <q-btn
-                  flat
-                  round
-                  dense
-                  size="xs"
-                  icon="delete"
-                  color="negative"
-                  @click="removeParamDef(idx)"
-                />
-              </td>
-            </tr>
-          </tbody>
-        </q-markup-table>
-
-        <div v-else class="text-caption text-grey-5 text-center q-pa-sm">파라미터가 없습니다</div>
-      </q-card-section>
+        <!-- 오른쪽: 테스트 미리보기 패널 -->
+        <transition name="slide-right">
+          <div
+            v-if="showPreviewPanel"
+            class="col-5 q-pa-sm"
+            style="min-height: 0; overflow-y: auto"
+          >
+            <CustomFilterPreviewPanel
+              :code="code"
+              :param-defs="paramDefs"
+              :canvas-nodes="props.canvasNodes"
+            />
+          </div>
+        </transition>
+      </div>
 
       <!-- 하단 버튼 -->
       <q-card-actions align="right" class="q-px-md q-pb-md">
@@ -286,5 +338,17 @@ def <strong>{{ nm.trim() || 'filter_name' }}</strong>(image: np.ndarray, params:
 .param-table th,
 .param-table td {
   padding: 2px 4px;
+}
+
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+.slide-right-enter-from,
+.slide-right-leave-to {
+  max-width: 0;
+  opacity: 0;
+  padding: 0;
 }
 </style>

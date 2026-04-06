@@ -54,3 +54,23 @@ export async function testCustomFilter(
   });
   return res.data;
 }
+
+export async function previewCustomFilter(
+  code: string,
+  image: File | Blob,
+  parameters?: Record<string, unknown>,
+): Promise<Blob> {
+  const form = new FormData();
+  form.append('code', code);
+  form.append('image', image);
+  if (parameters) {
+    form.append('parameters', JSON.stringify(parameters));
+  }
+
+  const res = await api.post<Blob>('/custom-filters/preview', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    responseType: 'blob',
+    _skipNotify: true,
+  });
+  return res.data;
+}

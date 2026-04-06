@@ -673,6 +673,7 @@ async function onSelectProcess(process: ProcessRes) {
     <CustomFilterEditorDialog
       v-model="showCustomFilterEditor"
       :custom-filter="editingCustomFilter"
+      :canvas-nodes="nodes"
       @saved="onCustomFilterSaved"
     />
 

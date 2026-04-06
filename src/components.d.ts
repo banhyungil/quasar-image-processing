@@ -16,6 +16,7 @@ declare module 'vue' {
     CropDialog: typeof import('./components/dialog/CropDialog.vue')['default']
     CropListPanel: typeof import('./components/sidebar/CropListPanel.vue')['default']
     CustomFilterEditorDialog: typeof import('./components/dialog/CustomFilterEditorDialog.vue')['default']
+    CustomFilterPreviewPanel: typeof import('./components/dialog/CustomFilterPreviewPanel.vue')['default']
     EssentialLink: typeof import('./components/EssentialLink.vue')['default']
     FilterListPanel: typeof import('./components/sidebar/FilterListPanel.vue')['default']
     FilterNode: typeof import('./components/flow/FilterNode.vue')['default']

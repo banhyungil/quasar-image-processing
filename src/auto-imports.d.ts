@@ -66,6 +66,7 @@ declare global {
   const useCropManager: typeof import('./composables/useCropManager').useCropManager
   const useCssModule: typeof import('vue').useCssModule
   const useCssVars: typeof import('vue').useCssVars
+  const useCustomFilterPreview: typeof import('./composables/useCustomFilterPreview').useCustomFilterPreview
   const useFilterGraph: typeof import('./composables/useFilterGraph').useFilterGraph
   const useId: typeof import('vue').useId
   const useLink: typeof import('vue-router').useLink
@@ -96,6 +97,9 @@ declare global {
   // @ts-ignore
   export type { CropItem } from './composables/useCropManager'
   import('./composables/useCropManager')
+  // @ts-ignore
+  export type { ImageSourceType, CanvasImageOption } from './composables/useCustomFilterPreview'
+  import('./composables/useCustomFilterPreview')
   // @ts-ignore
   export type { FilterGraphCallbacks } from './composables/useFilterGraph'
   import('./composables/useFilterGraph')

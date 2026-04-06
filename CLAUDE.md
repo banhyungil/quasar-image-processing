@@ -36,6 +36,7 @@
 - `npx vue-tsc --noEmit`를 실행하여 0 errors를 확인할 것
 - 코드 수정 후에는 Notion에 정리한다.
   - 문서 수정은 제외하고 기록
+- 기능 추가인 경우 vitest, e2e 테스트 추가할 것이 있느지 검토하고 추가한다
 
 ### Notion 정리 지침
 

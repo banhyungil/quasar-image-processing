@@ -9,6 +9,14 @@ declare module 'vue' {
   }
 }
 
+// Moduel Augmentation (모듈 확장)
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    /** true 시 응답 에러 인터셉터의 글로벌 Notify 알림을 생략하고, 호출부에서 직접 에러를 처리한다. */
+    _skipNotify?: boolean;
+  }
+}
+
 // Be careful when using SSR for cross-request state pollution
 // due to creating a Singleton instance here;
 // If any client changes this (global) instance, it might be a
@@ -31,6 +39,11 @@ api.interceptors.response.use(
   (err: AxiosError<AppErrorRes>) => {
     // abort된 요청은 알림 없이 무시
     if (axios.isCancel(err)) {
+      return Promise.reject(err);
+    }
+
+    // _skipNotify 플래그가 있으면 글로벌 알림 생략
+    if (err.config?._skipNotify) {
       return Promise.reject(err);
     }
 
