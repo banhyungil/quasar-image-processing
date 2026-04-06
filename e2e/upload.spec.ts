@@ -1,9 +1,5 @@
 import { test, expect } from '@playwright/test';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const TEST_IMAGE = path.join(__dirname, 'fixtures/test.png');
+import { TEST_IMAGE } from './config';
 
 // ── 파일 업로드 ──────────────────────────────────────────────────────────────
 
