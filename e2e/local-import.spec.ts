@@ -1,8 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { TEST_IMAGE_DIR } from './config';
 
 /** ImageGalleryDialog → LocalImportDialog 열기 헬퍼 */
-async function openLocalImportDialog(page: import('@playwright/test').Page) {
+async function openLocalImportDialog(page: Page) {
   await page.goto('/');
 
   // SourceNode 클릭 → 갤러리 다이얼로그 열기
