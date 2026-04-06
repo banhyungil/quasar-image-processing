@@ -1,9 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const TEST_IMAGE = path.join(__dirname, 'fixtures/test.png');
+import { TEST_IMAGE } from './config';
 
 /** 이미지 업로드 후 캔버스 준비 헬퍼 */
 async function setupCanvas(page: Page) {
