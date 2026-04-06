@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { v4 as uuidv4 } from 'uuid';
 
-const TEST_FILTER_NAME = `e2e-test-${Date.now()}`;
+const TEST_FILTER_NAME = `e2e-test-${uuidv4().slice(0, 8)}`;
 
 // ── 커스텀 필터 CRUD ─────────────────────────────────────────────────────
 
@@ -60,7 +61,9 @@ test.describe.serial('커스텀 필터 CRUD', () => {
     await page.locator('.q-tab').filter({ hasText: '필터' }).click();
 
     // 삭제 버튼
-    const filterCard = page.locator('.filter-card').filter({ hasText: `${TEST_FILTER_NAME}-edited` });
+    const filterCard = page
+      .locator('.filter-card')
+      .filter({ hasText: `${TEST_FILTER_NAME}-edited` });
     await expect(filterCard).toBeVisible();
     await filterCard.locator('button').filter({ hasText: 'delete' }).click();
 
